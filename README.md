@@ -66,11 +66,11 @@ Sistema de gestión de inventario inspirado en Mouser Electronics, desarrollado 
 
 ### Requisitos
 - PHP 8.1 o superior
-- MySQL 5.7 o superior
+- MySQL 5.7 o superior (opcional - funciona con datos de demo)
 - Composer
 - Servidor web (Apache/Nginx)
 
-### Pasos de Instalación
+### Instalación Local
 
 1. **Clonar el repositorio**
 ```bash
@@ -89,7 +89,7 @@ cp env.example .env
 # Editar .env con tus configuraciones
 ```
 
-4. **Crear base de datos**
+4. **Crear base de datos** (opcional)
 ```bash
 mysql -u root -p < database/schema.sql
 ```
@@ -102,6 +102,33 @@ mysql -u root -p < database/schema.sql
 ```bash
 php -S localhost:8080 -t public/
 ```
+
+### Despliegue en Render
+
+1. **Conectar repositorio GitHub**
+   - Ir a [render.com](https://render.com)
+   - Conectar tu repositorio GitHub
+   - Seleccionar el repositorio `inventory-system`
+
+2. **Configurar el servicio**
+   - **Tipo**: Web Service
+   - **Lenguaje**: PHP
+   - **Build Command**: `composer install --no-dev --optimize-autoloader`
+   - **Start Command**: `php -S 0.0.0.0:$PORT -t public`
+
+3. **Variables de entorno** (en Render Dashboard)
+   ```
+   APP_ENV=production
+   APP_DEBUG=false
+   JWT_SECRET=tu-clave-secreta-jwt-muy-segura
+   APP_URL=https://tu-app.onrender.com
+   ```
+
+4. **Desplegar**
+   - Render automáticamente instalará las dependencias y desplegará la app
+   - La URL será: `https://tu-app.onrender.com`
+
+**Nota**: El sistema funciona completamente sin base de datos usando datos de demostración.
 
 ## Estructura del Proyecto
 

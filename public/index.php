@@ -2,7 +2,24 @@
 /**
  * Sistema de Inventario - Versión Simplificada sin Base de Datos
  * Funciona completamente con datos de ejemplo
+ * Compatible con Render.com y otros servicios de hosting
  */
+
+// Configurar headers básicos para producción
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+
+// Detectar si estamos en producción (Render)
+$isProduction = getenv('APP_ENV') === 'production' || getenv('RENDER');
+
+// Headers para CORS y seguridad
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: DENY');
+header('X-XSS-Protection: 1; mode=block');
+
+if ($isProduction) {
+    header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+}
 
 // Datos de ejemplo en memoria
 $sampleData = [
@@ -197,7 +214,11 @@ if (strpos($path, '/api/') === 0) {
                 'status' => 'ok',
                 'timestamp' => date('Y-m-d H:i:s'),
                 'version' => '1.0.0',
-                'mode' => 'demo'
+                'mode' => $isProduction ? 'production' : 'demo',
+                'environment' => getenv('APP_ENV') ?: 'development',
+                'server' => $_SERVER['SERVER_SOFTWARE'] ?? 'PHP Built-in Server',
+                'php_version' => PHP_VERSION,
+                'render' => getenv('RENDER') ? 'true' : 'false'
             ]);
             break;
             

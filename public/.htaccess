@@ -1,6 +1,12 @@
 RewriteEngine On
 
-# Handle all requests through the simple index
+# Handle API requests first
+RewriteCond %{REQUEST_URI} ^/api/(.*)$
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^(.*)$ index-simple.php [QSA,L]
+RewriteRule ^api/(.*)$ index.php [QSA,L]
+
+# Handle all other requests through the main index
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php [QSA,L]
