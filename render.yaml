@@ -4,12 +4,11 @@ services:
     env: php
     buildCommand: composer install --no-dev --optimize-autoloader
     startCommand: php -S 0.0.0.0:$PORT -t public
+    healthCheckPath: /api/health
     envVars:
       - key: APP_ENV
         value: production
       - key: APP_DEBUG
         value: false
-      - key: DATABASE_URL
-        sync: false
       - key: JWT_SECRET
         generateValue: true
