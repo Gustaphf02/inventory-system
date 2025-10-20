@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Inventario</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js" rel="preload">
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            transition: all 0.3s;
+        }
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            color: white;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+        }
+        .main-content {
+            background-color: #f8f9fa;
+            min-height: 100vh;
+        }
+        .card {
+            border: none;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            transition: box-shadow 0.15s ease-in-out;
+        }
+        .card:hover {
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .stat-card .stat-icon {
+            font-size: 2.5rem;
+            opacity: 0.8;
+        }
+        .table-responsive {
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+        }
+        .search-box {
+            position: relative;
+        }
+        .search-box .search-icon {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+        }
+        .badge-status {
+            font-size: 0.75rem;
+            padding: 0.375rem 0.75rem;
+        }
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="container-fluid">
+            <div class="row">
+                <!-- Sidebar -->
+                <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse">
+                    <div class="position-sticky pt-3">
+                        <div class="text-center mb-4">
+                            <h4 class="text-white">
+                                <i class="fas fa-warehouse me-2"></i>
+                                Inventario
+                            </h4>
+                        </div>
+                        
+                        <ul class="nav flex-column">
+                            <li class="nav-item">
+                                <a class="nav-link" :class="{active: currentView === 'dashboard'}" @click="setView('dashboard')">
+                                    <i class="fas fa-tachometer-alt me-2"></i>
+                                    Dashboard
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" :class="{active: currentView === 'products'}" @click="setView('products')">
+                                    <i class="fas fa-boxes me-2"></i>
+                                    Productos
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" :class="{active: currentView === 'categories'}" @click="setView('categories')">
+                                    <i class="fas fa-tags me-2"></i>
+                                    Categorías
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" :class="{active: currentView === 'suppliers'}" @click="setView('suppliers')">
+                                    <i class="fas fa-truck me-2"></i>
+                                    Proveedores
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" :class="{active: currentView === 'reports'}" @click="setView('reports')">
+                                    <i class="fas fa-chart-bar me-2"></i>
+                                    Reportes
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" :class="{active: currentView === 'settings'}" @click="setView('settings')">
+                                    <i class="fas fa-cog me-2"></i>
+                                    Configuración
+                                </a>
+                            </li>
+                        </ul>
+                        
+                        <hr class="text-white">
+                        
+                        <div class="text-center">
+                            <small class="text-white-50">
+                                Usuario: {{ user.name || 'Admin' }}<br>
+                                <button class="btn btn-sm btn-outline-light mt-2" @click="logout">
+                                    <i class="fas fa-sign-out-alt me-1"></i>
+                                    Cerrar Sesión
+                                </button>
+                            </small>
+                        </div>
+                    </div>
+                </nav>
+
+                <!-- Main content -->
+                <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
+                    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                        <h1 class="h2">{{ getPageTitle() }}</h1>
+                        <div class="btn-toolbar mb-2 mb-md-0">
+                            <div class="btn-group me-2">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" @click="refreshData">
+                                    <i class="fas fa-sync-alt"></i>
+                                    Actualizar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dashboard View -->
+                    <div v-if="currentView === 'dashboard'">
+                        <!-- Statistics Cards -->
+                        <div class="row mb-4">
+                            <div class="col-xl-3 col-md-6 mb-4">
+                                <div class="card stat-card">
+                                    <div class="card-body">
+                                        <div class="row no-gutters align-items-center">
+                                            <div class="col mr-2">
+                                                <div class="text-xs font-weight-bold text-uppercase mb-1">
+                                                    Total Productos
+                                                </div>
+                                                <div class="h5 mb-0 font-weight-bold">{{ stats.totalProducts || 0 }}</div>
+                                            </div>
+                                            <div class="col-auto">
+                                                <i class="fas fa-boxes stat-icon"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-xl-3 col-md-6 mb-4">
+                                <div class="card stat-card">
+                                    <div class="card-body">
+                                        <div class="row no-gutters align-items-center">
+                                            <div class="col mr-2">
+                                                <div class="text-xs font-weight-bold text-uppercase mb-1">
+                                                    Valor Total
+                                                </div>
+                                                <div class="h5 mb-0 font-weight-bold">${{ formatNumber(stats.totalValue || 0) }}</div>
+                                            </div>
+                                            <div class="col-auto">
+                                                <i class="fas fa-dollar-sign stat-icon"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-xl-3 col-md-6 mb-4">
+                                <div class="card stat-card">
+                                    <div class="card-body">
+                                        <div class="row no-gutters align-items-center">
+                                            <div class="col mr-2">
+                                                <div class="text-xs font-weight-bold text-uppercase mb-1">
+                                                    Stock Bajo
+                                                </div>
+                                                <div class="h5 mb-0 font-weight-bold">{{ stats.lowStockProducts || 0 }}</div>
+                                            </div>
+                                            <div class="col-auto">
+                                                <i class="fas fa-exclamation-triangle stat-icon"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-xl-3 col-md-6 mb-4">
+                                <div class="card stat-card">
+                                    <div class="card-body">
+                                        <div class="row no-gutters align-items-center">
+                                            <div class="col mr-2">
+                                                <div class="text-xs font-weight-bold text-uppercase mb-1">
+                                                    Proveedores
+                                                </div>
+                                                <div class="h5 mb-0 font-weight-bold">{{ stats.totalSuppliers || 0 }}</div>
+                                            </div>
+                                            <div class="col-auto">
+                                                <i class="fas fa-truck stat-icon"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Products -->
+                        <div class="row">
+                            <div class="col-lg-8">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="card-title mb-0">
+                                            <i class="fas fa-boxes me-2"></i>
+                                            Productos Recientes
+                                        </h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="table-responsive">
+                                            <table class="table table-hover">
+                                                <thead>
+                                                    <tr>
+                                                        <th>SKU</th>
+                                                        <th>Nombre</th>
+                                                        <th>Stock</th>
+                                                        <th>Precio</th>
+                                                        <th>Estado</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr v-for="product in recentProducts" :key="product.id">
+                                                        <td>
+                                                            <code>{{ product.sku }}</code>
+                                                        </td>
+                                                        <td>{{ product.name }}</td>
+                                                        <td>
+                                                            <span class="badge" :class="getStockBadgeClass(product.stock_quantity, product.min_stock_level)">
+                                                                {{ product.stock_quantity }}
+                                                            </span>
+                                                        </td>
+                                                        <td>${{ formatNumber(product.price) }}</td>
+                                                        <td>
+                                                            <span class="badge badge-status" :class="getStatusBadgeClass(product.stock_quantity, product.min_stock_level)">
+                                                                {{ getStatusText(product.stock_quantity, product.min_stock_level) }}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-lg-4">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="card-title mb-0">
+                                            <i class="fas fa-exclamation-triangle me-2"></i>
+                                            Stock Bajo
+                                        </h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div v-if="lowStockProducts.length === 0" class="text-center text-muted">
+                                            <i class="fas fa-check-circle fa-3x mb-3"></i>
+                                            <p>¡Excelente! No hay productos con stock bajo.</p>
+                                        </div>
+                                        <div v-else>
+                                            <div v-for="product in lowStockProducts" :key="product.id" class="d-flex justify-content-between align-items-center mb-2">
+                                                <div>
+                                                    <strong>{{ product.name }}</strong><br>
+                                                    <small class="text-muted">{{ product.sku }}</small>
+                                                </div>
+                                                <div class="text-end">
+                                                    <span class="badge bg-danger">{{ product.stock_quantity }}</span><br>
+                                                    <small class="text-muted">Mín: {{ product.min_stock_level }}</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Products View -->
+                    <div v-if="currentView === 'products'">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="card-title mb-0">
+                                    <i class="fas fa-boxes me-2"></i>
+                                    Gestión de Productos
+                                </h5>
+                                <button class="btn btn-primary" @click="showAddProductModal = true">
+                                    <i class="fas fa-plus me-1"></i>
+                                    Nuevo Producto
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <!-- Search and Filters -->
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <div class="search-box">
+                                            <input type="text" class="form-control" placeholder="Buscar productos..." v-model="searchQuery" @input="searchProducts">
+                                            <i class="fas fa-search search-icon"></i>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <select class="form-select" v-model="selectedCategory" @change="filterProducts">
+                                            <option value="">Todas las categorías</option>
+                                            <option v-for="category in categories" :key="category.id" :value="category.id">
+                                                {{ category.name }}
+                                            </option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <select class="form-select" v-model="selectedSupplier" @change="filterProducts">
+                                            <option value="">Todos los proveedores</option>
+                                            <option v-for="supplier in suppliers" :key="supplier.id" :value="supplier.id">
+                                                {{ supplier.name }}
+                                            </option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Products Table -->
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>SKU</th>
+                                                <th>Nombre</th>
+                                                <th>Categoría</th>
+                                                <th>Proveedor</th>
+                                                <th>Stock</th>
+                                                <th>Precio</th>
+                                                <th>Estado</th>
+                                                <th>Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr v-for="product in filteredProducts" :key="product.id">
+                                                <td>
+                                                    <code>{{ product.sku }}</code>
+                                                </td>
+                                                <td>{{ product.name }}</td>
+                                                <td>{{ product.category_name || 'Sin categoría' }}</td>
+                                                <td>{{ product.supplier_name || 'Sin proveedor' }}</td>
+                                                <td>
+                                                    <span class="badge" :class="getStockBadgeClass(product.stock_quantity, product.min_stock_level)">
+                                                        {{ product.stock_quantity }}
+                                                    </span>
+                                                </td>
+                                                <td>${{ formatNumber(product.price) }}</td>
+                                                <td>
+                                                    <span class="badge badge-status" :class="getStatusBadgeClass(product.stock_quantity, product.min_stock_level)">
+                                                        {{ getStatusText(product.stock_quantity, product.min_stock_level) }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm">
+                                                        <button class="btn btn-outline-primary" @click="editProduct(product)">
+                                                            <i class="fas fa-edit"></i>
+                                                        </button>
+                                                        <button class="btn btn-outline-info" @click="viewProduct(product)">
+                                                            <i class="fas fa-eye"></i>
+                                                        </button>
+                                                        <button class="btn btn-outline-danger" @click="deleteProduct(product)">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Loading Overlay -->
+                    <div v-if="loading" class="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style="background-color: rgba(0,0,0,0.5); z-index: 9999;">
+                        <div class="text-center text-white">
+                            <div class="loading-spinner mb-3"></div>
+                            <p>Cargando...</p>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    currentView: 'dashboard',
+                    loading: false,
+                    user: {
+                        name: 'Admin User',
+                        email: 'admin@inventory.com'
+                    },
+                    stats: {
+                        totalProducts: 0,
+                        totalValue: 0,
+                        lowStockProducts: 0,
+                        totalSuppliers: 0
+                    },
+                    products: [],
+                    filteredProducts: [],
+                    recentProducts: [],
+                    lowStockProducts: [],
+                    categories: [],
+                    suppliers: [],
+                    searchQuery: '',
+                    selectedCategory: '',
+                    selectedSupplier: '',
+                    showAddProductModal: false
+                }
+            },
+            mounted() {
+                this.loadDashboardData();
+                this.loadProducts();
+                this.loadCategories();
+                this.loadSuppliers();
+            },
+            methods: {
+                setView(view) {
+                    this.currentView = view;
+                    if (view === 'products') {
+                        this.loadProducts();
+                    }
+                },
+                
+                getPageTitle() {
+                    const titles = {
+                        'dashboard': 'Dashboard',
+                        'products': 'Productos',
+                        'categories': 'Categorías',
+                        'suppliers': 'Proveedores',
+                        'reports': 'Reportes',
+                        'settings': 'Configuración'
+                    };
+                    return titles[this.currentView] || 'Sistema de Inventario';
+                },
+
+                async loadDashboardData() {
+                    this.loading = true;
+                    try {
+                        const response = await fetch('/api/reports/dashboard/stats');
+                        const data = await response.json();
+                        if (data.success) {
+                            this.stats = data.data;
+                        }
+                    } catch (error) {
+                        console.error('Error loading dashboard data:', error);
+                    }
+                    this.loading = false;
+                },
+
+                async loadProducts() {
+                    this.loading = true;
+                    try {
+                        const response = await fetch('/api/products');
+                        const data = await response.json();
+                        if (data.success) {
+                            this.products = data.data;
+                            this.filteredProducts = data.data;
+                            this.recentProducts = data.data.slice(0, 10);
+                        }
+                    } catch (error) {
+                        console.error('Error loading products:', error);
+                    }
+                    this.loading = false;
+                },
+
+                async loadCategories() {
+                    try {
+                        const response = await fetch('/api/categories');
+                        const data = await response.json();
+                        if (data.success) {
+                            this.categories = data.data;
+                        }
+                    } catch (error) {
+                        console.error('Error loading categories:', error);
+                    }
+                },
+
+                async loadSuppliers() {
+                    try {
+                        const response = await fetch('/api/suppliers');
+                        const data = await response.json();
+                        if (data.success) {
+                            this.suppliers = data.data;
+                        }
+                    } catch (error) {
+                        console.error('Error loading suppliers:', error);
+                    }
+                },
+
+                searchProducts() {
+                    if (!this.searchQuery) {
+                        this.filteredProducts = this.products;
+                        return;
+                    }
+                    
+                    const query = this.searchQuery.toLowerCase();
+                    this.filteredProducts = this.products.filter(product => 
+                        product.name.toLowerCase().includes(query) ||
+                        product.sku.toLowerCase().includes(query) ||
+                        product.description.toLowerCase().includes(query)
+                    );
+                },
+
+                filterProducts() {
+                    let filtered = this.products;
+                    
+                    if (this.selectedCategory) {
+                        filtered = filtered.filter(product => product.category_id == this.selectedCategory);
+                    }
+                    
+                    if (this.selectedSupplier) {
+                        filtered = filtered.filter(product => product.supplier_id == this.selectedSupplier);
+                    }
+                    
+                    this.filteredProducts = filtered;
+                },
+
+                refreshData() {
+                    this.loadDashboardData();
+                    this.loadProducts();
+                },
+
+                getStockBadgeClass(stock, minStock) {
+                    if (stock <= minStock) return 'bg-danger';
+                    if (stock <= minStock * 2) return 'bg-warning';
+                    return 'bg-success';
+                },
+
+                getStatusBadgeClass(stock, minStock) {
+                    if (stock <= minStock) return 'bg-danger';
+                    if (stock <= minStock * 2) return 'bg-warning';
+                    return 'bg-success';
+                },
+
+                getStatusText(stock, minStock) {
+                    if (stock <= minStock) return 'Stock Bajo';
+                    if (stock <= minStock * 2) return 'Stock Medio';
+                    return 'En Stock';
+                },
+
+                formatNumber(number) {
+                    return new Intl.NumberFormat('es-MX').format(number);
+                },
+
+                editProduct(product) {
+                    console.log('Edit product:', product);
+                    // Implementar modal de edición
+                },
+
+                viewProduct(product) {
+                    console.log('View product:', product);
+                    // Implementar modal de visualización
+                },
+
+                deleteProduct(product) {
+                    if (confirm(`¿Estás seguro de eliminar el producto "${product.name}"?`)) {
+                        console.log('Delete product:', product);
+                        // Implementar eliminación
+                    }
+                },
+
+                logout() {
+                    if (confirm('¿Estás seguro de cerrar sesión?')) {
+                        localStorage.removeItem('token');
+                        window.location.href = '/login.html';
+                    }
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
