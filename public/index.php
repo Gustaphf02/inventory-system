@@ -1,4 +1,5 @@
 <?php
+session_start();
 /**
  * Sistema de Inventario - Versión Simplificada sin Base de Datos
  * Funciona completamente con datos de ejemplo
@@ -279,6 +280,11 @@ if (strpos($path, '/api/') === 0) {
             break;
     }
 } else {
+    // Proteger SPA principal: si no está logueado, ir a login
+    if (!isset($_SESSION['user'])) {
+        header('Location: /login.php');
+        exit;
+    }
     // Si no es API, mostrar la página HTML principal
     include 'index.html';
 }

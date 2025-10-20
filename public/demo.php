@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/.auth.php';
 /**
  * Sistema de Inventario - Página de Prueba
  * Esta página muestra datos de ejemplo sin necesidad de base de datos

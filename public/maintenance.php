@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/.auth.php';
 /**
  * Sistema de Inventario - Respaldo y Mantenimiento
  * Gestión completa de respaldos, logs y mantenimiento del sistema

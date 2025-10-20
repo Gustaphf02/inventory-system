@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/.auth.php';
 /**
  * Sistema de Inventario - Configuración del Sistema
  * Sección completa de configuraciones administrativas

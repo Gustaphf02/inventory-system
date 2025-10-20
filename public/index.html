@@ -127,10 +127,29 @@
                                     Reportes
                                 </a>
                             </li>
+                            <!-- Navegación a páginas PHP reales en Render -->
                             <li class="nav-item">
-                                <a class="nav-link" :class="{active: currentView === 'settings'}" @click="setView('settings')">
+                                <a class="nav-link" href="config.php">
                                     <i class="fas fa-cog me-2"></i>
                                     Configuración
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="users.php">
+                                    <i class="fas fa-users me-2"></i>
+                                    Usuarios
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="maintenance.php">
+                                    <i class="fas fa-tools me-2"></i>
+                                    Mantenimiento
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="demo.php">
+                                    <i class="fas fa-play me-2"></i>
+                                    Demo
                                 </a>
                             </li>
                         </ul>
@@ -612,7 +631,7 @@
                 logout() {
                     if (confirm('¿Estás seguro de cerrar sesión?')) {
                         localStorage.removeItem('token');
-                        window.location.href = '/login.html';
+                        window.location.href = '/demo.php';
                     }
                 }
             }

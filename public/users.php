@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/.auth.php';
 /**
  * Sistema de Inventario - Gestión de Usuarios y Permisos
  * Administración completa de usuarios, roles y permisos
