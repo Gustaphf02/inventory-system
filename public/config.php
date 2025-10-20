@@ -1,5 +1,7 @@
 <?php
 require_once __DIR__ . '/.auth.php';
+// Solo Admin y Manager
+requireRole(['admin','manager']);
 /**
  * Sistema de Inventario - Configuración del Sistema
  * Sección completa de configuraciones administrativas

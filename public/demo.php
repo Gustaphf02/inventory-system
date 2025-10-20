@@ -1,5 +1,7 @@
 <?php
 require_once __DIR__ . '/.auth.php';
+// Demo visible para cualquier usuario autenticado
+requireRole(['admin','manager','employee','viewer']);
 /**
  * Sistema de Inventario - Página de Prueba
  * Esta página muestra datos de ejemplo sin necesidad de base de datos

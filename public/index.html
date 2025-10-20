@@ -158,11 +158,11 @@
                         
                         <div class="text-center">
                             <small class="text-white-50">
-                                Usuario: {{ user.name || 'Admin' }}<br>
-                                <button class="btn btn-sm btn-outline-light mt-2" @click="logout">
+                                Usuario: {{ user.name || 'Usuario' }} ({{ user.role || 'role' }})<br>
+                                <a href="/logout.php" class="btn btn-sm btn-outline-light mt-2">
                                     <i class="fas fa-sign-out-alt me-1"></i>
                                     Cerrar Sesión
-                                </button>
+                                </a>
                             </small>
                         </div>
                     </div>
@@ -628,11 +628,6 @@
                     }
                 },
 
-                logout() {
-                    if (confirm('¿Estás seguro de cerrar sesión?')) {
-                        localStorage.removeItem('token');
-                        window.location.href = '/demo.php';
-                    }
                 }
             }
         }).mount('#app');

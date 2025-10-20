@@ -1,5 +1,7 @@
 <?php
 require_once __DIR__ . '/.auth.php';
+// Admin y Manager
+requireRole(['admin','manager']);
 /**
  * Sistema de Inventario - Respaldo y Mantenimiento
  * Gestión completa de respaldos, logs y mantenimiento del sistema

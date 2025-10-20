@@ -1,5 +1,7 @@
 <?php
 require_once __DIR__ . '/.auth.php';
+// Solo Admin
+requireRole(['admin']);
 /**
  * Sistema de Inventario - Gestión de Usuarios y Permisos
  * Administración completa de usuarios, roles y permisos
