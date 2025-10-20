@@ -127,20 +127,20 @@
                                     Reportes
                                 </a>
                             </li>
-                            <!-- Navegación a páginas PHP reales en Render -->
-                            <li class="nav-item">
+                            <!-- Navegación a páginas PHP reales en Render (visibles según rol) -->
+                            <li class="nav-item" v-if="['admin','manager'].includes(user.role)">
                                 <a class="nav-link" href="config.php">
                                     <i class="fas fa-cog me-2"></i>
                                     Configuración
                                 </a>
                             </li>
-                            <li class="nav-item">
+                            <li class="nav-item" v-if="user.role==='admin'">
                                 <a class="nav-link" href="users.php">
                                     <i class="fas fa-users me-2"></i>
                                     Usuarios
                                 </a>
                             </li>
-                            <li class="nav-item">
+                            <li class="nav-item" v-if="['admin','manager'].includes(user.role)">
                                 <a class="nav-link" href="maintenance.php">
                                     <i class="fas fa-tools me-2"></i>
                                     Mantenimiento
@@ -454,10 +454,7 @@
                 return {
                     currentView: 'dashboard',
                     loading: false,
-                    user: {
-                        name: 'Admin User',
-                        email: 'admin@inventory.com'
-                    },
+                    user: { name: '', email: '', role: '' },
                     stats: {
                         totalProducts: 0,
                         totalValue: 0,
@@ -476,13 +473,25 @@
                     showAddProductModal: false
                 }
             },
-            mounted() {
+            async mounted() {
+                await this.loadSessionUser();
                 this.loadDashboardData();
                 this.loadProducts();
                 this.loadCategories();
                 this.loadSuppliers();
             },
             methods: {
+                async loadSessionUser() {
+                    try {
+                        const res = await fetch('/api/auth/me');
+                        if (res.ok) {
+                            const data = await res.json();
+                            if (data.authenticated) this.user = data.user;
+                        }
+                    } catch (e) {
+                        console.warn('No session user');
+                    }
+                },
                 setView(view) {
                     this.currentView = view;
                     if (view === 'products') {

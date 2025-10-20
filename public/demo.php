@@ -1,7 +1,7 @@
 <?php
-require_once __DIR__ . '/.auth.php';
-// Demo visible para cualquier usuario autenticado
-requireRole(['admin','manager','employee','viewer']);
+// Página pública: no requiere sesión
+// Si hay sesión, se muestra barra para ir al sistema o cerrar sesión
+session_start();
 /**
  * Sistema de Inventario - Página de Prueba
  * Esta página muestra datos de ejemplo sin necesidad de base de datos
