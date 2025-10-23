@@ -1,19 +1,24 @@
 <?php
 session_start();
 
-// Incluir el sistema de logging
-require_once __DIR__ . '/includes/SystemLogger.php';
+// Configurar manejo de errores ANTES de incluir otros archivos
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+error_reporting(0);
+
+try {
+    // Incluir el sistema de logging
+    require_once __DIR__ . '/includes/SystemLogger.php';
+} catch (Exception $e) {
+    // Si hay error con SystemLogger, continuar sin logging
+    error_log('Error loading SystemLogger: ' . $e->getMessage());
+}
 
 /**
  * Sistema de Inventario - Versión Simplificada sin Base de Datos
  * Funciona completamente con datos de ejemplo
  * Compatible con Render.com y otros servicios de hosting
  */
-
-// Configurar headers básicos para producción
-ini_set('display_errors', 0);
-ini_set('log_errors', 1);
-error_reporting(0);
 
 // Detectar si estamos en producción (Render)
 $isProduction = getenv('APP_ENV') === 'production' || getenv('RENDER');
@@ -177,6 +182,18 @@ $sampleData = [
     ]
 ];
 
+// Función helper para logging seguro
+function safeLog($level, $module, $action, $details = '') {
+    try {
+        if (class_exists('SystemLogger')) {
+            SystemLogger::logUserActivity($action, $details);
+        }
+    } catch (Exception $e) {
+        // Si hay error con logging, continuar sin logging
+        error_log('Error logging: ' . $e->getMessage());
+    }
+}
+
 // Función para calcular estadísticas
 function calculateStats($products) {
     $totalProducts = count($products);
@@ -198,23 +215,24 @@ $path = parse_url($requestUri, PHP_URL_PATH);
 
 // Si es una petición API, manejar como JSON
 if (strpos($path, '/api/') === 0) {
-    // Configurar headers para JSON
-    header('Content-Type: application/json');
-    header('Access-Control-Allow-Origin: *');
-    header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-    header('Access-Control-Allow-Headers: Content-Type, Authorization');
-    
-    // Manejar preflight requests
-    if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-        http_response_code(200);
-        exit();
-    }
-    
-    // Remover el prefijo /api
-    $apiPath = substr($path, 4);
-    
-    // Enrutamiento de API
-    switch ($apiPath) {
+    try {
+        // Configurar headers para JSON
+        header('Content-Type: application/json');
+        header('Access-Control-Allow-Origin: *');
+        header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+        header('Access-Control-Allow-Headers: Content-Type, Authorization');
+        
+        // Manejar preflight requests
+        if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+            http_response_code(200);
+            exit();
+        }
+        
+        // Remover el prefijo /api
+        $apiPath = substr($path, 4);
+        
+        // Enrutamiento de API
+        switch ($apiPath) {
         case 'auth/me':
             if (isset($_SESSION['user'])) {
                 echo json_encode([
@@ -244,7 +262,7 @@ if (strpos($path, '/api/') === 0) {
             
         case 'products':
             // Log del acceso a productos
-            SystemLogger::logUserActivity('API_ACCESS', "Consulta de productos");
+            safeLog('INFO', 'API', 'API_ACCESS', "Consulta de productos");
             echo json_encode([
                 'success' => true,
                 'data' => $sampleData['products'],
@@ -254,7 +272,7 @@ if (strpos($path, '/api/') === 0) {
             
         case 'categories':
             // Log del acceso a categorías
-            SystemLogger::logUserActivity('API_ACCESS', "Consulta de categorías");
+            safeLog('INFO', 'API', 'API_ACCESS', "Consulta de categorías");
             echo json_encode([
                 'success' => true,
                 'data' => $sampleData['categories']
@@ -263,7 +281,7 @@ if (strpos($path, '/api/') === 0) {
             
         case 'suppliers':
             // Log del acceso a proveedores
-            SystemLogger::logUserActivity('API_ACCESS', "Consulta de proveedores");
+            safeLog('INFO', 'API', 'API_ACCESS', "Consulta de proveedores");
             echo json_encode([
                 'success' => true,
                 'data' => $sampleData['suppliers']
@@ -304,6 +322,14 @@ if (strpos($path, '/api/') === 0) {
             ]);
             break;
     }
+    } catch (Exception $e) {
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'message' => 'Error interno del servidor',
+            'error' => $e->getMessage()
+        ]);
+    }
 } else {
     // Si no es API
     $pathOnly = trim($path, '/');
@@ -316,7 +342,7 @@ if (strpos($path, '/api/') === 0) {
     
     // Si hay sesión activa, mostrar el sistema principal
     // Log del acceso al sistema
-    SystemLogger::logUserActivity('SYSTEM_ACCESS', "Acceso al sistema principal");
+    safeLog('INFO', 'SYSTEM', 'SYSTEM_ACCESS', "Acceso al sistema principal");
     include 'index.html';
 }
 ?>

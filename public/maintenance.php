@@ -867,7 +867,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Actualizar logs en tiempo real
         function refreshLogs() {
-            fetch('/api/logs-test.php?action=get_logs&limit=50')
+            fetch('/api/logs.php?action=get_logs&limit=50')
                 .then(response => {
                     console.log('Response status:', response.status);
                     console.log('Response headers:', response.headers);
