@@ -867,11 +867,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Actualizar logs en tiempo real
         function refreshLogs() {
-            fetch('/api/logs.php?action=get_logs&limit=50')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        updateLogsTable(data.data);
+            fetch('/api/logs-test.php?action=get_logs&limit=50')
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    console.log('Response headers:', response.headers);
+                    return response.text();
+                })
+                .then(text => {
+                    console.log('Response text:', text);
+                    try {
+                        const data = JSON.parse(text);
+                        if (data.success) {
+                            updateLogsTable(data.data);
+                        }
+                    } catch (e) {
+                        console.error('Error parsing JSON:', e);
+                        console.error('Response was:', text);
                     }
                 })
                 .catch(error => {
