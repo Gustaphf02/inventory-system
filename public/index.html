@@ -415,6 +415,10 @@
                                         <i class="fas fa-sync-alt me-1"></i>
                                         Actualizar
                                     </button>
+                                    <button class="btn btn-outline-primary" @click="searchInventory">
+                                        <i class="fas fa-search me-1"></i>
+                                        Buscar
+                                    </button>
                                 </div>
                             </div>
                             <div class="card-body">
@@ -542,7 +546,7 @@
                                     <i class="fas fa-boxes me-2"></i>
                                     Gestión de Productos
                                 </h5>
-                                <button class="btn btn-primary mt-2 mt-md-0" @click="showAddProductModal = true">
+                                <button class="btn btn-primary mt-2 mt-md-0" @click="showAddProduct">
                                     <i class="fas fa-plus me-1"></i>
                                     Agregar Producto
                                 </button>
@@ -972,6 +976,8 @@
                             this.products = data.data;
                             this.filteredProducts = data.data;
                             this.recentProducts = data.data.slice(0, 10);
+                            // También actualizar filteredInventory
+                            this.filteredInventory = data.data;
                         }
                     } catch (error) {
                         console.error('Error loading products:', error);
@@ -1033,10 +1039,13 @@
                         const data = await response.json();
                         if (data.success) {
                             this.inventorySummary = data.data;
-                            this.filteredInventory = data.data.products || [];
+                            // Inicializar filteredInventory con todos los productos
+                            this.filteredInventory = this.products.length > 0 ? this.products : [];
                         }
                     } catch (error) {
                         console.error('Error loading inventory summary:', error);
+                        // Si hay error, usar los productos locales
+                        this.filteredInventory = this.products;
                     }
                 },
 
@@ -1071,6 +1080,15 @@
                 refreshInventory() {
                     this.loadInventorySummary();
                     this.loadProducts();
+                },
+
+                searchInventory() {
+                    // Aplicar filtros y mostrar resultados
+                    this.filterInventory();
+                },
+
+                showAddProduct() {
+                    this.showAddProductModal = true;
                 },
 
                 addProduct() {
@@ -1354,7 +1372,7 @@
     </script>
 
     <!-- Modal de Agregar Producto -->
-    <div class="modal fade" id="addProductModal" tabindex="-1" v-if="showAddProductModal">
+    <div class="modal fade" id="addProductModal" tabindex="-1" v-if="showAddProductModal" data-bs-backdrop="static" data-bs-keyboard="false">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
