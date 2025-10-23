@@ -214,7 +214,7 @@ $requestUri = $_SERVER['REQUEST_URI'];
 $path = parse_url($requestUri, PHP_URL_PATH);
 
 // Si es una petición API, manejar como JSON
-if (strpos($path, '/api/') === 0) {
+if (strpos($path, '/api/') === 0 || in_array($path, ['/auth/me', '/products', '/categories', '/suppliers', '/reports/dashboard/stats', '/reports/inventory/summary', '/reports/inventory/low-stock', '/health'])) {
     try {
         // Configurar headers para JSON
         header('Content-Type: application/json');
@@ -228,8 +228,12 @@ if (strpos($path, '/api/') === 0) {
             exit();
         }
         
-        // Remover el prefijo /api
-        $apiPath = substr($path, 4);
+        // Determinar la ruta de la API
+        if (strpos($path, '/api/') === 0) {
+            $apiPath = substr($path, 4);
+        } else {
+            $apiPath = ltrim($path, '/');
+        }
         
         // Enrutamiento de API
         switch ($apiPath) {
@@ -256,7 +260,9 @@ if (strpos($path, '/api/') === 0) {
                 'environment' => getenv('APP_ENV') ?: 'development',
                 'server' => $_SERVER['SERVER_SOFTWARE'] ?? 'PHP Built-in Server',
                 'php_version' => PHP_VERSION,
-                'render' => getenv('RENDER') ? 'true' : 'false'
+                'render' => getenv('RENDER') ? 'true' : 'false',
+                'debug_path' => $path,
+                'debug_apiPath' => $apiPath
             ]);
             break;
             
