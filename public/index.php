@@ -39,15 +39,23 @@ $sampleData = [
             'id' => 1,
             'sku' => 'RES-1K-1/4W',
             'name' => 'Resistor 1K Ohm 1/4W',
-            'description' => 'Resistor de carbón 1K Ohm, 1/4 Watt, tolerancia 5%',
+            'description' => 'Resistor de carbón 1K ohmios, potencia 1/4W, tolerancia 5%',
             'price' => 0.10,
             'cost' => 0.05,
             'stock_quantity' => 1000,
             'min_stock_level' => 100,
+            'max_stock_level' => 2000,
             'category_id' => 3,
             'supplier_id' => 1,
             'category_name' => 'Resistores',
             'supplier_name' => 'Mouser Electronics',
+            'serial_number' => 'RES001-2025-001',
+            'department' => 'Electrónica',
+            'location' => 'Almacén A - Estante 1',
+            'label' => 'RES-1K-001',
+            'barcode' => 'INV-RES-1K-001',
+            'expiration_date' => null,
+            'status' => 'active',
             'created_at' => '2024-01-01 10:00:00',
             'updated_at' => '2024-01-01 10:00:00'
         ],
@@ -179,6 +187,22 @@ $sampleData = [
         ['id' => 2, 'name' => 'DigiKey', 'contact_person' => 'Jane Doe', 'email' => 'sales@digikey.com', 'phone' => '+1-800-344-4539', 'product_count' => 2],
         ['id' => 3, 'name' => 'Newark', 'contact_person' => 'Bob Johnson', 'email' => 'sales@newark.com', 'phone' => '+1-800-463-9275', 'product_count' => 2],
         ['id' => 4, 'name' => 'RS Components', 'contact_person' => 'Alice Brown', 'email' => 'sales@rs-components.com', 'phone' => '+44-800-240-240', 'product_count' => 2]
+    ],
+    
+    'departments' => [
+        ['id' => 1, 'name' => 'Electrónica', 'description' => 'Componentes electrónicos básicos', 'location' => 'Almacén A', 'manager' => 'Carlos López'],
+        ['id' => 2, 'name' => 'Iluminación', 'description' => 'LEDs y sistemas de iluminación', 'location' => 'Almacén B', 'manager' => 'María García'],
+        ['id' => 3, 'name' => 'Prototipos', 'description' => 'Protoboards y herramientas de desarrollo', 'location' => 'Almacén C', 'manager' => 'Juan Pérez'],
+        ['id' => 4, 'name' => 'Mecánica', 'description' => 'Componentes mecánicos y herramientas', 'location' => 'Almacén D', 'manager' => 'Ana Martínez'],
+        ['id' => 5, 'name' => 'Cables', 'description' => 'Cables y conectores', 'location' => 'Almacén E', 'manager' => 'Pedro Rodríguez']
+    ],
+    
+    'locations' => [
+        ['id' => 1, 'name' => 'Almacén A', 'description' => 'Almacén principal de electrónica', 'address' => 'Calle Principal 123', 'capacity' => 1000],
+        ['id' => 2, 'name' => 'Almacén B', 'description' => 'Almacén de iluminación', 'address' => 'Calle Secundaria 456', 'capacity' => 500],
+        ['id' => 3, 'name' => 'Almacén C', 'description' => 'Almacén de prototipos', 'address' => 'Calle Terciaria 789', 'capacity' => 300],
+        ['id' => 4, 'name' => 'Almacén D', 'description' => 'Almacén mecánico', 'address' => 'Calle Cuarta 101', 'capacity' => 800],
+        ['id' => 5, 'name' => 'Almacén E', 'description' => 'Almacén de cables', 'address' => 'Calle Quinta 202', 'capacity' => 600]
     ]
 ];
 
@@ -214,7 +238,7 @@ $requestUri = $_SERVER['REQUEST_URI'];
 $path = parse_url($requestUri, PHP_URL_PATH);
 
 // Si es una petición API, manejar como JSON
-if (strpos($path, '/api/') === 0 || in_array($path, ['/auth/me', '/products', '/categories', '/suppliers', '/reports/dashboard/stats', '/reports/inventory/summary', '/reports/inventory/low-stock', '/health'])) {
+if (strpos($path, '/api/') === 0 || in_array($path, ['/auth/me', '/products', '/categories', '/suppliers', '/departments', '/locations', '/inventory/summary', '/reports/dashboard/stats', '/reports/inventory/summary', '/reports/inventory/low-stock', '/health'])) {
     try {
         // Configurar headers para JSON
         header('Content-Type: application/json');
@@ -289,6 +313,73 @@ if (strpos($path, '/api/') === 0 || in_array($path, ['/auth/me', '/products', '/
             echo json_encode([
                 'success' => true,
                 'data' => $sampleData['suppliers']
+            ]);
+            break;
+            
+        case 'departments':
+            // Log del acceso a departamentos
+            safeLog('INFO', 'API', 'API_ACCESS', "Consulta de departamentos");
+            echo json_encode([
+                'success' => true,
+                'data' => $sampleData['departments']
+            ]);
+            break;
+            
+        case 'locations':
+            // Log del acceso a ubicaciones
+            safeLog('INFO', 'API', 'API_ACCESS', "Consulta de ubicaciones");
+            echo json_encode([
+                'success' => true,
+                'data' => $sampleData['locations']
+            ]);
+            break;
+            
+        case 'inventory/summary':
+            // Resumen completo del inventario
+            $inventorySummary = [
+                'total_products' => count($sampleData['products']),
+                'total_value' => array_sum(array_map(function($p) { return $p['stock_quantity'] * $p['cost']; }, $sampleData['products'])),
+                'departments' => [],
+                'locations' => [],
+                'low_stock_products' => array_filter($sampleData['products'], function($p) { return $p['stock_quantity'] <= $p['min_stock_level']; })
+            ];
+            
+            // Agrupar por departamento
+            foreach ($sampleData['products'] as $product) {
+                $dept = $product['department'];
+                if (!isset($inventorySummary['departments'][$dept])) {
+                    $inventorySummary['departments'][$dept] = [
+                        'name' => $dept,
+                        'product_count' => 0,
+                        'total_value' => 0,
+                        'products' => []
+                    ];
+                }
+                $inventorySummary['departments'][$dept]['product_count']++;
+                $inventorySummary['departments'][$dept]['total_value'] += $product['stock_quantity'] * $product['cost'];
+                $inventorySummary['departments'][$dept]['products'][] = $product;
+            }
+            
+            // Agrupar por ubicación
+            foreach ($sampleData['products'] as $product) {
+                $location = explode(' - ', $product['location'])[0]; // Solo el nombre del almacén
+                if (!isset($inventorySummary['locations'][$location])) {
+                    $inventorySummary['locations'][$location] = [
+                        'name' => $location,
+                        'product_count' => 0,
+                        'total_value' => 0,
+                        'products' => []
+                    ];
+                }
+                $inventorySummary['locations'][$location]['product_count']++;
+                $inventorySummary['locations'][$location]['total_value'] += $product['stock_quantity'] * $product['cost'];
+                $inventorySummary['locations'][$location]['products'][] = $product;
+            }
+            
+            safeLog('INFO', 'API', 'API_ACCESS', "Consulta de resumen de inventario");
+            echo json_encode([
+                'success' => true,
+                'data' => $inventorySummary
             ]);
             break;
             

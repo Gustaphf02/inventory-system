@@ -169,6 +169,12 @@
                                 </a>
                             </li>
                             <li class="nav-item">
+                                <a class="nav-link" :class="{active: currentView === 'inventory'}" @click="setView('inventory')">
+                                    <i class="fas fa-warehouse me-2"></i>
+                                    Inventario
+                                </a>
+                            </li>
+                            <li class="nav-item">
                                 <a class="nav-link" :class="{active: currentView === 'products'}" @click="setView('products')">
                                     <i class="fas fa-boxes me-2"></i>
                                     Productos
@@ -391,6 +397,138 @@
                                             </div>
                                         </div>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Inventory View -->
+                    <div v-if="currentView === 'inventory'">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
+                                <h5 class="card-title mb-0">
+                                    <i class="fas fa-warehouse me-2"></i>
+                                    Gestión de Inventario
+                                </h5>
+                                <div class="d-flex gap-2 mt-2 mt-md-0">
+                                    <button class="btn btn-outline-secondary" @click="refreshInventory">
+                                        <i class="fas fa-sync-alt me-1"></i>
+                                        Actualizar
+                                    </button>
+                                    <button class="btn btn-primary" @click="showAddProductModal = true">
+                                        <i class="fas fa-plus me-1"></i>
+                                        Agregar Producto
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <!-- Filtros de búsqueda -->
+                                <div class="row mb-4">
+                                    <div class="col-md-4">
+                                        <label class="form-label">Buscar por Departamento:</label>
+                                        <select class="form-select" v-model="inventoryFilters.department" @change="filterInventory">
+                                            <option value="">Todos los departamentos</option>
+                                            <option v-for="dept in departments" :key="dept.id" :value="dept.name">{{ dept.name }}</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Buscar por Ubicación:</label>
+                                        <select class="form-select" v-model="inventoryFilters.location" @change="filterInventory">
+                                            <option value="">Todas las ubicaciones</option>
+                                            <option v-for="location in locations" :key="location.id" :value="location.name">{{ location.name }}</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Buscar Producto:</label>
+                                        <input type="text" class="form-control" v-model="inventoryFilters.search" @input="filterInventory" placeholder="SKU, nombre, serial...">
+                                    </div>
+                                </div>
+
+                                <!-- Resumen del Inventario -->
+                                <div class="row mb-4">
+                                    <div class="col-md-3">
+                                        <div class="card bg-primary text-white">
+                                            <div class="card-body text-center">
+                                                <h3>{{ inventorySummary.total_products || 0 }}</h3>
+                                                <p class="mb-0">Total Productos</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card bg-success text-white">
+                                            <div class="card-body text-center">
+                                                <h3>${{ (inventorySummary.total_value || 0).toFixed(2) }}</h3>
+                                                <p class="mb-0">Valor Total</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card bg-warning text-white">
+                                            <div class="card-body text-center">
+                                                <h3>{{ inventorySummary.low_stock_products?.length || 0 }}</h3>
+                                                <p class="mb-0">Stock Bajo</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card bg-info text-white">
+                                            <div class="card-body text-center">
+                                                <h3>{{ Object.keys(inventorySummary.departments || {}).length }}</h3>
+                                                <p class="mb-0">Departamentos</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Tabla de Inventario -->
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>SKU</th>
+                                                <th>Nombre</th>
+                                                <th>Serial</th>
+                                                <th>Departamento</th>
+                                                <th>Ubicación</th>
+                                                <th>Stock</th>
+                                                <th>Precio</th>
+                                                <th>Valor Total</th>
+                                                <th>Estado</th>
+                                                <th>Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr v-for="product in filteredInventory" :key="product.id">
+                                                <td><code>{{ product.sku }}</code></td>
+                                                <td>{{ product.name }}</td>
+                                                <td><small>{{ product.serial_number }}</small></td>
+                                                <td><span class="badge bg-secondary">{{ product.department }}</span></td>
+                                                <td><small>{{ product.location }}</small></td>
+                                                <td>
+                                                    <span class="badge" :class="product.stock_quantity <= product.min_stock_level ? 'bg-danger' : 'bg-success'">
+                                                        {{ product.stock_quantity }}
+                                                    </span>
+                                                </td>
+                                                <td>${{ product.price.toFixed(2) }}</td>
+                                                <td>${{ (product.stock_quantity * product.price).toFixed(2) }}</td>
+                                                <td>
+                                                    <span class="badge" :class="product.status === 'active' ? 'bg-success' : 'bg-secondary'">
+                                                        {{ product.status === 'active' ? 'Activo' : 'Inactivo' }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm">
+                                                        <button class="btn btn-outline-primary" @click="editProduct(product)">
+                                                            <i class="fas fa-edit"></i>
+                                                        </button>
+                                                        <button class="btn btn-outline-danger" @click="deleteProduct(product)">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         </div>
@@ -706,10 +844,40 @@
                     lowStockProducts: [],
                     categories: [],
                     suppliers: [],
+                    departments: [],
+                    locations: [],
+                    inventorySummary: {},
+                    filteredInventory: [],
+                    inventoryFilters: {
+                        department: '',
+                        location: '',
+                        search: ''
+                    },
                     searchQuery: '',
                     selectedCategory: '',
                     selectedSupplier: '',
-                    showAddProductModal: false
+                    showAddProductModal: false,
+                    showEditProductModal: false,
+                    editingProduct: null,
+                    newProduct: {
+                        sku: '',
+                        name: '',
+                        description: '',
+                        category_id: '',
+                        supplier_id: '',
+                        serial_number: '',
+                        department: '',
+                        location: '',
+                        label: '',
+                        barcode: '',
+                        cost: 0,
+                        price: 0,
+                        stock_quantity: 0,
+                        min_stock_level: 0,
+                        max_stock_level: 0,
+                        expiration_date: null,
+                        status: 'active'
+                    }
                 }
             },
             async mounted() {
@@ -718,6 +886,9 @@
                 this.loadProducts();
                 this.loadCategories();
                 this.loadSuppliers();
+                this.loadDepartments();
+                this.loadLocations();
+                this.loadInventorySummary();
             },
             methods: {
                 async loadSessionUser() {
@@ -830,6 +1001,251 @@
                     }
                 },
 
+                async loadDepartments() {
+                    try {
+                        const response = await fetch('/departments');
+                        const data = await response.json();
+                        if (data.success) {
+                            this.departments = data.data;
+                        }
+                    } catch (error) {
+                        console.error('Error loading departments:', error);
+                    }
+                },
+
+                async loadLocations() {
+                    try {
+                        const response = await fetch('/locations');
+                        const data = await response.json();
+                        if (data.success) {
+                            this.locations = data.data;
+                        }
+                    } catch (error) {
+                        console.error('Error loading locations:', error);
+                    }
+                },
+
+                async loadInventorySummary() {
+                    try {
+                        const response = await fetch('/inventory/summary');
+                        const data = await response.json();
+                        if (data.success) {
+                            this.inventorySummary = data.data;
+                            this.filteredInventory = data.data.products || [];
+                        }
+                    } catch (error) {
+                        console.error('Error loading inventory summary:', error);
+                    }
+                },
+
+                filterInventory() {
+                    let filtered = [...this.products];
+                    
+                    if (this.inventoryFilters.department) {
+                        filtered = filtered.filter(product => 
+                            product.department === this.inventoryFilters.department
+                        );
+                    }
+                    
+                    if (this.inventoryFilters.location) {
+                        filtered = filtered.filter(product => 
+                            product.location.includes(this.inventoryFilters.location)
+                        );
+                    }
+                    
+                    if (this.inventoryFilters.search) {
+                        const search = this.inventoryFilters.search.toLowerCase();
+                        filtered = filtered.filter(product => 
+                            product.sku.toLowerCase().includes(search) ||
+                            product.name.toLowerCase().includes(search) ||
+                            product.serial_number.toLowerCase().includes(search) ||
+                            product.label.toLowerCase().includes(search)
+                        );
+                    }
+                    
+                    this.filteredInventory = filtered;
+                },
+
+                refreshInventory() {
+                    this.loadInventorySummary();
+                    this.loadProducts();
+                },
+
+                addProduct() {
+                    // Validar campos requeridos
+                    if (!this.newProduct.sku || !this.newProduct.name || !this.newProduct.serial_number) {
+                        alert('Por favor completa todos los campos requeridos');
+                        return;
+                    }
+                    
+                    // Validar SKU único
+                    if (this.products.some(p => p.sku.toLowerCase() === this.newProduct.sku.toLowerCase())) {
+                        alert('El SKU ya existe. Por favor usa un SKU diferente.');
+                        return;
+                    }
+                    
+                    // Validar número de serial único
+                    if (this.products.some(p => p.serial_number.toLowerCase() === this.newProduct.serial_number.toLowerCase())) {
+                        alert('El número de serial ya existe. Por favor usa un serial diferente.');
+                        return;
+                    }
+                    
+                    // Generar ID único
+                    const newId = Math.max(...this.products.map(p => p.id)) + 1;
+                    
+                    // Crear nuevo producto
+                    const product = {
+                        id: newId,
+                        ...this.newProduct,
+                        category_name: this.categories.find(c => c.id == this.newProduct.category_id)?.name || '',
+                        supplier_name: this.suppliers.find(s => s.id == this.newProduct.supplier_id)?.name || '',
+                        created_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
+                        updated_at: new Date().toISOString().slice(0, 19).replace('T', ' ')
+                    };
+                    
+                    // Agregar a la lista
+                    this.products.push(product);
+                    this.filteredProducts.push(product);
+                    this.filteredInventory.push(product);
+                    
+                    // Limpiar formulario
+                    this.resetNewProduct();
+                    
+                    // Cerrar modal
+                    this.showAddProductModal = false;
+                    
+                    // Mostrar mensaje de éxito
+                    alert('Producto agregado exitosamente');
+                    
+                    // Recargar datos
+                    this.loadInventorySummary();
+                },
+
+                resetNewProduct() {
+                    this.newProduct = {
+                        sku: '',
+                        name: '',
+                        description: '',
+                        category_id: '',
+                        supplier_id: '',
+                        serial_number: '',
+                        department: '',
+                        location: '',
+                        label: '',
+                        barcode: '',
+                        cost: 0,
+                        price: 0,
+                        stock_quantity: 0,
+                        min_stock_level: 0,
+                        max_stock_level: 0,
+                        expiration_date: null,
+                        status: 'active'
+                    };
+                },
+
+                autoGenerateBarcode() {
+                    // Generar automáticamente si no hay código de barras
+                    if (!this.newProduct.barcode && this.newProduct.sku) {
+                        this.generateBarcode();
+                    }
+                },
+
+                editProduct(product) {
+                    this.editingProduct = { ...product };
+                    this.showEditProductModal = true;
+                },
+
+                updateProduct() {
+                    if (!this.editingProduct) return;
+                    
+                    // Validar campos requeridos
+                    if (!this.editingProduct.sku || !this.editingProduct.name || !this.editingProduct.serial_number) {
+                        alert('Por favor completa todos los campos requeridos');
+                        return;
+                    }
+                    
+                    // Validar SKU único (excluyendo el producto actual)
+                    if (this.products.some(p => p.id !== this.editingProduct.id && p.sku.toLowerCase() === this.editingProduct.sku.toLowerCase())) {
+                        alert('El SKU ya existe. Por favor usa un SKU diferente.');
+                        return;
+                    }
+                    
+                    // Validar número de serial único (excluyendo el producto actual)
+                    if (this.products.some(p => p.id !== this.editingProduct.id && p.serial_number.toLowerCase() === this.editingProduct.serial_number.toLowerCase())) {
+                        alert('El número de serial ya existe. Por favor usa un serial diferente.');
+                        return;
+                    }
+                    
+                    // Actualizar fecha de modificación
+                    this.editingProduct.updated_at = new Date().toISOString().slice(0, 19).replace('T', ' ');
+                    
+                    // Buscar y actualizar el producto en la lista
+                    const index = this.products.findIndex(p => p.id === this.editingProduct.id);
+                    if (index !== -1) {
+                        this.products[index] = { ...this.editingProduct };
+                    }
+                    
+                    // Actualizar en filteredProducts
+                    const filteredIndex = this.filteredProducts.findIndex(p => p.id === this.editingProduct.id);
+                    if (filteredIndex !== -1) {
+                        this.filteredProducts[filteredIndex] = { ...this.editingProduct };
+                    }
+                    
+                    // Actualizar en filteredInventory
+                    const inventoryIndex = this.filteredInventory.findIndex(p => p.id === this.editingProduct.id);
+                    if (inventoryIndex !== -1) {
+                        this.filteredInventory[inventoryIndex] = { ...this.editingProduct };
+                    }
+                    
+                    // Cerrar modal
+                    this.showEditProductModal = false;
+                    this.editingProduct = null;
+                    
+                    // Mostrar mensaje de éxito
+                    alert('Producto actualizado exitosamente');
+                    
+                    // Recargar datos
+                    this.loadInventorySummary();
+                },
+
+                cancelEdit() {
+                    this.showEditProductModal = false;
+                    this.editingProduct = null;
+                },
+
+                generateEditBarcode() {
+                    // Generar código de barras inteligente para edición
+                    let barcode = '';
+                    
+                    if (this.editingProduct.sku) {
+                        // Usar SKU como base
+                        const skuClean = this.editingProduct.sku.replace(/[^A-Z0-9]/g, '');
+                        const timestamp = Date.now().toString().slice(-4);
+                        barcode = `INV-${skuClean}-${timestamp}`;
+                    } else if (this.editingProduct.name) {
+                        // Usar primeras letras del nombre
+                        const nameWords = this.editingProduct.name.split(' ');
+                        const initials = nameWords.map(word => word.charAt(0).toUpperCase()).join('');
+                        const timestamp = Date.now().toString().slice(-4);
+                        barcode = `INV-${initials}-${timestamp}`;
+                    } else {
+                        // Generar código aleatorio
+                        const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+                        const timestamp = Date.now().toString().slice(-4);
+                        barcode = `INV-${random}-${timestamp}`;
+                    }
+                    
+                    // Verificar que el código de barras sea único (excluyendo el producto actual)
+                    let counter = 1;
+                    let finalBarcode = barcode;
+                    while (this.products.some(p => p.id !== this.editingProduct.id && p.barcode === finalBarcode)) {
+                        finalBarcode = `${barcode}-${counter}`;
+                        counter++;
+                    }
+                    
+                    this.editingProduct.barcode = finalBarcode;
+                },
+
                 searchProducts() {
                     if (!this.searchQuery) {
                         this.filteredProducts = this.products;
@@ -904,5 +1320,433 @@
             }
         }).mount('#app');
     </script>
+
+    <!-- Modal de Agregar Producto -->
+    <div class="modal fade" id="addProductModal" tabindex="-1" v-if="showAddProductModal">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-plus me-2"></i>
+                        Agregar Nuevo Producto
+                    </h5>
+                    <button type="button" class="btn-close" @click="showAddProductModal = false"></button>
+                </div>
+                <div class="modal-body">
+                    <form @submit.prevent="addProduct">
+                        <div class="row">
+                            <!-- Información Básica -->
+                            <div class="col-md-6">
+                                <h6 class="text-primary mb-3">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    Información Básica
+                                </h6>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">SKU *</label>
+                                    <input type="text" class="form-control" v-model="newProduct.sku" required 
+                                           placeholder="Ej: RES-1K-001" maxlength="20" @blur="autoGenerateBarcode">
+                                    <div class="form-text">Código único del producto</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Nombre del Producto *</label>
+                                    <input type="text" class="form-control" v-model="newProduct.name" required 
+                                           placeholder="Ej: Resistor 1K Ohm 1/4W">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Descripción</label>
+                                    <textarea class="form-control" v-model="newProduct.description" rows="3" 
+                                              placeholder="Descripción detallada del producto"></textarea>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Categoría *</label>
+                                    <select class="form-select" v-model="newProduct.category_id" required>
+                                        <option value="">Seleccionar categoría</option>
+                                        <option v-for="category in categories" :key="category.id" :value="category.id">
+                                            {{ category.name }}
+                                        </option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Proveedor *</label>
+                                    <select class="form-select" v-model="newProduct.supplier_id" required>
+                                        <option value="">Seleccionar proveedor</option>
+                                        <option v-for="supplier in suppliers" :key="supplier.id" :value="supplier.id">
+                                            {{ supplier.name }}
+                                        </option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <!-- Información de Inventario -->
+                            <div class="col-md-6">
+                                <h6 class="text-success mb-3">
+                                    <i class="fas fa-warehouse me-2"></i>
+                                    Información de Inventario
+                                </h6>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Número de Serial *</label>
+                                    <input type="text" class="form-control" v-model="newProduct.serial_number" required 
+                                           placeholder="Ej: RES001-2025-001" maxlength="30">
+                                    <div class="form-text">Número único de serie del producto</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Departamento *</label>
+                                    <select class="form-select" v-model="newProduct.department" required>
+                                        <option value="">Seleccionar departamento</option>
+                                        <option v-for="dept in departments" :key="dept.id" :value="dept.name">
+                                            {{ dept.name }}
+                                        </option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Ubicación Física *</label>
+                                    <select class="form-select" v-model="newProduct.location" required>
+                                        <option value="">Seleccionar ubicación</option>
+                                        <option v-for="location in locations" :key="location.id" :value="location.name + ' - Estante 1'">
+                                            {{ location.name }} - Estante 1
+                                        </option>
+                                        <option v-for="location in locations" :key="location.id + '-2'" :value="location.name + ' - Estante 2'">
+                                            {{ location.name }} - Estante 2
+                                        </option>
+                                        <option v-for="location in locations" :key="location.id + '-3'" :value="location.name + ' - Estante 3'">
+                                            {{ location.name }} - Estante 3
+                                        </option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Marbete/Etiqueta *</label>
+                                    <input type="text" class="form-control" v-model="newProduct.label" required 
+                                           placeholder="Ej: RES-1K-001" maxlength="20">
+                                    <div class="form-text">Etiqueta física del producto</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Código de Barras</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" v-model="newProduct.barcode" 
+                                               placeholder="Se genera automáticamente">
+                                        <button class="btn btn-outline-secondary" type="button" @click="generateBarcode">
+                                            <i class="fas fa-barcode"></i>
+                                        </button>
+                                    </div>
+                                    <div class="form-text">Código de barras para escaneo</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <!-- Información Financiera -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="text-warning mb-3">
+                                    <i class="fas fa-dollar-sign me-2"></i>
+                                    Información Financiera
+                                </h6>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Precio de Costo *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input type="number" class="form-control" v-model="newProduct.cost" required 
+                                               step="0.01" min="0" placeholder="0.00">
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Precio de Venta *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input type="number" class="form-control" v-model="newProduct.price" required 
+                                               step="0.01" min="0" placeholder="0.00">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <h6 class="text-info mb-3">
+                                    <i class="fas fa-boxes me-2"></i>
+                                    Control de Stock
+                                </h6>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Cantidad en Stock *</label>
+                                    <input type="number" class="form-control" v-model="newProduct.stock_quantity" required 
+                                           min="0" placeholder="0">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Stock Mínimo *</label>
+                                    <input type="number" class="form-control" v-model="newProduct.min_stock_level" required 
+                                           min="0" placeholder="0">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Stock Máximo</label>
+                                    <input type="number" class="form-control" v-model="newProduct.max_stock_level" 
+                                           min="0" placeholder="0">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Información Adicional -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Fecha de Expiración</label>
+                                    <input type="date" class="form-control" v-model="newProduct.expiration_date">
+                                    <div class="form-text">Opcional - Para productos perecederos</div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Estado</label>
+                                    <select class="form-select" v-model="newProduct.status">
+                                        <option value="active">Activo</option>
+                                        <option value="inactive">Inactivo</option>
+                                        <option value="discontinued">Descontinuado</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @click="showAddProductModal = false">
+                        <i class="fas fa-times me-1"></i>
+                        Cancelar
+                    </button>
+                    <button type="button" class="btn btn-primary" @click="addProduct">
+                        <i class="fas fa-save me-1"></i>
+                        Guardar Producto
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Editar Producto -->
+    <div class="modal fade" id="editProductModal" tabindex="-1" v-if="showEditProductModal">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-edit me-2"></i>
+                        Editar Producto
+                    </h5>
+                    <button type="button" class="btn-close" @click="cancelEdit"></button>
+                </div>
+                <div class="modal-body">
+                    <form @submit.prevent="updateProduct">
+                        <div class="row">
+                            <!-- Información Básica -->
+                            <div class="col-md-6">
+                                <h6 class="text-primary mb-3">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    Información Básica
+                                </h6>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">SKU *</label>
+                                    <input type="text" class="form-control" v-model="editingProduct.sku" required 
+                                           placeholder="Ej: RES-1K-001" maxlength="20">
+                                    <div class="form-text">Código único del producto</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Nombre del Producto *</label>
+                                    <input type="text" class="form-control" v-model="editingProduct.name" required 
+                                           placeholder="Ej: Resistor 1K Ohm 1/4W">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Descripción</label>
+                                    <textarea class="form-control" v-model="editingProduct.description" rows="3" 
+                                              placeholder="Descripción detallada del producto"></textarea>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Categoría *</label>
+                                    <select class="form-select" v-model="editingProduct.category_id" required>
+                                        <option value="">Seleccionar categoría</option>
+                                        <option v-for="category in categories" :key="category.id" :value="category.id">
+                                            {{ category.name }}
+                                        </option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Proveedor *</label>
+                                    <select class="form-select" v-model="editingProduct.supplier_id" required>
+                                        <option value="">Seleccionar proveedor</option>
+                                        <option v-for="supplier in suppliers" :key="supplier.id" :value="supplier.id">
+                                            {{ supplier.name }}
+                                        </option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <!-- Información de Inventario -->
+                            <div class="col-md-6">
+                                <h6 class="text-success mb-3">
+                                    <i class="fas fa-warehouse me-2"></i>
+                                    Información de Inventario
+                                </h6>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Número de Serial *</label>
+                                    <input type="text" class="form-control" v-model="editingProduct.serial_number" required 
+                                           placeholder="Ej: RES001-2025-001" maxlength="30">
+                                    <div class="form-text">Número único de serie del producto</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Departamento *</label>
+                                    <select class="form-select" v-model="editingProduct.department" required>
+                                        <option value="">Seleccionar departamento</option>
+                                        <option v-for="dept in departments" :key="dept.id" :value="dept.name">
+                                            {{ dept.name }}
+                                        </option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Ubicación Física *</label>
+                                    <select class="form-select" v-model="editingProduct.location" required>
+                                        <option value="">Seleccionar ubicación</option>
+                                        <option v-for="location in locations" :key="location.id" :value="location.name + ' - Estante 1'">
+                                            {{ location.name }} - Estante 1
+                                        </option>
+                                        <option v-for="location in locations" :key="location.id + '-2'" :value="location.name + ' - Estante 2'">
+                                            {{ location.name }} - Estante 2
+                                        </option>
+                                        <option v-for="location in locations" :key="location.id + '-3'" :value="location.name + ' - Estante 3'">
+                                            {{ location.name }} - Estante 3
+                                        </option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Marbete/Etiqueta *</label>
+                                    <input type="text" class="form-control" v-model="editingProduct.label" required 
+                                           placeholder="Ej: RES-1K-001" maxlength="20">
+                                    <div class="form-text">Etiqueta física del producto</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Código de Barras</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" v-model="editingProduct.barcode" 
+                                               placeholder="Código de barras">
+                                        <button class="btn btn-outline-secondary" type="button" @click="generateEditBarcode">
+                                            <i class="fas fa-barcode"></i>
+                                        </button>
+                                    </div>
+                                    <div class="form-text">Código de barras para escaneo</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <!-- Información Financiera -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="text-warning mb-3">
+                                    <i class="fas fa-dollar-sign me-2"></i>
+                                    Información Financiera
+                                </h6>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Precio de Costo *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input type="number" class="form-control" v-model="editingProduct.cost" required 
+                                               step="0.01" min="0" placeholder="0.00">
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Precio de Venta *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input type="number" class="form-control" v-model="editingProduct.price" required 
+                                               step="0.01" min="0" placeholder="0.00">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <h6 class="text-info mb-3">
+                                    <i class="fas fa-boxes me-2"></i>
+                                    Control de Stock
+                                </h6>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Cantidad en Stock *</label>
+                                    <input type="number" class="form-control" v-model="editingProduct.stock_quantity" required 
+                                           min="0" placeholder="0">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Stock Mínimo *</label>
+                                    <input type="number" class="form-control" v-model="editingProduct.min_stock_level" required 
+                                           min="0" placeholder="0">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Stock Máximo</label>
+                                    <input type="number" class="form-control" v-model="editingProduct.max_stock_level" 
+                                           min="0" placeholder="0">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Información Adicional -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Fecha de Expiración</label>
+                                    <input type="date" class="form-control" v-model="editingProduct.expiration_date">
+                                    <div class="form-text">Opcional - Para productos perecederos</div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Estado</label>
+                                    <select class="form-select" v-model="editingProduct.status">
+                                        <option value="active">Activo</option>
+                                        <option value="inactive">Inactivo</option>
+                                        <option value="discontinued">Descontinuado</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @click="cancelEdit">
+                        <i class="fas fa-times me-1"></i>
+                        Cancelar
+                    </button>
+                    <button type="button" class="btn btn-primary" @click="updateProduct">
+                        <i class="fas fa-save me-1"></i>
+                        Actualizar Producto
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
