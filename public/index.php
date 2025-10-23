@@ -9,6 +9,7 @@ session_start();
 // Configurar headers básicos para producción
 ini_set('display_errors', 0);
 ini_set('log_errors', 1);
+error_reporting(0);
 
 // Detectar si estamos en producción (Render)
 $isProduction = getenv('APP_ENV') === 'production' || getenv('RENDER');
