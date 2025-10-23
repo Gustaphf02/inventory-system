@@ -296,17 +296,15 @@ if (strpos($path, '/api/') === 0) {
     }
 } else {
     // Si no es API
-    // Ruta raíz '/' debe mostrar landing/demo público si no hay sesión
     $pathOnly = trim($path, '/');
-    if ($pathOnly === '' && !isset($_SESSION['user'])) {
-        include 'demo.php';
-        exit;
-    }
-    // Para cualquier otra ruta protegemos con login
+    
+    // Si no hay sesión activa, redirigir al login
     if (!isset($_SESSION['user'])) {
         header('Location: /login.php');
         exit;
     }
+    
+    // Si hay sesión activa, mostrar el sistema principal
     include 'index.html';
 }
 ?>

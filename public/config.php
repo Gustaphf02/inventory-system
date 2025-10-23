@@ -201,8 +201,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             margin-bottom: 2rem;
         }
         .config-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            background: linear-gradient(135deg, #FFD700 0%, #B8860B 100%);
+            color: #000;
             padding: 1.5rem;
             border-radius: 10px 10px 0 0;
         }
@@ -215,7 +215,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             margin-bottom: 0.5rem;
         }
         .nav-pills .nav-link.active {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #FFD700 0%, #B8860B 100%);
+            color: #000;
         }
         .form-label {
             font-weight: 600;
@@ -227,17 +228,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             transition: all 0.3s ease;
         }
         .form-control:focus, .form-select:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+            border-color: #FFD700;
+            box-shadow: 0 0 0 0.2rem rgba(255, 215, 0, 0.25);
         }
         .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #FFD700 0%, #B8860B 100%);
             border: none;
             border-radius: 8px;
             padding: 0.75rem 2rem;
+            color: #000;
         }
         .btn-primary:hover {
-            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+            background: linear-gradient(135deg, #B8860B 0%, #8B6914 100%);
+            color: #fff;
         }
         .alert {
             border-radius: 8px;
@@ -285,7 +288,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             border-radius: 50%;
         }
         input:checked + .slider {
-            background-color: #667eea;
+            background-color: #FFD700;
         }
         input:checked + .slider:before {
             transform: translateX(26px);
@@ -299,7 +302,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <nav class="col-md-3 col-lg-2 d-md-block sidebar bg-white shadow-sm" style="min-height: 100vh;">
                 <div class="position-sticky pt-3">
                     <div class="text-center mb-4">
-                        <h4 class="text-primary">
+                        <h4 class="text-dark">
                             <i class="fas fa-cog me-2"></i>
                             Configuración
                         </h4>
@@ -359,7 +362,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <hr class="my-4">
                     
                     <div class="text-center">
-                        <a href="demo.php" class="btn btn-outline-primary btn-sm">
+                        <a href="index.php" class="btn btn-outline-secondary btn-sm">
                             <i class="fas fa-arrow-left me-1"></i>
                             Volver al Sistema
                         </a>

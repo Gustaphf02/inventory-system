@@ -186,6 +186,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .status-inactive {
             color: #dc3545;
         }
+        .btn-primary {
+            background: linear-gradient(135deg, #FFD700 0%, #B8860B 100%);
+            border: none;
+            color: #000;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #B8860B 0%, #8B6914 100%);
+            color: #fff;
+        }
+        .btn-outline-primary {
+            color: #FFD700;
+            border-color: #FFD700;
+        }
+        .btn-outline-primary:hover {
+            background-color: #FFD700;
+            border-color: #FFD700;
+            color: #000;
+        }
+        .btn-outline-secondary {
+            color: #6c757d;
+            border-color: #6c757d;
+        }
+        .btn-outline-secondary:hover {
+            background-color: #6c757d;
+            border-color: #6c757d;
+            color: #fff;
+        }
+        .btn-outline-danger {
+            color: #dc3545;
+            border-color: #dc3545;
+        }
+        .btn-outline-danger:hover {
+            background-color: #dc3545;
+            border-color: #dc3545;
+        }
+        .text-primary {
+            color: #FFD700 !important;
+        }
     </style>
 </head>
 <body class="bg-light">
@@ -231,7 +269,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <hr class="my-4">
                     
                     <div class="text-center">
-                        <a href="demo.php" class="btn btn-outline-primary btn-sm mb-2">
+                        <a href="index.php" class="btn btn-outline-secondary btn-sm mb-2">
                             <i class="fas fa-arrow-left me-1"></i>
                             Volver al Sistema
                         </a>
