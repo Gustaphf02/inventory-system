@@ -40,6 +40,8 @@ $sampleData = [
             'sku' => 'RES-1K-1/4W',
             'name' => 'Resistor 1K Ohm 1/4W',
             'description' => 'Resistor de carbón 1K ohmios, potencia 1/4W, tolerancia 5%',
+            'brand' => 'Vishay',
+            'model' => 'CRCW0805',
             'price' => 0.10,
             'cost' => 0.05,
             'stock_quantity' => 1000,
@@ -64,6 +66,8 @@ $sampleData = [
             'sku' => 'CAP-100NF-50V',
             'name' => 'Capacitor Cerámico 100nF',
             'description' => 'Capacitor cerámico 100nF, 50V, X7R',
+            'brand' => 'Murata',
+            'model' => 'GRM188R71H104KA01D',
             'price' => 0.15,
             'cost' => 0.08,
             'stock_quantity' => 500,
@@ -80,6 +84,8 @@ $sampleData = [
             'sku' => 'LED-RED-5MM',
             'name' => 'LED Rojo 5mm',
             'description' => 'LED rojo 5mm, 20mA, 2.1V',
+            'brand' => 'Kingbright',
+            'model' => 'L-7113HD',
             'price' => 0.25,
             'cost' => 0.12,
             'stock_quantity' => 200,
@@ -96,6 +102,8 @@ $sampleData = [
             'sku' => 'TRANS-BC547',
             'name' => 'Transistor NPN BC547',
             'description' => 'Transistor NPN BC547, 45V, 100mA',
+            'brand' => 'ON Semiconductor',
+            'model' => 'BC547B',
             'price' => 0.30,
             'cost' => 0.15,
             'stock_quantity' => 150,
@@ -112,6 +120,8 @@ $sampleData = [
             'sku' => 'CONN-USB-A',
             'name' => 'Conector USB-A',
             'description' => 'Conector USB-A hembra, montaje PCB',
+            'brand' => 'Amphenol',
+            'model' => 'USB-A-S-RA',
             'price' => 1.50,
             'cost' => 0.75,
             'stock_quantity' => 75,
@@ -190,11 +200,10 @@ $sampleData = [
     ],
     
     'departments' => [
-        ['id' => 1, 'name' => 'Electrónica', 'description' => 'Componentes electrónicos básicos', 'location' => 'Almacén A', 'manager' => 'Carlos López'],
-        ['id' => 2, 'name' => 'Iluminación', 'description' => 'LEDs y sistemas de iluminación', 'location' => 'Almacén B', 'manager' => 'María García'],
-        ['id' => 3, 'name' => 'Prototipos', 'description' => 'Protoboards y herramientas de desarrollo', 'location' => 'Almacén C', 'manager' => 'Juan Pérez'],
-        ['id' => 4, 'name' => 'Mecánica', 'description' => 'Componentes mecánicos y herramientas', 'location' => 'Almacén D', 'manager' => 'Ana Martínez'],
-        ['id' => 5, 'name' => 'Cables', 'description' => 'Cables y conectores', 'location' => 'Almacén E', 'manager' => 'Pedro Rodríguez']
+        ['id' => 1, 'name' => 'Telemática', 'description' => 'Sistemas de telecomunicaciones y redes', 'location' => 'Almacén A', 'manager' => 'Carlos López'],
+        ['id' => 2, 'name' => 'S1', 'description' => 'Sistema de seguridad nivel 1', 'location' => 'Almacén B', 'manager' => 'María García'],
+        ['id' => 3, 'name' => 'Protección', 'description' => 'Sistemas de protección y seguridad', 'location' => 'Almacén C', 'manager' => 'Juan Pérez'],
+        ['id' => 4, 'name' => 'S3', 'description' => 'Sistema de seguridad nivel 3', 'location' => 'Almacén D', 'manager' => 'Ana Martínez']
     ],
     
     'locations' => [

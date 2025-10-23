@@ -415,20 +415,16 @@
                                         <i class="fas fa-sync-alt me-1"></i>
                                         Actualizar
                                     </button>
-                                    <button class="btn btn-primary" @click="showAddProductModal = true">
-                                        <i class="fas fa-plus me-1"></i>
-                                        Agregar Producto
-                                    </button>
                                 </div>
                             </div>
                             <div class="card-body">
                                 <!-- Filtros de búsqueda -->
                                 <div class="row mb-4">
                                     <div class="col-md-4">
-                                        <label class="form-label">Buscar por Departamento:</label>
-                                        <select class="form-select" v-model="inventoryFilters.department" @change="filterInventory">
-                                            <option value="">Todos los departamentos</option>
-                                            <option v-for="dept in departments" :key="dept.id" :value="dept.name">{{ dept.name }}</option>
+                                        <label class="form-label">Buscar por Categoría:</label>
+                                        <select class="form-select" v-model="inventoryFilters.category" @change="filterInventory">
+                                            <option value="">Todas las categorías</option>
+                                            <option v-for="category in categories" :key="category.id" :value="category.name">{{ category.name }}</option>
                                         </select>
                                     </div>
                                     <div class="col-md-4">
@@ -486,9 +482,11 @@
                                         <thead>
                                             <tr>
                                                 <th>SKU</th>
-                                                <th>Nombre</th>
+                                                <th>Descripción</th>
+                                                <th>Marca</th>
+                                                <th>Modelo</th>
                                                 <th>Serial</th>
-                                                <th>Departamento</th>
+                                                <th>Categoría</th>
                                                 <th>Ubicación</th>
                                                 <th>Stock</th>
                                                 <th>Precio</th>
@@ -500,9 +498,11 @@
                                         <tbody>
                                             <tr v-for="product in filteredInventory" :key="product.id">
                                                 <td><code>{{ product.sku }}</code></td>
-                                                <td>{{ product.name }}</td>
+                                                <td><small>{{ product.description }}</small></td>
+                                                <td><strong>{{ product.brand }}</strong></td>
+                                                <td>{{ product.model }}</td>
                                                 <td><small>{{ product.serial_number }}</small></td>
-                                                <td><span class="badge bg-secondary">{{ product.department }}</span></td>
+                                                <td><span class="badge bg-secondary">{{ product.category_name }}</span></td>
                                                 <td><small>{{ product.location }}</small></td>
                                                 <td>
                                                     <span class="badge" :class="product.stock_quantity <= product.min_stock_level ? 'bg-danger' : 'bg-success'">
@@ -849,7 +849,7 @@
                     inventorySummary: {},
                     filteredInventory: [],
                     inventoryFilters: {
-                        department: '',
+                        category: '',
                         location: '',
                         search: ''
                     },
@@ -863,6 +863,8 @@
                         sku: '',
                         name: '',
                         description: '',
+                        brand: '',
+                        model: '',
                         category_id: '',
                         supplier_id: '',
                         serial_number: '',
@@ -1041,9 +1043,9 @@
                 filterInventory() {
                     let filtered = [...this.products];
                     
-                    if (this.inventoryFilters.department) {
+                    if (this.inventoryFilters.category) {
                         filtered = filtered.filter(product => 
-                            product.department === this.inventoryFilters.department
+                            product.category_name === this.inventoryFilters.category
                         );
                     }
                     
@@ -1126,6 +1128,8 @@
                         sku: '',
                         name: '',
                         description: '',
+                        brand: '',
+                        model: '',
                         category_id: '',
                         supplier_id: '',
                         serial_number: '',
@@ -1143,10 +1147,38 @@
                     };
                 },
 
-                autoGenerateBarcode() {
-                    // Generar automáticamente si no hay código de barras
-                    if (!this.newProduct.barcode && this.newProduct.sku) {
-                        this.generateBarcode();
+                generateBarcode() {
+                    // Generar código de barras inteligente
+                    let barcode = '';
+                    
+                    if (this.newProduct && this.newProduct.sku) {
+                        // Usar SKU como base
+                        const skuClean = this.newProduct.sku.replace(/[^A-Z0-9]/g, '');
+                        const timestamp = Date.now().toString().slice(-4);
+                        barcode = `INV-${skuClean}-${timestamp}`;
+                    } else if (this.newProduct && this.newProduct.name) {
+                        // Usar primeras letras del nombre
+                        const nameWords = this.newProduct.name.split(' ');
+                        const initials = nameWords.map(word => word.charAt(0).toUpperCase()).join('');
+                        const timestamp = Date.now().toString().slice(-4);
+                        barcode = `INV-${initials}-${timestamp}`;
+                    } else {
+                        // Generar código aleatorio
+                        const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+                        const timestamp = Date.now().toString().slice(-4);
+                        barcode = `INV-${random}-${timestamp}`;
+                    }
+                    
+                    // Verificar que el código de barras sea único
+                    let counter = 1;
+                    let finalBarcode = barcode;
+                    while (this.products && this.products.some(p => p.barcode === finalBarcode)) {
+                        finalBarcode = `${barcode}-${counter}`;
+                        counter++;
+                    }
+                    
+                    if (this.newProduct) {
+                        this.newProduct.barcode = finalBarcode;
                     }
                 },
 
@@ -1353,6 +1385,18 @@
                                     <label class="form-label">Nombre del Producto *</label>
                                     <input type="text" class="form-control" v-model="newProduct.name" required 
                                            placeholder="Ej: Resistor 1K Ohm 1/4W">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Marca *</label>
+                                    <input type="text" class="form-control" v-model="newProduct.brand" required 
+                                           placeholder="Ej: Vishay">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Modelo *</label>
+                                    <input type="text" class="form-control" v-model="newProduct.model" required 
+                                           placeholder="Ej: CRCW0805">
                                 </div>
                                 
                                 <div class="mb-3">
@@ -1567,6 +1611,18 @@
                                     <label class="form-label">Nombre del Producto *</label>
                                     <input type="text" class="form-control" v-model="editingProduct.name" required 
                                            placeholder="Ej: Resistor 1K Ohm 1/4W">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Marca *</label>
+                                    <input type="text" class="form-control" v-model="editingProduct.brand" required 
+                                           placeholder="Ej: Vishay">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Modelo *</label>
+                                    <input type="text" class="form-control" v-model="editingProduct.model" required 
+                                           placeholder="Ej: CRCW0805">
                                 </div>
                                 
                                 <div class="mb-3">
