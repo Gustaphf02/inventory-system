@@ -260,9 +260,7 @@ if (strpos($path, '/api/') === 0 || in_array($path, ['/auth/me', '/products', '/
                 'environment' => getenv('APP_ENV') ?: 'development',
                 'server' => $_SERVER['SERVER_SOFTWARE'] ?? 'PHP Built-in Server',
                 'php_version' => PHP_VERSION,
-                'render' => getenv('RENDER') ? 'true' : 'false',
-                'debug_path' => $path,
-                'debug_apiPath' => $apiPath
+                'render' => getenv('RENDER') ? 'true' : 'false'
             ]);
             break;
             

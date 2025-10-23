@@ -5,7 +5,7 @@
  */
 
 class SystemLogger {
-    private static $logFile = __DIR__ . '/logs/system.log';
+    private static $logFile = __DIR__ . '/../logs/system.log';
     private static $maxLogSize = 10 * 1024 * 1024; // 10MB
     private static $maxLogFiles = 5;
     

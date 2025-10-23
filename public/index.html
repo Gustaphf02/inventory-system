@@ -793,13 +793,8 @@
                 async loadProducts() {
                     this.loading = true;
                     try {
-                        console.log('Intentando cargar productos desde: /products');
                         const response = await fetch('/products');
-                        console.log('Response status:', response.status);
-                        console.log('Response headers:', response.headers.get('content-type'));
-                        const text = await response.text();
-                        console.log('Response text:', text.substring(0, 200) + '...');
-                        const data = JSON.parse(text);
+                        const data = await response.json();
                         if (data.success) {
                             this.products = data.data;
                             this.filteredProducts = data.data;
