@@ -71,6 +71,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <li>viewer@inventory.com / viewer123</li>
                             </ul>
                         </div>
+                        <div class="text-center mt-3">
+                            <a href="demo.php" class="text-decoration-none">
+                                <i class="fas fa-arrow-left me-1"></i>
+                                Volver al Inicio
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>

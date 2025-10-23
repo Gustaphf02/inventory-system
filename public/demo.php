@@ -164,17 +164,13 @@ if (isset($_GET['api'])) {
                             <i class="fas fa-play me-2"></i>
                             Ver Demo
                         </a>
-                        <a href="config.php" class="btn btn-outline-light btn-lg">
-                            <i class="fas fa-cog me-2"></i>
-                            Configuración
+                        <a href="login.php" class="btn btn-outline-light btn-lg">
+                            <i class="fas fa-sign-in-alt me-2"></i>
+                            Ingresar al Sistema
                         </a>
-                        <a href="users.php" class="btn btn-outline-light btn-lg">
-                            <i class="fas fa-users me-2"></i>
-                            Usuarios
-                        </a>
-                        <a href="maintenance.php" class="btn btn-outline-light btn-lg">
-                            <i class="fas fa-tools me-2"></i>
-                            Mantenimiento
+                        <a href="register.php" class="btn btn-outline-light btn-lg">
+                            <i class="fas fa-user-plus me-2"></i>
+                            Registrarse
                         </a>
                     </div>
                 </div>
@@ -245,6 +241,11 @@ if (isset($_GET['api'])) {
                 <div class="col-12">
                     <h2 class="display-5 fw-bold">Demo en Vivo</h2>
                     <p class="lead text-muted">Explora las funcionalidades del sistema</p>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Acceso por Roles:</strong> 
+                        Admin (todo), Manager (config + mantenimiento), Employee/Viewer (solo consultas)
+                    </div>
                 </div>
             </div>
 
