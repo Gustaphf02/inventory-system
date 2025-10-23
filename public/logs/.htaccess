@@ -1,0 +1,10 @@
+# Proteger archivos de log
+<Files "*.log">
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+# Permitir acceso solo desde localhost para desarrollo
+<RequireAll>
+    Require local
+</RequireAll>

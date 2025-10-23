@@ -1,5 +1,9 @@
 <?php
 session_start();
+
+// Incluir el sistema de logging
+require_once __DIR__ . '/includes/SystemLogger.php';
+
 /**
  * Sistema de Inventario - Versión Simplificada sin Base de Datos
  * Funciona completamente con datos de ejemplo
@@ -239,6 +243,8 @@ if (strpos($path, '/api/') === 0) {
             break;
             
         case '/products':
+            // Log del acceso a productos
+            SystemLogger::logUserActivity('API_ACCESS', "Consulta de productos");
             echo json_encode([
                 'success' => true,
                 'data' => $sampleData['products'],
@@ -247,6 +253,8 @@ if (strpos($path, '/api/') === 0) {
             break;
             
         case '/categories':
+            // Log del acceso a categorías
+            SystemLogger::logUserActivity('API_ACCESS', "Consulta de categorías");
             echo json_encode([
                 'success' => true,
                 'data' => $sampleData['categories']
@@ -254,6 +262,8 @@ if (strpos($path, '/api/') === 0) {
             break;
             
         case '/suppliers':
+            // Log del acceso a proveedores
+            SystemLogger::logUserActivity('API_ACCESS', "Consulta de proveedores");
             echo json_encode([
                 'success' => true,
                 'data' => $sampleData['suppliers']
@@ -305,6 +315,8 @@ if (strpos($path, '/api/') === 0) {
     }
     
     // Si hay sesión activa, mostrar el sistema principal
+    // Log del acceso al sistema
+    SystemLogger::logUserActivity('SYSTEM_ACCESS', "Acceso al sistema principal");
     include 'index.html';
 }
 ?>

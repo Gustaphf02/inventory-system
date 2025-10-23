@@ -1,11 +1,44 @@
 <?php
 require_once __DIR__ . '/.auth.php';
+require_once __DIR__ . '/includes/SystemLogger.php';
 // Admin y Manager
 requireRole(['admin','manager']);
 /**
  * Sistema de Inventario - Respaldo y Mantenimiento
  * Gestión completa de respaldos, logs y mantenimiento del sistema
  */
+
+// Manejar acciones de logs
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $action = $_POST['action'] ?? '';
+    
+    switch ($action) {
+        case 'export_logs':
+            $export = SystemLogger::exportToCSV();
+            header('Content-Type: text/csv');
+            header('Content-Disposition: attachment; filename="' . $export['filename'] . '"');
+            echo $export['content'];
+            SystemLogger::logUserActivity('EXPORT_LOGS', "Archivo: " . $export['filename'] . ", Tamaño: " . $export['size'] . " bytes");
+            exit;
+            
+        case 'clear_logs':
+            $days = (int)($_POST['days'] ?? 30);
+            SystemLogger::clearOldLogs($days);
+            SystemLogger::logUserActivity('CLEAR_LOGS', "Eliminados logs de más de $days días");
+            header('Location: ' . $_SERVER['PHP_SELF'] . '?success=logs_cleared');
+            exit;
+            
+        case 'create_backup':
+            $backupName = 'backup_' . date('Y-m-d_H-i-s') . '.sql';
+            SystemLogger::logBackup('MANUAL_BACKUP', $backupName, 0, true);
+            SystemLogger::logUserActivity('CREATE_BACKUP', "Respaldo manual creado: $backupName");
+            header('Location: ' . $_SERVER['PHP_SELF'] . '?success=backup_created');
+            exit;
+    }
+}
+
+// Log del acceso a mantenimiento
+SystemLogger::logUserActivity('MAINTENANCE_ACCESS', "Acceso a página de mantenimiento");
 
 // Datos de ejemplo de respaldos
 $backups = [
@@ -493,28 +526,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </div>
                             <div class="card-body">
                                 <div class="table-responsive">
-                                    <table class="table table-hover">
+                                    <table id="logs-table" class="table table-hover">
                                         <thead>
                                             <tr>
                                                 <th>Fecha/Hora</th>
                                                 <th>Nivel</th>
                                                 <th>Módulo</th>
-                                                <th>Mensaje</th>
+                                                <th>Usuario</th>
+                                                <th>Acción</th>
+                                                <th>IP</th>
+                                                <th>Detalles</th>
                                             </tr>
                                         </thead>
                                         <tbody>
+                                            <?php if (empty($systemLogs)): ?>
+                                            <tr>
+                                                <td colspan="7" class="text-center text-muted">
+                                                    <i class="fas fa-info-circle me-2"></i>
+                                                    No hay logs disponibles
+                                                </td>
+                                            </tr>
+                                            <?php else: ?>
                                             <?php foreach ($systemLogs as $log): ?>
                                             <tr>
-                                                <td><?= $log['timestamp'] ?></td>
+                                                <td>
+                                                    <small><?= $log['timestamp'] ?></small>
+                                                </td>
                                                 <td>
                                                     <span class="badge bg-<?= $log['level'] === 'INFO' ? 'info' : ($log['level'] === 'WARNING' ? 'warning' : 'danger') ?>">
                                                         <?= $log['level'] ?>
                                                     </span>
                                                 </td>
-                                                <td><?= htmlspecialchars($log['module']) ?></td>
-                                                <td><?= htmlspecialchars($log['message']) ?></td>
+                                                <td>
+                                                    <span class="badge bg-secondary"><?= htmlspecialchars($log['module']) ?></span>
+                                                </td>
+                                                <td>
+                                                    <strong><?= htmlspecialchars($log['user']) ?></strong>
+                                                </td>
+                                                <td>
+                                                    <code><?= htmlspecialchars($log['action']) ?></code>
+                                                </td>
+                                                <td>
+                                                    <small><?= htmlspecialchars($log['ip']) ?></small>
+                                                </td>
+                                                <td>
+                                                    <small><?= htmlspecialchars($log['details']) ?></small>
+                                                </td>
                                             </tr>
                                             <?php endforeach; ?>
+                                            <?php endif; ?>
                                         </tbody>
                                     </table>
                                 </div>
@@ -756,7 +816,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         function exportLogs() {
-            alert('Exportando logs del sistema...');
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.innerHTML = '<input type="hidden" name="action" value="export_logs">';
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        function clearLogs() {
+            if (confirm('¿Estás seguro de limpiar los logs antiguos? Esto eliminará logs de más de 30 días.')) {
+                const days = prompt('¿Cuántos días de logs quieres conservar? (por defecto: 30)', '30');
+                if (days !== null) {
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.innerHTML = `
+                        <input type="hidden" name="action" value="clear_logs">
+                        <input type="hidden" name="days" value="${days || 30}">
+                    `;
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            }
         }
 
         function optimizeDatabase() {
@@ -784,6 +864,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         function refreshStats() {
             location.reload();
         }
+
+        // Actualizar logs en tiempo real
+        function refreshLogs() {
+            fetch('/api/logs.php?action=get_logs&limit=50')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        updateLogsTable(data.data);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error al actualizar logs:', error);
+                });
+        }
+
+        function updateLogsTable(logs) {
+            const tbody = document.querySelector('#logs-table tbody');
+            if (!tbody) return;
+
+            tbody.innerHTML = '';
+            
+            if (logs.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center text-muted">
+                            <i class="fas fa-info-circle me-2"></i>
+                            No hay logs disponibles
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            logs.forEach(log => {
+                const levelClass = log.level === 'INFO' ? 'info' : 
+                                 log.level === 'WARNING' ? 'warning' : 'danger';
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><small>${log.timestamp}</small></td>
+                    <td><span class="badge bg-${levelClass}">${log.level}</span></td>
+                    <td><span class="badge bg-secondary">${log.module}</span></td>
+                    <td><strong>${log.user}</strong></td>
+                    <td><code>${log.action}</code></td>
+                    <td><small>${log.ip}</small></td>
+                    <td><small>${log.details}</small></td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Actualizar logs cada 30 segundos
+        setInterval(refreshLogs, 30000);
+
+        // Actualizar logs al cargar la página
+        document.addEventListener('DOMContentLoaded', function() {
+            refreshLogs();
+        });
     </script>
 </body>
 </html>

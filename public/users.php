@@ -1,7 +1,11 @@
 <?php
 require_once __DIR__ . '/.auth.php';
+require_once __DIR__ . '/includes/SystemLogger.php';
 // Solo Admin
 requireRole(['admin']);
+
+// Log del acceso a gestión de usuarios
+SystemLogger::logUserActivity('USERS_ACCESS', "Acceso a página de gestión de usuarios");
 /**
  * Sistema de Inventario - Gestión de Usuarios y Permisos
  * Administración completa de usuarios, roles y permisos

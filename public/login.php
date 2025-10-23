@@ -1,6 +1,9 @@
 <?php
 session_start();
 
+// Incluir el sistema de logging
+require_once __DIR__ . '/includes/SystemLogger.php';
+
 // Demo users (email => [password, name, role, username])
 $users = [
     'admin@inventory.com' => ['admin123', 'Administrador Sistema', 'admin', 'admin'],
@@ -21,10 +24,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'role' => $users[$email][2],
             'username' => $users[$email][4] ?? $users[$email][3]
         ];
+        
+        // Log del login exitoso
+        SystemLogger::logAuth('LOGIN_SUCCESS', $users[$email][3], true, "IP: " . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
+        
         echo '<!DOCTYPE html><html><head><meta charset="utf-8"><script>localStorage.setItem("token","demo-token");window.location.href="/";</script></head><body></body></html>';
         exit;
     } else {
         $error = 'Credenciales inválidas';
+        
+        // Log del login fallido
+        SystemLogger::logAuth('LOGIN_FAILED', $email, false, "Credenciales inválidas - IP: " . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
     }
 }
 ?>
