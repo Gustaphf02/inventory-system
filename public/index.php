@@ -215,7 +215,7 @@ if (strpos($path, '/api/') === 0) {
     
     // Enrutamiento de API
     switch ($apiPath) {
-        case '/auth/me':
+        case 'auth/me':
             if (isset($_SESSION['user'])) {
                 echo json_encode([
                     'authenticated' => true,
@@ -229,7 +229,7 @@ if (strpos($path, '/api/') === 0) {
                 ]);
             }
             break;
-        case '/health':
+        case 'health':
             echo json_encode([
                 'status' => 'ok',
                 'timestamp' => date('Y-m-d H:i:s'),
@@ -242,7 +242,7 @@ if (strpos($path, '/api/') === 0) {
             ]);
             break;
             
-        case '/products':
+        case 'products':
             // Log del acceso a productos
             SystemLogger::logUserActivity('API_ACCESS', "Consulta de productos");
             echo json_encode([
@@ -252,7 +252,7 @@ if (strpos($path, '/api/') === 0) {
             ]);
             break;
             
-        case '/categories':
+        case 'categories':
             // Log del acceso a categorías
             SystemLogger::logUserActivity('API_ACCESS', "Consulta de categorías");
             echo json_encode([
@@ -261,7 +261,7 @@ if (strpos($path, '/api/') === 0) {
             ]);
             break;
             
-        case '/suppliers':
+        case 'suppliers':
             // Log del acceso a proveedores
             SystemLogger::logUserActivity('API_ACCESS', "Consulta de proveedores");
             echo json_encode([
@@ -270,7 +270,7 @@ if (strpos($path, '/api/') === 0) {
             ]);
             break;
             
-        case '/reports/dashboard/stats':
+        case 'reports/dashboard/stats':
             $stats = calculateStats($sampleData['products']);
             echo json_encode([
                 'success' => true,
@@ -278,7 +278,7 @@ if (strpos($path, '/api/') === 0) {
             ]);
             break;
             
-        case '/reports/inventory/summary':
+        case 'reports/inventory/summary':
             $stats = calculateStats($sampleData['products']);
             echo json_encode([
                 'success' => true,
@@ -286,7 +286,7 @@ if (strpos($path, '/api/') === 0) {
             ]);
             break;
             
-        case '/reports/inventory/low-stock':
+        case 'reports/inventory/low-stock':
             $lowStockProducts = array_filter($sampleData['products'], function($p) { 
                 return $p['stock_quantity'] <= $p['min_stock_level']; 
             });

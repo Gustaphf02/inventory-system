@@ -693,7 +693,7 @@
                 return {
                     currentView: 'dashboard',
                     loading: false,
-                    user: { name: '', email: '', role: '' },
+                    user: { name: 'Usuario Demo', email: 'demo@inventory.com', role: 'admin' },
                     stats: {
                         totalProducts: 0,
                         totalValue: 0,
@@ -722,13 +722,39 @@
             methods: {
                 async loadSessionUser() {
                     try {
-                        const res = await fetch('/api/auth/me');
+                        const res = await fetch('/auth/me');
                         if (res.ok) {
                             const data = await res.json();
-                            if (data.authenticated) this.user = data.user;
+                            if (data.authenticated) {
+                                this.user = data.user;
+                                console.log('Usuario cargado desde sesión:', this.user);
+                            } else {
+                                // Usuario por defecto para desarrollo
+                                this.user = {
+                                    name: 'Usuario Demo',
+                                    role: 'admin',
+                                    email: 'demo@inventory.com'
+                                };
+                                console.log('Usuario demo asignado (no autenticado):', this.user);
+                            }
+                        } else {
+                            // Usuario por defecto si falla la API
+                            this.user = {
+                                name: 'Usuario Demo',
+                                role: 'admin',
+                                email: 'demo@inventory.com'
+                            };
+                            console.log('Usuario demo asignado (API falló):', this.user);
                         }
                     } catch (e) {
-                        console.warn('No session user');
+                        console.warn('No session user, usando usuario demo');
+                        // Usuario por defecto para desarrollo
+                        this.user = {
+                            name: 'Usuario Demo',
+                            role: 'admin',
+                            email: 'demo@inventory.com'
+                        };
+                        console.log('Usuario demo asignado (error):', this.user);
                     }
                 },
                 setView(view) {
@@ -753,7 +779,7 @@
                 async loadDashboardData() {
                     this.loading = true;
                     try {
-                        const response = await fetch('/api/reports/dashboard/stats');
+                        const response = await fetch('/reports/dashboard/stats');
                         const data = await response.json();
                         if (data.success) {
                             this.stats = data.data;
@@ -767,7 +793,7 @@
                 async loadProducts() {
                     this.loading = true;
                     try {
-                        const response = await fetch('/api/products');
+                        const response = await fetch('/products');
                         const data = await response.json();
                         if (data.success) {
                             this.products = data.data;
@@ -782,7 +808,7 @@
 
                 async loadCategories() {
                     try {
-                        const response = await fetch('/api/categories');
+                        const response = await fetch('/categories');
                         const data = await response.json();
                         if (data.success) {
                             this.categories = data.data;
@@ -794,7 +820,7 @@
 
                 async loadSuppliers() {
                     try {
-                        const response = await fetch('/api/suppliers');
+                        const response = await fetch('/suppliers');
                         const data = await response.json();
                         if (data.success) {
                             this.suppliers = data.data;
