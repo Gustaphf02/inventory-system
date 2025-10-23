@@ -686,12 +686,10 @@
                 },
 
                 deleteProduct(product) {
-                    if (confirm(`¿Estás seguro de eliminar el producto "${product.name}"?`)) {
+                    if (confirm('¿Estás seguro de eliminar el producto "' + product.name + '"?')) {
                         console.log('Delete product:', product);
                         // Implementar eliminación
                     }
-                },
-
                 }
             }
         }).mount('#app');
