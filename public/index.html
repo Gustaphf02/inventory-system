@@ -8,6 +8,14 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js" rel="preload">
     <style>
+        .modal.show {
+            display: block !important;
+        }
+        
+        .modal-backdrop {
+            background-color: rgba(0,0,0,0.5);
+        }
+        
         .sidebar {
             min-height: 100vh;
             background: linear-gradient(135deg, #2c2c2c 0%, #1a1a1a 100%);
@@ -1088,7 +1096,60 @@
                 },
 
                 showAddProduct() {
+                    console.log('showAddProduct called');
                     this.showAddProductModal = true;
+                    console.log('Modal should be visible now');
+                    
+                    // Usar Bootstrap para mostrar el modal
+                    this.$nextTick(() => {
+                        const modalElement = document.getElementById('addProductModal');
+                        if (modalElement) {
+                            // Crear backdrop
+                            const backdrop = document.createElement('div');
+                            backdrop.className = 'modal-backdrop fade show';
+                            backdrop.id = 'modalBackdrop';
+                            document.body.appendChild(backdrop);
+                            
+                            // Mostrar modal
+                            modalElement.classList.add('show');
+                            modalElement.style.display = 'block';
+                            document.body.classList.add('modal-open');
+                        }
+                    });
+                },
+
+                closeAddProductModal() {
+                    console.log('closeAddProductModal called');
+                    this.showAddProductModal = false;
+                    console.log('showAddProductModal set to false');
+                    
+                    // Limpiar elementos del modal
+                    const modalElement = document.getElementById('addProductModal');
+                    const backdrop = document.getElementById('modalBackdrop');
+                    
+                    if (modalElement) {
+                        modalElement.classList.remove('show');
+                        modalElement.style.display = 'none';
+                        console.log('Modal element hidden');
+                    }
+                    
+                    if (backdrop) {
+                        backdrop.remove();
+                        console.log('Backdrop removed');
+                    }
+                    
+                    document.body.classList.remove('modal-open');
+                    console.log('Modal closed successfully');
+                },
+
+                closeModalX() {
+                    console.log('closeModalX called');
+                    this.closeAddProductModal();
+                },
+
+                closeModalCancel() {
+                    console.log('closeModalCancel called');
+                    this.closeAddProductModal();
                 },
 
                 addProduct() {
@@ -1132,7 +1193,7 @@
                     this.resetNewProduct();
                     
                     // Cerrar modal
-                    this.showAddProductModal = false;
+                    this.closeAddProductModal();
                     
                     // Mostrar mensaje de éxito
                     alert('Producto agregado exitosamente');
@@ -1372,7 +1433,7 @@
     </script>
 
     <!-- Modal de Agregar Producto -->
-    <div class="modal fade" id="addProductModal" tabindex="-1" v-if="showAddProductModal" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal fade" id="addProductModal" tabindex="-1" v-if="showAddProductModal" @click.self="closeModalCancel">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
@@ -1380,7 +1441,7 @@
                         <i class="fas fa-plus me-2"></i>
                         Agregar Nuevo Producto
                     </h5>
-                    <button type="button" class="btn-close" @click="showAddProductModal = false"></button>
+                    <button type="button" class="btn-close" @click="closeModalX"></button>
                 </div>
                 <div class="modal-body">
                     <form @submit.prevent="addProduct">
@@ -1584,7 +1645,7 @@
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @click="showAddProductModal = false">
+                    <button type="button" class="btn btn-secondary" @click="closeModalCancel">
                         <i class="fas fa-times me-1"></i>
                         Cancelar
                     </button>
