@@ -1,7 +1,4 @@
 <?php
-// Configurar headers JSON para todas las respuestas API
-header('Content-Type: application/json; charset=utf-8');
-
 // Iniciar sesión solo si no está ya iniciada
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -60,7 +57,7 @@ try {
     }
 
     // Cargar productos desde archivo o usar datos por defecto
-    $sampleData = [
+$sampleData = [
         'products' => loadProductsFromFile()
     ];
 
@@ -69,58 +66,58 @@ try {
         $sampleData['products'] = [];
         // Guardar array vacío
         saveProductsToFile($sampleData['products']);
-    }
+}
 
-    // Obtener la ruta de la API
-    $requestUri = $_SERVER['REQUEST_URI'];
-    $path = parse_url($requestUri, PHP_URL_PATH);
+// Obtener la ruta de la API
+$requestUri = $_SERVER['REQUEST_URI'];
+$path = parse_url($requestUri, PHP_URL_PATH);
 
-    // Si es una petición API, manejar como JSON
+// Si es una petición API, manejar como JSON
     if (strpos($path, '/api/') === 0 || in_array($path, ['/auth/me', '/products', '/categories', '/suppliers', '/departments', '/locations', '/inventory/summary', '/reports/dashboard/stats', '/reports/inventory/summary', '/reports/inventory/low-stock', '/health', '/test'])) {
         // Debug: Log de la ruta detectada
         error_log("API Route detected: $path, Method: " . $_SERVER['REQUEST_METHOD']);
         
-        // Configurar headers para JSON
-        header('Content-Type: application/json');
-        header('Access-Control-Allow-Origin: *');
-        header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-        header('Access-Control-Allow-Headers: Content-Type, Authorization');
-        
-        // Manejar preflight requests
-        if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-            http_response_code(200);
+    // Configurar headers para JSON
+    header('Content-Type: application/json');
+    header('Access-Control-Allow-Origin: *');
+    header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type, Authorization');
+    
+    // Manejar preflight requests
+    if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+        http_response_code(200);
             exit;
-        }
-        
+    }
+    
         // Determinar la ruta de la API
         if (strpos($path, '/api/') === 0) {
-            $apiPath = substr($path, 4);
+    $apiPath = substr($path, 4);
         } else {
             $apiPath = ltrim($path, '/');
         }
-        
-        // Enrutamiento de API
-        switch ($apiPath) {
+    
+    // Enrutamiento de API
+    switch ($apiPath) {
             case 'auth/me':
                 // Verificar si hay una sesión activa
                 if (isset($_SESSION['user']) && !empty($_SESSION['user'])) {
                     // Usuario autenticado
                     $user = $_SESSION['user'];
-                    echo json_encode([
+                echo json_encode([
                         'success' => true,
                         'data' => $user,
                         'authenticated' => true
-                    ]);
-                } else {
+                ]);
+            } else {
                     // No hay sesión activa
-                    echo json_encode([
+                echo json_encode([
                         'success' => false,
                         'error' => 'No hay sesión activa',
-                        'authenticated' => false,
+                    'authenticated' => false,
                         'data' => null
-                    ]);
-                }
-                break;
+                ]);
+            }
+            break;
                 
             case 'products':
                 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
@@ -136,7 +133,7 @@ try {
                     safeLog('INFO', 'PRODUCT', 'LIST', 'Productos listados: ' . count($products));
                     error_log("Products GET: Devolviendo " . count($products) . " productos");
                     
-                    echo json_encode([
+            echo json_encode([
                         'success' => true,
                         'data' => $products
                     ]);
@@ -146,7 +143,7 @@ try {
                     if (!$input) {
                         error_log("Products POST: Datos JSON inválidos");
                         echo json_encode(['success' => false, 'error' => 'Datos JSON inválidos']);
-                        break;
+            break;
                     }
                     
                     // Campos requeridos
@@ -213,8 +210,8 @@ try {
                     safeLog('INFO', 'PRODUCT', 'CREATE', "Producto creado: {$newProduct['sku']} - {$newProduct['name']}");
                     error_log("Products POST: Producto creado exitosamente con ID: " . $newProduct['id']);
                     
-                    echo json_encode([
-                        'success' => true,
+            echo json_encode([
+                'success' => true,
                         'message' => 'Producto creado exitosamente',
                         'data' => $newProduct
                     ]);
@@ -241,7 +238,7 @@ try {
                     if ($productIndex === -1) {
                         error_log("Products PUT: Producto no encontrado con ID: $productId");
                         echo json_encode(['success' => false, 'error' => 'Producto no encontrado']);
-                        break;
+            break;
                     }
                     foreach ($sampleData['products'] as $index => $existingProduct) {
                         if ($index === $productIndex) continue;
@@ -280,8 +277,8 @@ try {
                     saveProductsToFile($sampleData['products']);
                     safeLog('INFO', 'PRODUCT', 'UPDATE', "Producto actualizado: {$sampleData['products'][$productIndex]['sku']} - {$sampleData['products'][$productIndex]['name']}");
                     error_log("Products PUT: Producto actualizado exitosamente con ID: $productId");
-                    echo json_encode([
-                        'success' => true,
+            echo json_encode([
+                'success' => true,
                         'message' => 'Producto actualizado exitosamente',
                         'data' => $sampleData['products'][$productIndex]
                     ]);
@@ -303,7 +300,7 @@ try {
                     if ($productIndex === -1) {
                         error_log("Products DELETE: Producto no encontrado con ID: $productId");
                         echo json_encode(['success' => false, 'error' => 'Producto no encontrado']);
-                        break;
+            break;
                     }
                     $deletedProduct = $sampleData['products'][$productIndex];
                     unset($sampleData['products'][$productIndex]);
@@ -311,14 +308,14 @@ try {
                     saveProductsToFile($sampleData['products']);
                     safeLog('INFO', 'PRODUCT', 'DELETE', "Producto eliminado: {$deletedProduct['sku']} - {$deletedProduct['name']}");
                     error_log("Products DELETE: Producto eliminado exitosamente con ID: $productId");
-                    echo json_encode([
-                        'success' => true,
+            echo json_encode([
+                'success' => true,
                         'message' => 'Producto eliminado exitosamente',
                         'data' => $deletedProduct
-                    ]);
+            ]);
                 }
-                break;
-                
+            break;
+            
             case 'reports/dashboard/stats':
                 try {
                     $totalProducts = count($sampleData['products']);
@@ -342,10 +339,10 @@ try {
                     safeLog('INFO', 'REPORT', 'DASHBOARD', 'Estadísticas del dashboard generadas');
                     error_log("Dashboard stats: Total productos: $totalProducts, Valor total: $totalValue, Stock bajo: $lowStockProducts");
                     
-                    echo json_encode([
-                        'success' => true,
-                        'data' => $stats
-                    ]);
+            echo json_encode([
+                'success' => true,
+                'data' => $stats
+            ]);
                 } catch (Exception $e) {
                     error_log("Dashboard stats error: " . $e->getMessage());
                     echo json_encode([
@@ -480,37 +477,37 @@ try {
                         'error' => 'Error al generar resumen de inventario'
                     ]);
                 }
-                break;
-                
+            break;
+            
             case 'health':
-                echo json_encode([
-                    'success' => true,
+            echo json_encode([
+                'success' => true,
                     'status' => 'healthy',
                     'timestamp' => date('Y-m-d H:i:s'),
                     'php_version' => phpversion()
-                ]);
-                break;
-                
+            ]);
+            break;
+            
             case 'test':
-                echo json_encode([
-                    'success' => true,
+            echo json_encode([
+                'success' => true,
                     'message' => 'API funcionando correctamente',
                     'timestamp' => date('Y-m-d H:i:s')
-                ]);
-                break;
-                
-            default:
-                http_response_code(404);
-                echo json_encode([
-                    'success' => false,
+            ]);
+            break;
+            
+        default:
+            http_response_code(404);
+            echo json_encode([
+                'success' => false,
                     'error' => 'Endpoint no encontrado',
                     'path' => $apiPath
-                ]);
-                break;
-        }
-    } else {
+            ]);
+            break;
+    }
+} else {
         // Si no es una petición API, mostrar la página HTML
-        include 'index.html';
+    include 'index.html';
     }
 
 } catch (Exception $e) {
