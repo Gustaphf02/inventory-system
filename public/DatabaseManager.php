@@ -34,10 +34,17 @@ class DatabaseManager {
     }
     
     public function getAllProducts() {
-        if ($this->useMongoDB) {
-            return $this->mongo->getAllProducts();
-        } else {
-            return $this->loadProductsFromFile();
+        try {
+            if ($this->useMongoDB) {
+                $products = $this->mongo->getAllProducts();
+                return is_array($products) ? $products : [];
+            } else {
+                $products = $this->loadProductsFromFile();
+                return is_array($products) ? $products : [];
+            }
+        } catch (Exception $e) {
+            error_log("DatabaseManager getAllProducts error: " . $e->getMessage());
+            return [];
         }
     }
     
@@ -77,21 +84,71 @@ class DatabaseManager {
     // Métodos para archivos JSON (fallback)
     private function loadProductsFromFile() {
         $file = __DIR__ . '/data/products.json';
-        if (file_exists($file)) {
+        $dir = dirname($file);
+        
+        try {
+            // Crear directorio si no existe
+            if (!is_dir($dir)) {
+                mkdir($dir, 0755, true);
+                error_log("DatabaseManager: Directorio /data/ creado");
+            }
+            
+            // Crear archivo si no existe
+            if (!file_exists($file)) {
+                file_put_contents($file, json_encode([], JSON_PRETTY_PRINT));
+                error_log("DatabaseManager: Archivo products.json creado");
+                return [];
+            }
+            
+            // Leer archivo existente
             $content = file_get_contents($file);
+            if ($content === false) {
+                error_log("DatabaseManager: Error leyendo archivo products.json");
+                return [];
+            }
+            
             $data = json_decode($content, true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                error_log("DatabaseManager: Error JSON en products.json: " . json_last_error_msg());
+                return [];
+            }
+            
             return is_array($data) ? $data : [];
+            
+        } catch (Exception $e) {
+            error_log("DatabaseManager loadProductsFromFile error: " . $e->getMessage());
+            return [];
         }
-        return [];
     }
     
     private function saveProductsToFile($products) {
         $file = __DIR__ . '/data/products.json';
         $dir = dirname($file);
-        if (!is_dir($dir)) {
-            mkdir($dir, 0755, true);
+        
+        try {
+            // Crear directorio si no existe
+            if (!is_dir($dir)) {
+                mkdir($dir, 0755, true);
+            }
+            
+            // Validar que products es un array
+            if (!is_array($products)) {
+                error_log("DatabaseManager: saveProductsToFile recibió datos no válidos");
+                return false;
+            }
+            
+            $result = file_put_contents($file, json_encode($products, JSON_PRETTY_PRINT));
+            if ($result === false) {
+                error_log("DatabaseManager: Error escribiendo archivo products.json");
+                return false;
+            }
+            
+            return true;
+            
+        } catch (Exception $e) {
+            error_log("DatabaseManager saveProductsToFile error: " . $e->getMessage());
+            return false;
         }
-        file_put_contents($file, json_encode($products, JSON_PRETTY_PRINT));
     }
     
     private function createProductInFile($data) {

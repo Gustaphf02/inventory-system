@@ -286,6 +286,11 @@ $path = parse_url($requestUri, PHP_URL_PATH);
                     // Obtener productos desde DatabaseManager
                     $products = $db->getAllProducts();
                     
+                    // Proteger contra null
+                    if (!is_array($products)) {
+                        $products = [];
+                    }
+                    
                     $totalProducts = count($products);
                     $totalValue = 0;
                     $lowStockProducts = 0;
@@ -411,12 +416,20 @@ $path = parse_url($requestUri, PHP_URL_PATH);
                 
             case 'inventory/summary':
                 try {
-                    $totalProducts = count($sampleData['products']);
+                    // Obtener productos usando DatabaseManager
+                    $products = $db->getAllProducts();
+                    
+                    // Proteger contra null
+                    if (!is_array($products)) {
+                        $products = [];
+                    }
+                    
+                    $totalProducts = count($products);
                     $totalValue = 0;
                     $lowStockProducts = [];
                     $departments = [];
                     
-                    foreach ($sampleData['products'] as $product) {
+                    foreach ($products as $product) {
                         $totalValue += $product['price'] * $product['stock_quantity'];
                         if ($product['stock_quantity'] <= $product['min_stock_level']) {
                             $lowStockProducts[] = $product;
