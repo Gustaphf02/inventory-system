@@ -32,185 +32,33 @@ if ($isProduction) {
     header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
 }
 
-// Datos de ejemplo en memoria
+// Datos de ejemplo en memoria - EMPEZAR VACÍO
 $sampleData = [
-    'products' => [
-        [
-            'id' => 1,
-            'sku' => 'RES-1K-1/4W',
-            'name' => 'Resistor 1K Ohm 1/4W',
-            'description' => 'Resistor de carbón 1K ohmios, potencia 1/4W, tolerancia 5%',
-            'brand' => 'Vishay',
-            'model' => 'CRCW0805',
-            'price' => 0.10,
-            'cost' => 0.05,
-            'stock_quantity' => 1000,
-            'min_stock_level' => 100,
-            'max_stock_level' => 2000,
-            'category_id' => 3,
-            'supplier_id' => 1,
-            'category_name' => 'Resistores',
-            'supplier_name' => 'Mouser Electronics',
-            'serial_number' => 'RES001-2025-001',
-            'department' => 'Electrónica',
-            'location' => 'Almacén A - Estante 1',
-            'label' => 'RES-1K-001',
-            'barcode' => 'INV-RES-1K-001',
-            'expiration_date' => null,
-            'status' => 'active',
-            'created_at' => '2024-01-01 10:00:00',
-            'updated_at' => '2024-01-01 10:00:00'
-        ],
-        [
-            'id' => 2,
-            'sku' => 'CAP-100NF-50V',
-            'name' => 'Capacitor Cerámico 100nF',
-            'description' => 'Capacitor cerámico 100nF, 50V, X7R',
-            'brand' => 'Murata',
-            'model' => 'GRM188R71H104KA01D',
-            'price' => 0.15,
-            'cost' => 0.08,
-            'stock_quantity' => 500,
-            'min_stock_level' => 50,
-            'category_id' => 4,
-            'supplier_id' => 1,
-            'category_name' => 'Capacitores',
-            'supplier_name' => 'Mouser Electronics',
-            'created_at' => '2024-01-01 10:00:00',
-            'updated_at' => '2024-01-01 10:00:00'
-        ],
-        [
-            'id' => 3,
-            'sku' => 'LED-RED-5MM',
-            'name' => 'LED Rojo 5mm',
-            'description' => 'LED rojo 5mm, 20mA, 2.1V',
-            'brand' => 'Kingbright',
-            'model' => 'L-7113HD',
-            'price' => 0.25,
-            'cost' => 0.12,
-            'stock_quantity' => 200,
-            'min_stock_level' => 25,
-            'category_id' => 2,
-            'supplier_id' => 2,
-            'category_name' => 'Semiconductores',
-            'supplier_name' => 'DigiKey',
-            'created_at' => '2024-01-01 10:00:00',
-            'updated_at' => '2024-01-01 10:00:00'
-        ],
-        [
-            'id' => 4,
-            'sku' => 'TRANS-BC547',
-            'name' => 'Transistor NPN BC547',
-            'description' => 'Transistor NPN BC547, 45V, 100mA',
-            'brand' => 'ON Semiconductor',
-            'model' => 'BC547B',
-            'price' => 0.30,
-            'cost' => 0.15,
-            'stock_quantity' => 150,
-            'min_stock_level' => 20,
-            'category_id' => 2,
-            'supplier_id' => 2,
-            'category_name' => 'Semiconductores',
-            'supplier_name' => 'DigiKey',
-            'created_at' => '2024-01-01 10:00:00',
-            'updated_at' => '2024-01-01 10:00:00'
-        ],
-        [
-            'id' => 5,
-            'sku' => 'CONN-USB-A',
-            'name' => 'Conector USB-A',
-            'description' => 'Conector USB-A hembra, montaje PCB',
-            'brand' => 'Amphenol',
-            'model' => 'USB-A-S-RA',
-            'price' => 1.50,
-            'cost' => 0.75,
-            'stock_quantity' => 75,
-            'min_stock_level' => 10,
-            'category_id' => 5,
-            'supplier_id' => 3,
-            'category_name' => 'Conectores',
-            'supplier_name' => 'Newark',
-            'created_at' => '2024-01-01 10:00:00',
-            'updated_at' => '2024-01-01 10:00:00'
-        ],
-        [
-            'id' => 6,
-            'sku' => 'CABLE-JUMPER-20CM',
-            'name' => 'Cable Jumper 20cm',
-            'description' => 'Cable jumper macho-macho, 20cm',
-            'price' => 0.50,
-            'cost' => 0.25,
-            'stock_quantity' => 300,
-            'min_stock_level' => 50,
-            'category_id' => 7,
-            'supplier_id' => 3,
-            'category_name' => 'Cables',
-            'supplier_name' => 'Newark',
-            'created_at' => '2024-01-01 10:00:00',
-            'updated_at' => '2024-01-01 10:00:00'
-        ],
-        [
-            'id' => 7,
-            'sku' => 'PCB-5X7CM',
-            'name' => 'Placa PCB 5x7cm',
-            'description' => 'Placa PCB perforada 5x7cm, 2.54mm pitch',
-            'price' => 2.00,
-            'cost' => 1.00,
-            'stock_quantity' => 50,
-            'min_stock_level' => 5,
-            'category_id' => 8,
-            'supplier_id' => 4,
-            'category_name' => 'Placas PCB',
-            'supplier_name' => 'RS Components',
-            'created_at' => '2024-01-01 10:00:00',
-            'updated_at' => '2024-01-01 10:00:00'
-        ],
-        [
-            'id' => 8,
-            'sku' => 'TOOL-MULTIMETER',
-            'name' => 'Multímetro Digital',
-            'description' => 'Multímetro digital básico, 3.5 dígitos',
-            'price' => 25.00,
-            'cost' => 12.50,
-            'stock_quantity' => 10,
-            'min_stock_level' => 2,
-            'category_id' => 6,
-            'supplier_id' => 4,
-            'category_name' => 'Herramientas',
-            'supplier_name' => 'RS Components',
-            'created_at' => '2024-01-01 10:00:00',
-            'updated_at' => '2024-01-01 10:00:00'
-        ]
-    ],
+    'products' => [],
     'categories' => [
-        ['id' => 1, 'name' => 'Electrónicos', 'description' => 'Componentes electrónicos y dispositivos', 'product_count' => 8],
-        ['id' => 2, 'name' => 'Semiconductores', 'description' => 'Transistores, diodos, circuitos integrados', 'product_count' => 2],
-        ['id' => 3, 'name' => 'Resistores', 'description' => 'Resistores de varios tipos y valores', 'product_count' => 1],
-        ['id' => 4, 'name' => 'Capacitores', 'description' => 'Capacitores cerámicos, electrolíticos, etc.', 'product_count' => 1],
-        ['id' => 5, 'name' => 'Conectores', 'description' => 'Conectores y terminales', 'product_count' => 1],
-        ['id' => 6, 'name' => 'Herramientas', 'description' => 'Herramientas de electrónica', 'product_count' => 1],
-        ['id' => 7, 'name' => 'Cables', 'description' => 'Cables y alambres', 'product_count' => 1],
-        ['id' => 8, 'name' => 'Placas PCB', 'description' => 'Placas de circuito impreso', 'product_count' => 1]
+        ['id' => 1, 'name' => 'Electrónica', 'description' => 'Componentes electrónicos'],
+        ['id' => 2, 'name' => 'Iluminación', 'description' => 'Productos de iluminación'],
+        ['id' => 3, 'name' => 'Resistores', 'description' => 'Resistores y resistencias'],
+        ['id' => 4, 'name' => 'Capacitores', 'description' => 'Capacitores y condensadores'],
+        ['id' => 5, 'name' => 'Cables', 'description' => 'Cables y conectores']
     ],
     'suppliers' => [
-        ['id' => 1, 'name' => 'Mouser Electronics', 'contact_person' => 'John Smith', 'email' => 'sales@mouser.com', 'phone' => '+1-800-346-6873', 'product_count' => 2],
-        ['id' => 2, 'name' => 'DigiKey', 'contact_person' => 'Jane Doe', 'email' => 'sales@digikey.com', 'phone' => '+1-800-344-4539', 'product_count' => 2],
-        ['id' => 3, 'name' => 'Newark', 'contact_person' => 'Bob Johnson', 'email' => 'sales@newark.com', 'phone' => '+1-800-463-9275', 'product_count' => 2],
-        ['id' => 4, 'name' => 'RS Components', 'contact_person' => 'Alice Brown', 'email' => 'sales@rs-components.com', 'phone' => '+44-800-240-240', 'product_count' => 2]
+        ['id' => 1, 'name' => 'Mouser Electronics', 'contact' => 'John Smith', 'email' => 'john@mouser.com', 'phone' => '+1-555-0123'],
+        ['id' => 2, 'name' => 'Digi-Key Electronics', 'contact' => 'Sarah Johnson', 'email' => 'sarah@digikey.com', 'phone' => '+1-555-0456'],
+        ['id' => 3, 'name' => 'Farnell', 'contact' => 'Mike Brown', 'email' => 'mike@farnell.com', 'phone' => '+1-555-0789'],
+        ['id' => 4, 'name' => 'RS Components', 'contact' => 'Lisa Davis', 'email' => 'lisa@rs-components.com', 'phone' => '+1-555-0321']
     ],
-    
     'departments' => [
-        ['id' => 1, 'name' => 'Telemática', 'description' => 'Sistemas de telecomunicaciones y redes', 'location' => 'Almacén A', 'manager' => 'Carlos López'],
-        ['id' => 2, 'name' => 'S1', 'description' => 'Sistema de seguridad nivel 1', 'location' => 'Almacén B', 'manager' => 'María García'],
-        ['id' => 3, 'name' => 'Protección', 'description' => 'Sistemas de protección y seguridad', 'location' => 'Almacén C', 'manager' => 'Juan Pérez'],
-        ['id' => 4, 'name' => 'S3', 'description' => 'Sistema de seguridad nivel 3', 'location' => 'Almacén D', 'manager' => 'Ana Martínez']
+        ['id' => 1, 'name' => 'Telemática', 'description' => 'Departamento de Telemática'],
+        ['id' => 2, 'name' => 'S1', 'description' => 'Departamento S1'],
+        ['id' => 3, 'name' => 'Protección', 'description' => 'Departamento de Protección'],
+        ['id' => 4, 'name' => 'S3', 'description' => 'Departamento S3']
     ],
-    
     'locations' => [
-        ['id' => 1, 'name' => 'Almacén A', 'description' => 'Almacén principal de electrónica', 'address' => 'Calle Principal 123', 'capacity' => 1000],
-        ['id' => 2, 'name' => 'Almacén B', 'description' => 'Almacén de iluminación', 'address' => 'Calle Secundaria 456', 'capacity' => 500],
-        ['id' => 3, 'name' => 'Almacén C', 'description' => 'Almacén de prototipos', 'address' => 'Calle Terciaria 789', 'capacity' => 300],
-        ['id' => 4, 'name' => 'Almacén D', 'description' => 'Almacén mecánico', 'address' => 'Calle Cuarta 101', 'capacity' => 800],
+        ['id' => 1, 'name' => 'Almacén A', 'description' => 'Almacén principal', 'address' => 'Calle Primera 100', 'capacity' => 1000],
+        ['id' => 2, 'name' => 'Almacén B', 'description' => 'Almacén secundario', 'address' => 'Calle Segunda 150', 'capacity' => 800],
+        ['id' => 3, 'name' => 'Almacén C', 'description' => 'Almacén de electrónicos', 'address' => 'Calle Tercera 200', 'capacity' => 600],
+        ['id' => 4, 'name' => 'Almacén D', 'description' => 'Almacén de cables', 'address' => 'Calle Cuarta 250', 'capacity' => 400],
         ['id' => 5, 'name' => 'Almacén E', 'description' => 'Almacén de cables', 'address' => 'Calle Quinta 202', 'capacity' => 600]
     ]
 ];
@@ -222,24 +70,8 @@ function safeLog($level, $module, $action, $details = '') {
             SystemLogger::logUserActivity($action, $details);
         }
     } catch (Exception $e) {
-        // Si hay error con logging, continuar sin logging
         error_log('Error logging: ' . $e->getMessage());
     }
-}
-
-// Función para calcular estadísticas
-function calculateStats($products) {
-    $totalProducts = count($products);
-    $totalValue = array_sum(array_map(function($p) { return $p['stock_quantity'] * $p['cost']; }, $products));
-    $lowStockProducts = count(array_filter($products, function($p) { return $p['stock_quantity'] <= $p['min_stock_level']; }));
-    
-    return [
-        'totalProducts' => $totalProducts,
-        'totalValue' => $totalValue,
-        'lowStockProducts' => $lowStockProducts,
-        'totalSuppliers' => 4,
-        'avgStockPerProduct' => $totalProducts > 0 ? array_sum(array_column($products, 'stock_quantity')) / $totalProducts : 0
-    ];
 }
 
 // Obtener la ruta de la API
@@ -325,7 +157,7 @@ if (strpos($path, '/api/') === 0 || in_array($path, ['/auth/me', '/products', '/
                 }
                 
                 // Generar nuevo ID
-                $newId = max(array_column($sampleData['products'], 'id')) + 1;
+                $newId = empty($sampleData['products']) ? 1 : max(array_column($sampleData['products'], 'id')) + 1;
                 
                 // Crear nuevo producto
                 $newProduct = [
@@ -375,151 +207,78 @@ if (strpos($path, '/api/') === 0 || in_array($path, ['/auth/me', '/products', '/
                     'total' => count($sampleData['products'])
                 ]);
             }
-            } catch (Exception $e) {
-                error_log("Products API Error: " . $e->getMessage());
-                error_log("Products API Error Trace: " . $e->getTraceAsString());
-                echo json_encode([
-                    'success' => false,
-                    'error' => 'Error interno del servidor: ' . $e->getMessage()
-                ]);
-            }
-            break;
-            
-        case 'auth/me':
-            if (isset($_SESSION['user'])) {
-                echo json_encode([
-                    'authenticated' => true,
-                    'user' => $_SESSION['user']
-                ]);
-            } else {
-                http_response_code(401);
-                echo json_encode([
-                    'authenticated' => false,
-                    'message' => 'Not authenticated'
-                ]);
-            }
-            break;
-        case 'health':
+        } catch (Exception $e) {
+            error_log("Products API Error: " . $e->getMessage());
+            error_log("Products API Error Trace: " . $e->getTraceAsString());
             echo json_encode([
-                'status' => 'ok',
-                'timestamp' => date('Y-m-d H:i:s'),
-                'version' => '1.0.0',
-                'mode' => $isProduction ? 'production' : 'demo',
-                'environment' => getenv('APP_ENV') ?: 'development',
-                'server' => $_SERVER['SERVER_SOFTWARE'] ?? 'PHP Built-in Server',
-                'php_version' => PHP_VERSION,
-                'render' => getenv('RENDER') ? 'true' : 'false'
+                'success' => false,
+                'error' => 'Error interno del servidor: ' . $e->getMessage()
             ]);
-            break;
-            
+        }
+        break;
+        
         case 'categories':
-            // Log del acceso a categorías
-            safeLog('INFO', 'API', 'API_ACCESS', "Consulta de categorías");
             echo json_encode([
                 'success' => true,
-                'data' => $sampleData['categories']
+                'data' => $sampleData['categories'],
+                'total' => count($sampleData['categories'])
             ]);
             break;
             
         case 'suppliers':
-            // Log del acceso a proveedores
-            safeLog('INFO', 'API', 'API_ACCESS', "Consulta de proveedores");
             echo json_encode([
                 'success' => true,
-                'data' => $sampleData['suppliers']
+                'data' => $sampleData['suppliers'],
+                'total' => count($sampleData['suppliers'])
             ]);
             break;
             
         case 'departments':
-            // Log del acceso a departamentos
-            safeLog('INFO', 'API', 'API_ACCESS', "Consulta de departamentos");
             echo json_encode([
                 'success' => true,
-                'data' => $sampleData['departments']
+                'data' => $sampleData['departments'],
+                'total' => count($sampleData['departments'])
             ]);
             break;
             
         case 'locations':
-            // Log del acceso a ubicaciones
-            safeLog('INFO', 'API', 'API_ACCESS', "Consulta de ubicaciones");
             echo json_encode([
                 'success' => true,
-                'data' => $sampleData['locations']
-            ]);
-            break;
-            
-        case 'inventory/summary':
-            // Resumen completo del inventario
-            $inventorySummary = [
-                'total_products' => count($sampleData['products']),
-                'total_value' => array_sum(array_map(function($p) { return $p['stock_quantity'] * $p['cost']; }, $sampleData['products'])),
-                'departments' => [],
-                'locations' => [],
-                'low_stock_products' => array_filter($sampleData['products'], function($p) { return $p['stock_quantity'] <= $p['min_stock_level']; })
-            ];
-            
-            // Agrupar por departamento
-            foreach ($sampleData['products'] as $product) {
-                $dept = $product['department'];
-                if (!isset($inventorySummary['departments'][$dept])) {
-                    $inventorySummary['departments'][$dept] = [
-                        'name' => $dept,
-                        'product_count' => 0,
-                        'total_value' => 0,
-                        'products' => []
-                    ];
-                }
-                $inventorySummary['departments'][$dept]['product_count']++;
-                $inventorySummary['departments'][$dept]['total_value'] += $product['stock_quantity'] * $product['cost'];
-                $inventorySummary['departments'][$dept]['products'][] = $product;
-            }
-            
-            // Agrupar por ubicación
-            foreach ($sampleData['products'] as $product) {
-                $location = explode(' - ', $product['location'])[0]; // Solo el nombre del almacén
-                if (!isset($inventorySummary['locations'][$location])) {
-                    $inventorySummary['locations'][$location] = [
-                        'name' => $location,
-                        'product_count' => 0,
-                        'total_value' => 0,
-                        'products' => []
-                    ];
-                }
-                $inventorySummary['locations'][$location]['product_count']++;
-                $inventorySummary['locations'][$location]['total_value'] += $product['stock_quantity'] * $product['cost'];
-                $inventorySummary['locations'][$location]['products'][] = $product;
-            }
-            
-            safeLog('INFO', 'API', 'API_ACCESS', "Consulta de resumen de inventario");
-            echo json_encode([
-                'success' => true,
-                'data' => $inventorySummary
+                'data' => $sampleData['locations'],
+                'total' => count($sampleData['locations'])
             ]);
             break;
             
         case 'reports/dashboard/stats':
-            $stats = calculateStats($sampleData['products']);
+            $totalProducts = count($sampleData['products']);
+            $totalValue = 0;
+            $lowStockCount = 0;
+            
+            foreach ($sampleData['products'] as $product) {
+                $totalValue += floatval($product['price']);
+                if ($product['stock_quantity'] <= $product['min_stock_level']) {
+                    $lowStockCount++;
+                }
+            }
+            
             echo json_encode([
                 'success' => true,
-                'data' => $stats
+                'data' => [
+                    'totalProducts' => $totalProducts,
+                    'totalValue' => $totalValue,
+                    'lowStockCount' => $lowStockCount,
+                    'totalSuppliers' => count($sampleData['suppliers']),
+                    'avgStockPerProduct' => $totalProducts > 0 ? $totalValue / $totalProducts : 0
+                ]
             ]);
             break;
             
-        case 'reports/inventory/summary':
-            $stats = calculateStats($sampleData['products']);
+        case 'health':
             echo json_encode([
                 'success' => true,
-                'data' => $stats
-            ]);
-            break;
-            
-        case 'reports/inventory/low-stock':
-            $lowStockProducts = array_filter($sampleData['products'], function($p) { 
-                return $p['stock_quantity'] <= $p['min_stock_level']; 
-            });
-            echo json_encode([
-                'success' => true,
-                'data' => array_values($lowStockProducts)
+                'status' => 'healthy',
+                'timestamp' => date('Y-m-d H:i:s'),
+                'version' => '1.0.0'
             ]);
             break;
             
@@ -527,12 +286,12 @@ if (strpos($path, '/api/') === 0 || in_array($path, ['/auth/me', '/products', '/
             http_response_code(404);
             echo json_encode([
                 'success' => false,
-                'message' => 'Endpoint no encontrado: ' . $apiPath
+                'error' => 'Endpoint no encontrado',
+                'path' => $apiPath
             ]);
             break;
-    }
+        }
     } catch (Exception $e) {
-        // Log del error
         error_log("API Error: " . $e->getMessage());
         error_log("API Error Trace: " . $e->getTraceAsString());
         
@@ -544,18 +303,17 @@ if (strpos($path, '/api/') === 0 || in_array($path, ['/auth/me', '/products', '/
         ]);
     }
 } else {
-    // Si no es API
-    $pathOnly = trim($path, '/');
-    
-    // Si no hay sesión activa, redirigir al login
+    // Si no es API, mostrar la página principal
+    // Verificar sesión
     if (!isset($_SESSION['user'])) {
         header('Location: /login.php');
         exit;
     }
     
-    // Si hay sesión activa, mostrar el sistema principal
     // Log del acceso al sistema
-    safeLog('INFO', 'SYSTEM', 'SYSTEM_ACCESS', "Acceso al sistema principal");
+    safeLog('INFO', 'USER', 'SYSTEM_ACCESS', "Acceso al sistema principal");
+    
+    // Incluir la página principal
     include 'index.html';
 }
 ?>
