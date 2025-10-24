@@ -1,12 +1,12 @@
 <?php
 session_start();
 
-// Incluir el sistema de logging
-require_once __DIR__ . '/includes/SystemLogger.php';
+// Versión simplificada sin SystemLogger para evitar errores 503
+// TODO: Restaurar SystemLogger cuando se resuelvan los problemas de permisos
 
-// Log del logout antes de destruir la sesión
+// Log simple del logout (sin SystemLogger)
 if (isset($_SESSION['user'])) {
-    SystemLogger::logAuth('LOGOUT', $_SESSION['user']['username'], true, "IP: " . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
+    error_log("LOGOUT: " . ($_SESSION['user']['username'] ?? 'unknown') . " - IP: " . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
 }
 
 session_unset();
