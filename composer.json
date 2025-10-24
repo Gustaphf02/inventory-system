@@ -16,7 +16,8 @@
         "respect/validation": "^2.2",
         "league/csv": "^9.12",
         "intervention/image": "^2.7",
-        "predis/predis": "^2.2"
+        "predis/predis": "^2.2",
+        "mongodb/mongodb": "^1.15"
     },
     "require-dev": {
         "phpunit/phpunit": "^10.0",

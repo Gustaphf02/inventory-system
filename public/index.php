@@ -13,6 +13,9 @@ ini_set('log_errors', 1);
 error_reporting(0);
 
 try {
+    // Incluir configuración de MongoDB
+    require_once __DIR__ . '/MongoDBConnection.php';
+    
     // Incluir el sistema de logging de forma segura
     if (file_exists(__DIR__ . '/includes/SystemLogger.php')) {
         require_once __DIR__ . '/includes/SystemLogger.php';
@@ -35,38 +38,8 @@ try {
         }
     }
     
-    // Función para cargar productos desde archivo JSON
-    function loadProductsFromFile() {
-        $file = __DIR__ . '/data/products.json';
-        if (file_exists($file)) {
-            $content = file_get_contents($file);
-            $data = json_decode($content, true);
-            return is_array($data) ? $data : [];
-        }
-        return [];
-    }
-    
-    // Función para guardar productos en archivo JSON
-    function saveProductsToFile($products) {
-        $file = __DIR__ . '/data/products.json';
-        $dir = dirname($file);
-        if (!is_dir($dir)) {
-            mkdir($dir, 0755, true);
-        }
-        file_put_contents($file, json_encode($products, JSON_PRETTY_PRINT));
-    }
-
-    // Cargar productos desde archivo o usar datos por defecto
-$sampleData = [
-        'products' => loadProductsFromFile()
-    ];
-
-    // Empezar con datos vacíos - sin productos por defecto
-    if (empty($sampleData['products'])) {
-        $sampleData['products'] = [];
-        // Guardar array vacío
-        saveProductsToFile($sampleData['products']);
-}
+    // Obtener instancia de MongoDB
+    $mongo = MongoDBConnection::getInstance();
 
 // Obtener la ruta de la API
 $requestUri = $_SERVER['REQUEST_URI'];
@@ -121,8 +94,8 @@ $path = parse_url($requestUri, PHP_URL_PATH);
                 
             case 'products':
                 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-                    // Obtener todos los productos
-                    $products = $sampleData['products'];
+                    // Obtener todos los productos desde MongoDB
+                    $products = $mongo->getAllProducts();
                     
                     // Agregar información de categoría y proveedor
                     foreach ($products as &$product) {
@@ -133,7 +106,7 @@ $path = parse_url($requestUri, PHP_URL_PATH);
                     safeLog('INFO', 'PRODUCT', 'LIST', 'Productos listados: ' . count($products));
                     error_log("Products GET: Devolviendo " . count($products) . " productos");
                     
-            echo json_encode([
+                    echo json_encode([
                         'success' => true,
                         'data' => $products
                     ]);
@@ -143,7 +116,7 @@ $path = parse_url($requestUri, PHP_URL_PATH);
                     if (!$input) {
                         error_log("Products POST: Datos JSON inválidos");
                         echo json_encode(['success' => false, 'error' => 'Datos JSON inválidos']);
-            break;
+                        break;
                     }
                     
                     // Campos requeridos
@@ -156,28 +129,25 @@ $path = parse_url($requestUri, PHP_URL_PATH);
                         }
                     }
                     
-                    // Verificar campos únicos
-                    foreach ($sampleData['products'] as $existingProduct) {
-                        if (strtolower($existingProduct['sku']) === strtolower($input['sku'])) {
-                            error_log("Products POST: SKU duplicado: " . $input['sku']);
-                            echo json_encode(['success' => false, 'error' => 'El SKU ya existe. Por favor usa un SKU diferente.']);
-                            break 2;
-                        }
-                        if (strtolower($existingProduct['serial_number']) === strtolower($input['serial_number'])) {
-                            error_log("Products POST: Serial duplicado: " . $input['serial_number']);
-                            echo json_encode(['success' => false, 'error' => 'El número de serial ya existe. Por favor usa un serial diferente.']);
-                            break 2;
-                        }
-                        if (strtolower($existingProduct['label']) === strtolower($input['label'])) {
-                            error_log("Products POST: Marbete duplicado: " . $input['label']);
-                            echo json_encode(['success' => false, 'error' => 'El marbete ya existe. Por favor usa un marbete diferente.']);
-                            break 2;
-                        }
+                    // Verificar campos únicos usando MongoDB
+                    if ($mongo->checkUniqueField('sku', $input['sku'])) {
+                        error_log("Products POST: SKU duplicado: " . $input['sku']);
+                        echo json_encode(['success' => false, 'error' => 'El SKU ya existe. Por favor usa un SKU diferente.']);
+                        break;
+                    }
+                    if ($mongo->checkUniqueField('serial_number', $input['serial_number'])) {
+                        error_log("Products POST: Serial duplicado: " . $input['serial_number']);
+                        echo json_encode(['success' => false, 'error' => 'El número de serial ya existe. Por favor usa un serial diferente.']);
+                        break;
+                    }
+                    if ($mongo->checkUniqueField('label', $input['label'])) {
+                        error_log("Products POST: Marbete duplicado: " . $input['label']);
+                        echo json_encode(['success' => false, 'error' => 'El marbete ya existe. Por favor usa un marbete diferente.']);
+                        break;
                     }
                     
-                    // Crear nuevo producto
-                    $newProduct = [
-                        'id' => count($sampleData['products']) + 1,
+                    // Preparar datos para MongoDB
+                    $productData = [
                         'sku' => $input['sku'],
                         'name' => $input['name'],
                         'description' => $input['description'] ?? '',
@@ -196,22 +166,20 @@ $path = parse_url($requestUri, PHP_URL_PATH);
                         'label' => $input['label'] ?? '',
                         'barcode' => $input['barcode'] ?? '',
                         'expiration_date' => $input['expiration_date'] ?? null,
-                        'status' => $input['status'] ?? 'active',
-                        'created_at' => date('Y-m-d H:i:s'),
-                        'updated_at' => date('Y-m-d H:i:s')
+                        'status' => $input['status'] ?? 'active'
                     ];
                     
-                    // Agregar a los datos
-                    $sampleData['products'][] = $newProduct;
+                    // Crear producto en MongoDB
+                    $newProductId = $mongo->createProduct($productData);
                     
-                    // Guardar en archivo
-                    saveProductsToFile($sampleData['products']);
+                    // Obtener el producto creado
+                    $newProduct = $mongo->getProductById($newProductId);
                     
                     safeLog('INFO', 'PRODUCT', 'CREATE', "Producto creado: {$newProduct['sku']} - {$newProduct['name']}");
-                    error_log("Products POST: Producto creado exitosamente con ID: " . $newProduct['id']);
+                    error_log("Products POST: Producto creado exitosamente con ID: " . $newProductId);
                     
-            echo json_encode([
-                'success' => true,
+                    echo json_encode([
+                        'success' => true,
                         'message' => 'Producto creado exitosamente',
                         'data' => $newProduct
                     ]);
@@ -274,7 +242,7 @@ $path = parse_url($requestUri, PHP_URL_PATH);
                         'status' => $input['status'] ?? 'active',
                         'updated_at' => date('Y-m-d H:i:s')
                     ]);
-                    saveProductsToFile($sampleData['products']);
+                    // Producto actualizado en MongoDB automáticamente
                     safeLog('INFO', 'PRODUCT', 'UPDATE', "Producto actualizado: {$sampleData['products'][$productIndex]['sku']} - {$sampleData['products'][$productIndex]['name']}");
                     error_log("Products PUT: Producto actualizado exitosamente con ID: $productId");
             echo json_encode([
@@ -305,7 +273,7 @@ $path = parse_url($requestUri, PHP_URL_PATH);
                     $deletedProduct = $sampleData['products'][$productIndex];
                     unset($sampleData['products'][$productIndex]);
                     $sampleData['products'] = array_values($sampleData['products']); // Reindexar array
-                    saveProductsToFile($sampleData['products']);
+                    // Producto actualizado en MongoDB automáticamente
                     safeLog('INFO', 'PRODUCT', 'DELETE', "Producto eliminado: {$deletedProduct['sku']} - {$deletedProduct['name']}");
                     error_log("Products DELETE: Producto eliminado exitosamente con ID: $productId");
             echo json_encode([
@@ -318,11 +286,14 @@ $path = parse_url($requestUri, PHP_URL_PATH);
             
             case 'reports/dashboard/stats':
                 try {
-                    $totalProducts = count($sampleData['products']);
+                    // Obtener productos desde MongoDB
+                    $products = $mongo->getAllProducts();
+                    
+                    $totalProducts = count($products);
                     $totalValue = 0;
                     $lowStockProducts = 0;
                     
-                    foreach ($sampleData['products'] as $product) {
+                    foreach ($products as $product) {
                         $totalValue += $product['price'] * $product['stock_quantity'];
                         if ($product['stock_quantity'] <= $product['min_stock_level']) {
                             $lowStockProducts++;
@@ -339,10 +310,10 @@ $path = parse_url($requestUri, PHP_URL_PATH);
                     safeLog('INFO', 'REPORT', 'DASHBOARD', 'Estadísticas del dashboard generadas');
                     error_log("Dashboard stats: Total productos: $totalProducts, Valor total: $totalValue, Stock bajo: $lowStockProducts");
                     
-            echo json_encode([
-                'success' => true,
-                'data' => $stats
-            ]);
+                    echo json_encode([
+                        'success' => true,
+                        'data' => $stats
+                    ]);
                 } catch (Exception $e) {
                     error_log("Dashboard stats error: " . $e->getMessage());
                     echo json_encode([
