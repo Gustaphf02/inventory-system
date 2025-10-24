@@ -1281,6 +1281,9 @@
                 }
             }
         }).mount('#app');
+        
+        // Hacer la instancia de Vue disponible globalmente
+        window.app = document.querySelector('#app').__vue__;
     </script>
 
     <!-- JavaScript vanilla para el modal -->
@@ -1352,10 +1355,9 @@
             // Obtener productos existentes desde Vue.js data
             let existingProducts = [];
             try {
-                // Intentar obtener productos desde la instancia de Vue
-                const app = document.querySelector('#app').__vue__;
-                if (app && app.products) {
-                    existingProducts = app.products.map(p => ({sku: p.sku}));
+                // Intentar obtener productos desde la instancia de Vue global
+                if (window.app && window.app.products) {
+                    existingProducts = window.app.products.map(p => ({sku: p.sku}));
                 }
             } catch (e) {
                 console.log('No se pudo obtener productos de Vue, usando lista por defecto');
@@ -1667,8 +1669,13 @@
                 if (data.success) {
                     alert('Producto actualizado exitosamente');
                     closeEditModal();
-                    // Recargar los productos
-                    app.loadProducts();
+                    // Recargar los productos usando window.app
+                    if (window.app && window.app.loadProducts) {
+                        window.app.loadProducts();
+                    } else {
+                        // Fallback: recargar la página
+                        location.reload();
+                    }
                 } else {
                     alert('Error: ' + (data.error || 'Error desconocido'));
                 }
