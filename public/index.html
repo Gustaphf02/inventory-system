@@ -24,6 +24,14 @@
             display: block !important;
         }
         
+        #editProductModal {
+            z-index: 1055;
+        }
+        
+        #editProductModal.show {
+            display: block !important;
+        }
+        
         .sidebar {
             min-height: 100vh;
             background: linear-gradient(135deg, #2c2c2c 0%, #1a1a1a 100%);
@@ -542,7 +550,7 @@
                                                 </td>
                                                 <td>
                                                     <div class="btn-group btn-group-sm">
-                                                        <button class="btn btn-outline-primary" @click="editProduct(product)">
+                                                        <button class="btn btn-outline-primary" :onclick="'editProduct(' + product.id + ')'">
                                                             <i class="fas fa-edit"></i>
                                                         </button>
                                                         <button class="btn btn-outline-danger" @click="deleteProduct(product)">
@@ -1304,9 +1312,14 @@
 
         // Cerrar modal al hacer clic fuera
         window.onclick = function(event) {
-            const modal = document.getElementById('addProductModal');
-            if (event.target === modal) {
+            const addModal = document.getElementById('addProductModal');
+            const editModal = document.getElementById('editProductModal');
+            
+            if (event.target === addModal) {
                 closeModal();
+            }
+            if (event.target === editModal) {
+                closeEditModal();
             }
         }
 
@@ -1508,7 +1521,286 @@
             document.getElementById('productExpiration').value = '';
             document.getElementById('productStatus').value = 'active';
         }
+
+        // Variables globales para edición
+        let currentEditProductId = null;
+
+        function editProduct(productId) {
+            console.log('editProduct called with ID:', productId);
+            
+            // Buscar el producto en los datos de Vue
+            const product = app.products.find(p => p.id == productId);
+            if (!product) {
+                console.error('Producto no encontrado:', productId);
+                alert('Producto no encontrado');
+                return;
+            }
+            
+            // Guardar ID para actualización
+            currentEditProductId = productId;
+            
+            // Llenar el formulario de edición
+            document.getElementById('editProductSku').value = product.sku;
+            document.getElementById('editProductName').value = product.name;
+            document.getElementById('editProductBrand').value = product.brand || '';
+            document.getElementById('editProductModel').value = product.model || '';
+            document.getElementById('editProductSerial').value = product.serial_number || '';
+            document.getElementById('editProductLabel').value = product.label || '';
+            document.getElementById('editProductCategory').value = product.category_id || '1';
+            document.getElementById('editProductSupplier').value = product.supplier_id || '1';
+            document.getElementById('editProductDepartment').value = product.department || '';
+            document.getElementById('editProductLocation').value = product.location || '';
+            document.getElementById('editProductPrice').value = product.price || '';
+            document.getElementById('editProductStock').value = product.stock_quantity || '';
+            document.getElementById('editProductDescription').value = product.description || '';
+            document.getElementById('editProductBarcode').value = product.barcode || '';
+            document.getElementById('editProductStatus').value = product.status || 'active';
+            
+            // Mostrar el modal
+            const modal = document.getElementById('editProductModal');
+            if (modal) {
+                modal.style.display = 'block';
+                modal.style.backgroundColor = 'rgba(0,0,0,0.5)';
+                modal.classList.add('show');
+            }
+        }
+
+        function closeEditModal() {
+            console.log('closeEditModal called');
+            const modal = document.getElementById('editProductModal');
+            if (modal) {
+                modal.style.display = 'none';
+                modal.classList.remove('show');
+            }
+            currentEditProductId = null;
+        }
+
+        function updateProduct() {
+            console.log('updateProduct called');
+            
+            if (!currentEditProductId) {
+                alert('Error: No se ha seleccionado un producto para editar');
+                return;
+            }
+            
+            // Recopilar datos del formulario
+            const productData = {
+                id: currentEditProductId,
+                name: document.getElementById('editProductName').value,
+                description: document.getElementById('editProductDescription').value,
+                brand: document.getElementById('editProductBrand').value,
+                model: document.getElementById('editProductModel').value,
+                price: document.getElementById('editProductPrice').value,
+                stock_quantity: document.getElementById('editProductStock').value,
+                category_id: document.getElementById('editProductCategory').value,
+                supplier_id: document.getElementById('editProductSupplier').value,
+                serial_number: document.getElementById('editProductSerial').value,
+                department: document.getElementById('editProductDepartment').value,
+                location: document.getElementById('editProductLocation').value,
+                label: document.getElementById('editProductLabel').value,
+                barcode: document.getElementById('editProductBarcode').value,
+                status: document.getElementById('editProductStatus').value
+            };
+            
+            // Validar campos requeridos
+            const requiredFields = ['name', 'serial_number', 'label'];
+            for (const field of requiredFields) {
+                if (!productData[field]) {
+                    alert(`El campo ${field} es obligatorio`);
+                    return;
+                }
+            }
+            
+            console.log('Enviando datos de actualización:', productData);
+            
+            // Enviar solicitud PUT
+            fetch('/products', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(productData)
+            })
+            .then(response => {
+                console.log('Response status:', response.status);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Response data:', data);
+                if (data.success) {
+                    alert('Producto actualizado exitosamente');
+                    closeEditModal();
+                    // Recargar los productos
+                    app.loadProducts();
+                } else {
+                    alert('Error: ' + (data.error || 'Error desconocido'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error al actualizar el producto: ' + error.message);
+            });
+        }
     </script>
+
+    <!-- Modal de Editar Producto -->
+    <div class="modal fade" id="editProductModal" tabindex="-1" style="display: none;">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar Producto</h5>
+                    <button type="button" class="btn-close" onclick="closeEditModal()"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editProductForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editProductSku" class="form-label">SKU</label>
+                                    <input type="text" class="form-control" id="editProductSku" readonly>
+                                    <div class="form-text">(No editable)</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editProductName" class="form-label">Nombre del Producto</label>
+                                    <input type="text" class="form-control" id="editProductName" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editProductBrand" class="form-label">Marca</label>
+                                    <input type="text" class="form-control" id="editProductBrand">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editProductModel" class="form-label">Modelo</label>
+                                    <input type="text" class="form-control" id="editProductModel">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editProductSerial" class="form-label">Número de Serial</label>
+                                    <input type="text" class="form-control" id="editProductSerial" required>
+                                    <div class="form-text">(OBLIGATORIO - Debe ser único)</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editProductLabel" class="form-label">Marbete</label>
+                                    <input type="text" class="form-control" id="editProductLabel" required>
+                                    <div class="form-text">(OBLIGATORIO - Debe ser único)</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editProductCategory" class="form-label">Categoría</label>
+                                    <select class="form-select" id="editProductCategory" required>
+                                        <option value="1">Electrónica</option>
+                                        <option value="2">Iluminación</option>
+                                        <option value="3">Resistores</option>
+                                        <option value="4">Capacitores</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editProductSupplier" class="form-label">Proveedor</label>
+                                    <select class="form-select" id="editProductSupplier" required>
+                                        <option value="1">Mouser Electronics</option>
+                                        <option value="2">Digi-Key</option>
+                                        <option value="3">Arrow Electronics</option>
+                                        <option value="4">Farnell</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editProductDepartment" class="form-label">Departamento</label>
+                                    <select class="form-select" id="editProductDepartment" required>
+                                        <option value="Telemática">Telemática</option>
+                                        <option value="S1">S1</option>
+                                        <option value="Protección">Protección</option>
+                                        <option value="S3">S3</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editProductLocation" class="form-label">Ubicación</label>
+                                    <select class="form-select" id="editProductLocation" required>
+                                        <option value="Almacén Principal">Almacén Principal</option>
+                                        <option value="Almacén Secundario">Almacén Secundario</option>
+                                        <option value="Laboratorio">Laboratorio</option>
+                                        <option value="Oficina">Oficina</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editProductPrice" class="form-label">Precio</label>
+                                    <input type="number" step="0.01" class="form-control" id="editProductPrice" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editProductStock" class="form-label">Cantidad en Stock</label>
+                                    <input type="number" class="form-control" id="editProductStock" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="editProductDescription" class="form-label">Descripción</label>
+                            <textarea class="form-control" id="editProductDescription" rows="3"></textarea>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editProductBarcode" class="form-label">Código de Barras</label>
+                                    <input type="text" class="form-control" id="editProductBarcode">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editProductStatus" class="form-label">Estado</label>
+                                    <select class="form-select" id="editProductStatus">
+                                        <option value="active">Activo</option>
+                                        <option value="inactive">Inactivo</option>
+                                        <option value="maintenance">Mantenimiento</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="updateProduct()">Guardar Cambios</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Modal de Agregar Producto -->
     <div class="modal fade" id="addProductModal" tabindex="-1" style="display: none;">

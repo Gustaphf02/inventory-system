@@ -107,27 +107,27 @@ if (strpos($path, '/api/') === 0 || in_array($path, ['/auth/me', '/products', '/
     // Debug: Log de la ruta detectada
     error_log("API Route detected: $path, Method: " . $_SERVER['REQUEST_METHOD']);
     try {
-        // Configurar headers para JSON
-        header('Content-Type: application/json');
-        header('Access-Control-Allow-Origin: *');
-        header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-        header('Access-Control-Allow-Headers: Content-Type, Authorization');
-        
-        // Manejar preflight requests
-        if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-            http_response_code(200);
-            exit();
-        }
-        
+    // Configurar headers para JSON
+    header('Content-Type: application/json');
+    header('Access-Control-Allow-Origin: *');
+    header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type, Authorization');
+    
+    // Manejar preflight requests
+    if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+        http_response_code(200);
+        exit();
+    }
+    
         // Determinar la ruta de la API
         if (strpos($path, '/api/') === 0) {
-            $apiPath = substr($path, 4);
+    $apiPath = substr($path, 4);
         } else {
             $apiPath = ltrim($path, '/');
         }
-        
-        // Enrutamiento de API
-        switch ($apiPath) {
+    
+    // Enrutamiento de API
+    switch ($apiPath) {
         case 'auth/me':
             // Datos del usuario actual
             $user = $_SESSION['user'] ?? [
@@ -136,7 +136,7 @@ if (strpos($path, '/api/') === 0 || in_array($path, ['/auth/me', '/products', '/
                 'email' => 'demo@inventory.com'
             ];
             
-            echo json_encode([
+                echo json_encode([
                 'success' => true,
                 'data' => $user
             ]);
@@ -264,6 +264,90 @@ if (strpos($path, '/api/') === 0 || in_array($path, ['/auth/me', '/products', '/
                     'success' => true,
                     'message' => 'Producto creado exitosamente',
                     'data' => $newProduct
+                ]);
+            } elseif ($_SERVER['REQUEST_METHOD'] === 'PUT') {
+                // Editar producto existente
+                $input = json_decode(file_get_contents('php://input'), true);
+                
+                if (!$input) {
+                    error_log("Products PUT: Datos JSON inválidos");
+                    echo json_encode(['success' => false, 'error' => 'Datos JSON inválidos']);
+                    break;
+                }
+                
+                $productId = intval($input['id'] ?? 0);
+                if (!$productId) {
+                    error_log("Products PUT: ID de producto faltante");
+                    echo json_encode(['success' => false, 'error' => 'ID de producto requerido']);
+                    break;
+                }
+                
+                // Buscar el producto
+                $productIndex = -1;
+                foreach ($sampleData['products'] as $index => $product) {
+                    if ($product['id'] == $productId) {
+                        $productIndex = $index;
+                        break;
+                    }
+                }
+                
+                if ($productIndex === -1) {
+                    error_log("Products PUT: Producto no encontrado con ID: $productId");
+                    echo json_encode(['success' => false, 'error' => 'Producto no encontrado']);
+                    break;
+                }
+                
+                // Validar campos únicos (excluyendo el producto actual)
+                foreach ($sampleData['products'] as $index => $existingProduct) {
+                    if ($index === $productIndex) continue; // Saltar el producto actual
+                    
+                    if (strtolower($existingProduct['serial_number']) === strtolower($input['serial_number'])) {
+                        error_log("Products PUT: Serial duplicado: " . $input['serial_number']);
+                        echo json_encode(['success' => false, 'error' => 'El número de serial ya existe. Por favor usa un serial diferente.']);
+                        break 2;
+                    }
+                    
+                    if (strtolower($existingProduct['label']) === strtolower($input['label'])) {
+                        error_log("Products PUT: Marbete duplicado: " . $input['label']);
+                        echo json_encode(['success' => false, 'error' => 'El marbete ya existe. Por favor usa un marbete diferente.']);
+                        break 2;
+                    }
+                }
+                
+                // Actualizar el producto
+                $sampleData['products'][$productIndex] = array_merge($sampleData['products'][$productIndex], [
+                    'name' => $input['name'],
+                    'description' => $input['description'] ?? '',
+                    'brand' => $input['brand'] ?? '',
+                    'model' => $input['model'] ?? '',
+                    'price' => floatval($input['price'] ?? 0),
+                    'cost' => floatval($input['cost'] ?? 0),
+                    'stock_quantity' => intval($input['stock_quantity'] ?? 0),
+                    'min_stock_level' => intval($input['min_stock_level'] ?? 0),
+                    'max_stock_level' => intval($input['max_stock_level'] ?? 0),
+                    'category_id' => intval($input['category_id'] ?? 1),
+                    'supplier_id' => intval($input['supplier_id'] ?? 1),
+                    'serial_number' => $input['serial_number'],
+                    'department' => $input['department'] ?? '',
+                    'location' => $input['location'] ?? '',
+                    'label' => $input['label'] ?? '',
+                    'barcode' => $input['barcode'] ?? '',
+                    'expiration_date' => $input['expiration_date'] ?? null,
+                    'status' => $input['status'] ?? 'active',
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
+                
+                // Guardar en archivo
+                saveProductsToFile($sampleData['products']);
+                
+                // Log de actualización
+                safeLog('INFO', 'PRODUCT', 'UPDATE', "Producto actualizado: {$sampleData['products'][$productIndex]['sku']} - {$sampleData['products'][$productIndex]['name']}");
+                error_log("Products PUT: Producto actualizado exitosamente con ID: $productId");
+                
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Producto actualizado exitosamente',
+                    'data' => $sampleData['products'][$productIndex]
                 ]);
             } else {
                 // GET - Listar productos
