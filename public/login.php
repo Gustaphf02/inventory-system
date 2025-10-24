@@ -31,7 +31,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Log simple del login exitoso (sin SystemLogger)
         error_log("LOGIN_SUCCESS: " . $users[$email][3] . " - IP: " . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
         
-        echo '<!DOCTYPE html><html><head><meta charset="utf-8"><script>localStorage.setItem("token","demo-token");window.location.href="/";</script></head><body></body></html>';
+        // Redirección inmediata después del login exitoso
+        header('Location: /');
         exit;
     } else {
         $error = 'Credenciales inválidas';

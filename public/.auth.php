@@ -8,8 +8,13 @@
 // Información de usuario disponible para las páginas
 $currentUser = $_SESSION['user'] ?? null;
 
-// Helper: require role(s)
+// Helper: require role(s) - SOLO para páginas específicas, NO para la página principal
 function requireRole(array $allowedRoles) {
+    // Solo aplicar restricciones si NO es la página principal
+    if (strpos($_SERVER['REQUEST_URI'], '/') === 0 && $_SERVER['REQUEST_URI'] === '/') {
+        return; // No aplicar restricciones a la página principal
+    }
+    
     if (!isset($_SESSION['user'])) {
         // Si es una llamada AJAX/API, devolver JSON
         if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) || 
