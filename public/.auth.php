@@ -1,6 +1,6 @@
 <?php
 // Middleware de autenticación simplificado
-session_start();
+// NO llamar session_start() aquí porque ya se llama en index.php
 
 // Solo proporcionar información de sesión - NO aplicar restricciones automáticas
 // Las APIs manejan su propia autenticación
