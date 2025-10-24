@@ -1453,6 +1453,8 @@
                 brand: document.getElementById('productBrand').value,
                 model: document.getElementById('productModel').value,
                 description: document.getElementById('productDescription').value,
+                category_id: parseInt(document.getElementById('productCategory').value) || 1,
+                supplier_id: parseInt(document.getElementById('productSupplier').value) || 1,
                 serial_number: document.getElementById('productSerial').value,
                 department: document.getElementById('productDepartment').value,
                 location: document.getElementById('productLocation').value,
@@ -1464,9 +1466,7 @@
                 min_stock_level: parseInt(document.getElementById('productMinStock').value) || 0,
                 max_stock_level: parseInt(document.getElementById('productMaxStock').value) || 0,
                 expiration_date: document.getElementById('productExpiration').value || null,
-                status: document.getElementById('productStatus').value || 'active',
-                category_id: 1, // Por defecto
-                supplier_id: 1  // Por defecto
+                status: document.getElementById('productStatus').value || 'active'
             };
             
             console.log('Product data:', productData);
@@ -1485,7 +1485,11 @@
                 },
                 body: JSON.stringify(productData)
             })
-            .then(response => response.json())
+            .then(response => {
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers.get('content-type'));
+                return response.json();
+            })
             .then(data => {
                 console.log('Success:', data);
                 alert('Producto guardado exitosamente!');
@@ -1507,6 +1511,8 @@
             document.getElementById('productBrand').value = '';
             document.getElementById('productModel').value = '';
             document.getElementById('productDescription').value = '';
+            document.getElementById('productCategory').value = '';
+            document.getElementById('productSupplier').value = '';
             document.getElementById('productSerial').value = '';
             document.getElementById('productDepartment').value = '';
             document.getElementById('productLocation').value = '';
@@ -1576,21 +1582,24 @@
                                 
                                 <div class="mb-3">
                                     <label class="form-label">Categoría *</label>
-                                    <select class="form-select" v-model="newProduct.category_id" required>
+                                    <select class="form-select" id="productCategory" required>
                                         <option value="">Seleccionar categoría</option>
-                                        <option v-for="category in categories" :key="category.id" :value="category.id">
-                                            {{ category.name }}
-                                        </option>
+                                        <option value="1">Electrónica</option>
+                                        <option value="2">Iluminación</option>
+                                        <option value="3">Resistores</option>
+                                        <option value="4">Capacitores</option>
+                                        <option value="5">Cables</option>
                                     </select>
                                 </div>
                                 
                                 <div class="mb-3">
                                     <label class="form-label">Proveedor *</label>
-                                    <select class="form-select" v-model="newProduct.supplier_id" required>
+                                    <select class="form-select" id="productSupplier" required>
                                         <option value="">Seleccionar proveedor</option>
-                                        <option v-for="supplier in suppliers" :key="supplier.id" :value="supplier.id">
-                                            {{ supplier.name }}
-                                        </option>
+                                        <option value="1">Mouser Electronics</option>
+                                        <option value="2">Digi-Key Electronics</option>
+                                        <option value="3">Farnell</option>
+                                        <option value="4">RS Components</option>
                                     </select>
                                 </div>
                             </div>

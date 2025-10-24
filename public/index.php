@@ -247,7 +247,9 @@ $requestUri = $_SERVER['REQUEST_URI'];
 $path = parse_url($requestUri, PHP_URL_PATH);
 
 // Si es una petición API, manejar como JSON
-if (strpos($path, '/api/') === 0 || in_array($path, ['/auth/me', '/products', '/categories', '/suppliers', '/departments', '/locations', '/inventory/summary', '/reports/dashboard/stats', '/reports/inventory/summary', '/reports/inventory/low-stock', '/health'])) {
+if (strpos($path, '/api/') === 0 || in_array($path, ['/auth/me', '/products', '/categories', '/suppliers', '/departments', '/locations', '/inventory/summary', '/reports/dashboard/stats', '/reports/inventory/summary', '/reports/inventory/low-stock', '/health', '/test'])) {
+    // Debug: Log de la ruta detectada
+    error_log("API Route detected: $path, Method: " . $_SERVER['REQUEST_METHOD']);
     try {
         // Configurar headers para JSON
         header('Content-Type: application/json');
@@ -270,6 +272,10 @@ if (strpos($path, '/api/') === 0 || in_array($path, ['/auth/me', '/products', '/
         
         // Enrutamiento de API
         switch ($apiPath) {
+        case 'test':
+            echo json_encode(['success' => true, 'message' => 'Test endpoint working']);
+            break;
+            
         case 'api/products':
         case 'products':
             try {
@@ -499,6 +505,10 @@ if (strpos($path, '/api/') === 0 || in_array($path, ['/auth/me', '/products', '/
             break;
     }
     } catch (Exception $e) {
+        // Log del error
+        error_log("API Error: " . $e->getMessage());
+        error_log("API Error Trace: " . $e->getTraceAsString());
+        
         http_response_code(500);
         echo json_encode([
             'success' => false,
