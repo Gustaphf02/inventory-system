@@ -1,12 +1,25 @@
 RewriteEngine On
 
-# Handle API requests first
-RewriteCond %{REQUEST_URI} ^/api/(.*)$
+# Redirigir todas las peticiones API a index.php
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^api/(.*)$ index.php [QSA,L]
 
-# Handle all other requests through the main index
+# Redirigir otras rutas también a index.php
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^(.*)$ index.php [QSA,L]
+
+# Configurar tipos MIME
+AddType application/json .json
+AddType text/html .html
+
+# Configurar headers de seguridad
+Header always set X-Content-Type-Options nosniff
+Header always set X-Frame-Options DENY
+Header always set X-XSS-Protection "1; mode=block"
+
+# Configurar CORS para API
+Header always set Access-Control-Allow-Origin "*"
+Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+Header always set Access-Control-Allow-Headers "Content-Type, Authorization"

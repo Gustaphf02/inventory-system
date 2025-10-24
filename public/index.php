@@ -273,13 +273,12 @@ if (strpos($path, '/api/') === 0 || in_array($path, ['/auth/me', '/products', '/
         // Enrutamiento de API
         switch ($apiPath) {
         case 'test':
-            echo json_encode(['success' => true, 'message' => 'Test endpoint working', 'path' => $apiPath, 'method' => $_SERVER['REQUEST_METHOD']]);
+            echo json_encode(['success' => true, 'message' => 'Test endpoint working']);
             break;
             
         case 'products':
             try {
                 // Log del acceso a productos
-                error_log("Products API: Processing request - Method: " . $_SERVER['REQUEST_METHOD'] . ", Path: $apiPath");
                 safeLog('INFO', 'API', 'API_ACCESS', "Consulta de productos");
                 
                 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

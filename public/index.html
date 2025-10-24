@@ -976,7 +976,7 @@
                 async loadProducts() {
                     this.loading = true;
                     try {
-                        const response = await fetch('/products');
+                        const response = await fetch('/api.php?path=products');
                         const data = await response.json();
                         if (data.success) {
                             this.products = data.data;
@@ -1443,7 +1443,7 @@
             }
             
             // Enviar datos al servidor
-            fetch('/api/products', {
+            fetch('/api.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
