@@ -48,12 +48,30 @@ class DatabaseManager {
         }
     }
     
+    public function getProductById($id) {
+        try {
+            if ($this->useMongoDB) {
+                return $this->mongo->getProductById($id);
+            } else {
+                return $this->getProductByIdInFile($id);
+            }
+        } catch (Exception $e) {
+            error_log("DatabaseManager getProductById error: " . $e->getMessage());
+            return null;
+        }
+    }
+    
     public function createProduct($data) {
-        if ($this->useMongoDB) {
-            $id = $this->mongo->createProduct($data);
-            return $this->mongo->getProductById($id);
-        } else {
-            return $this->createProductInFile($data);
+        try {
+            if ($this->useMongoDB) {
+                $id = $this->mongo->createProduct($data);
+                return $this->mongo->getProductById($id);
+            } else {
+                return $this->createProductInFile($data);
+            }
+        } catch (Exception $e) {
+            error_log("DatabaseManager createProduct error: " . $e->getMessage());
+            return null;
         }
     }
     
@@ -189,6 +207,16 @@ class DatabaseManager {
             }
         }
         return false;
+    }
+    
+    private function getProductByIdInFile($id) {
+        $products = $this->loadProductsFromFile();
+        foreach ($products as $product) {
+            if ($product['id'] == $id) {
+                return $product;
+            }
+        }
+        return null;
     }
     
     private function checkUniqueFieldInFile($field, $value, $excludeId = null) {

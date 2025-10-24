@@ -187,38 +187,36 @@ $path = parse_url($requestUri, PHP_URL_PATH);
                         echo json_encode(['success' => false, 'error' => 'Datos JSON inválidos']);
                         break;
                     }
+                    
                     $productId = intval($input['id'] ?? 0);
                     if (!$productId) {
                         error_log("Products PUT: ID de producto faltante");
                         echo json_encode(['success' => false, 'error' => 'ID de producto requerido']);
                         break;
                     }
-                    $productIndex = -1;
-                    foreach ($sampleData['products'] as $index => $product) {
-                        if ($product['id'] == $productId) {
-                            $productIndex = $index;
-                            break;
-                        }
-                    }
-                    if ($productIndex === -1) {
+                    
+                    // Verificar que el producto existe
+                    $existingProduct = $db->getProductById($productId);
+                    if (!$existingProduct) {
                         error_log("Products PUT: Producto no encontrado con ID: $productId");
                         echo json_encode(['success' => false, 'error' => 'Producto no encontrado']);
-            break;
+                        break;
                     }
-                    foreach ($sampleData['products'] as $index => $existingProduct) {
-                        if ($index === $productIndex) continue;
-                        if (strtolower($existingProduct['serial_number']) === strtolower($input['serial_number'])) {
-                            error_log("Products PUT: Serial duplicado: " . $input['serial_number']);
-                            echo json_encode(['success' => false, 'error' => 'El número de serial ya existe. Por favor usa un serial diferente.']);
-                            break 2;
-                        }
-                        if (strtolower($existingProduct['label']) === strtolower($input['label'])) {
-                            error_log("Products PUT: Marbete duplicado: " . $input['label']);
-                            echo json_encode(['success' => false, 'error' => 'El marbete ya existe. Por favor usa un marbete diferente.']);
-                            break 2;
-                        }
+                    
+                    // Verificar campos únicos (excluyendo el producto actual)
+                    if ($db->checkUniqueField('serial_number', $input['serial_number'], $productId)) {
+                        error_log("Products PUT: Serial duplicado: " . $input['serial_number']);
+                        echo json_encode(['success' => false, 'error' => 'El número de serial ya existe. Por favor usa un serial diferente.']);
+                        break;
                     }
-                    $sampleData['products'][$productIndex] = array_merge($sampleData['products'][$productIndex], [
+                    if ($db->checkUniqueField('label', $input['label'], $productId)) {
+                        error_log("Products PUT: Marbete duplicado: " . $input['label']);
+                        echo json_encode(['success' => false, 'error' => 'El marbete ya existe. Por favor usa un marbete diferente.']);
+                        break;
+                    }
+                    
+                    // Preparar datos para actualización
+                    $updateData = [
                         'name' => $input['name'],
                         'description' => $input['description'] ?? '',
                         'brand' => $input['brand'] ?? '',
@@ -236,17 +234,28 @@ $path = parse_url($requestUri, PHP_URL_PATH);
                         'label' => $input['label'] ?? '',
                         'barcode' => $input['barcode'] ?? '',
                         'expiration_date' => $input['expiration_date'] ?? null,
-                        'status' => $input['status'] ?? 'active',
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ]);
-                    // Producto actualizado en MongoDB automáticamente
-                    safeLog('INFO', 'PRODUCT', 'UPDATE', "Producto actualizado: {$sampleData['products'][$productIndex]['sku']} - {$sampleData['products'][$productIndex]['name']}");
-                    error_log("Products PUT: Producto actualizado exitosamente con ID: $productId");
-            echo json_encode([
-                'success' => true,
-                        'message' => 'Producto actualizado exitosamente',
-                        'data' => $sampleData['products'][$productIndex]
-                    ]);
+                        'status' => $input['status'] ?? 'active'
+                    ];
+                    
+                    // Actualizar producto usando DatabaseManager
+                    $success = $db->updateProduct($productId, $updateData);
+                    
+                    if ($success) {
+                        // Obtener el producto actualizado
+                        $updatedProduct = $db->getProductById($productId);
+                        
+                        safeLog('INFO', 'PRODUCT', 'UPDATE', "Producto actualizado: {$updatedProduct['sku']} - {$updatedProduct['name']}");
+                        error_log("Products PUT: Producto actualizado exitosamente con ID: $productId");
+                        
+                        echo json_encode([
+                            'success' => true,
+                            'message' => 'Producto actualizado exitosamente',
+                            'data' => $updatedProduct
+                        ]);
+                    } else {
+                        error_log("Products PUT: Error actualizando producto con ID: $productId");
+                        echo json_encode(['success' => false, 'error' => 'Error al actualizar el producto']);
+                    }
                 } elseif ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
                     $input = json_decode(file_get_contents('php://input'), true);
                     if (!$input || !isset($input['id'])) {
@@ -254,30 +263,38 @@ $path = parse_url($requestUri, PHP_URL_PATH);
                         echo json_encode(['success' => false, 'error' => 'ID de producto requerido']);
                         break;
                     }
+                    
                     $productId = intval($input['id']);
-                    $productIndex = -1;
-                    foreach ($sampleData['products'] as $index => $product) {
-                        if ($product['id'] == $productId) {
-                            $productIndex = $index;
-                            break;
-                        }
+                    if (!$productId) {
+                        error_log("Products DELETE: ID de producto inválido");
+                        echo json_encode(['success' => false, 'error' => 'ID de producto inválido']);
+                        break;
                     }
-                    if ($productIndex === -1) {
+                    
+                    // Verificar que el producto existe antes de eliminar
+                    $existingProduct = $db->getProductById($productId);
+                    if (!$existingProduct) {
                         error_log("Products DELETE: Producto no encontrado con ID: $productId");
                         echo json_encode(['success' => false, 'error' => 'Producto no encontrado']);
-            break;
+                        break;
                     }
-                    $deletedProduct = $sampleData['products'][$productIndex];
-                    unset($sampleData['products'][$productIndex]);
-                    $sampleData['products'] = array_values($sampleData['products']); // Reindexar array
-                    // Producto actualizado en MongoDB automáticamente
-                    safeLog('INFO', 'PRODUCT', 'DELETE', "Producto eliminado: {$deletedProduct['sku']} - {$deletedProduct['name']}");
-                    error_log("Products DELETE: Producto eliminado exitosamente con ID: $productId");
-            echo json_encode([
-                'success' => true,
-                        'message' => 'Producto eliminado exitosamente',
-                        'data' => $deletedProduct
-            ]);
+                    
+                    // Eliminar producto usando DatabaseManager
+                    $success = $db->deleteProduct($productId);
+                    
+                    if ($success) {
+                        safeLog('INFO', 'PRODUCT', 'DELETE', "Producto eliminado: {$existingProduct['sku']} - {$existingProduct['name']}");
+                        error_log("Products DELETE: Producto eliminado exitosamente con ID: $productId");
+                        
+                        echo json_encode([
+                            'success' => true,
+                            'message' => 'Producto eliminado exitosamente',
+                            'data' => $existingProduct
+                        ]);
+                    } else {
+                        error_log("Products DELETE: Error eliminando producto con ID: $productId");
+                        echo json_encode(['success' => false, 'error' => 'Error al eliminar el producto']);
+                    }
                 }
             break;
             
