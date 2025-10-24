@@ -36,11 +36,16 @@ $path = parse_url($requestUri, PHP_URL_PATH);
 if (isset($_GET['path'])) {
     $apiPath = $_GET['path'];
 } else {
-    // Remover el prefijo /api/ si existe
-    if (strpos($path, '/api/') === 0) {
-        $apiPath = substr($path, 5); // Remover '/api/'
+    // Si es una petición POST directa a api.php, procesar como products
+    if ($path === '/api.php' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        $apiPath = 'products';
     } else {
-        $apiPath = ltrim($path, '/');
+        // Remover el prefijo /api/ si existe
+        if (strpos($path, '/api/') === 0) {
+            $apiPath = substr($path, 5); // Remover '/api/'
+        } else {
+            $apiPath = ltrim($path, '/');
+        }
     }
 }
 
@@ -246,12 +251,23 @@ switch ($apiPath) {
         }
         break;
         
+    case 'api.php':
+        // Si se accede directamente a api.php sin parámetros, mostrar información
+        echo json_encode([
+            'success' => true,
+            'message' => 'API endpoint funcionando',
+            'available_endpoints' => ['products', 'test', 'debug'],
+            'usage' => 'Use POST /api.php para crear productos o GET /api.php?path=products para listar'
+        ]);
+        break;
+        
     default:
         http_response_code(404);
         echo json_encode([
             'success' => false,
             'error' => 'Endpoint no encontrado',
-            'path' => $apiPath
+            'path' => $apiPath,
+            'available_endpoints' => ['products', 'test', 'debug']
         ]);
         break;
 }
