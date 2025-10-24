@@ -300,11 +300,75 @@ if (strpos($path, '/api/') === 0 || in_array($path, ['/auth/me', '/products', '/
         case 'products':
             // Log del acceso a productos
             safeLog('INFO', 'API', 'API_ACCESS', "Consulta de productos");
-            echo json_encode([
-                'success' => true,
-                'data' => $sampleData['products'],
-                'total' => count($sampleData['products'])
-            ]);
+            
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                // Crear nuevo producto
+                $input = json_decode(file_get_contents('php://input'), true);
+                
+                if (!$input) {
+                    echo json_encode(['success' => false, 'error' => 'Datos JSON inválidos']);
+                    break;
+                }
+                
+                // Validar campos requeridos
+                $required = ['sku', 'name', 'serial_number'];
+                foreach ($required as $field) {
+                    if (empty($input[$field])) {
+                        echo json_encode(['success' => false, 'error' => "Campo requerido: $field"]);
+                        break 2;
+                    }
+                }
+                
+                // Generar nuevo ID
+                $newId = max(array_column($sampleData['products'], 'id')) + 1;
+                
+                // Crear nuevo producto
+                $newProduct = [
+                    'id' => $newId,
+                    'sku' => $input['sku'],
+                    'name' => $input['name'],
+                    'description' => $input['description'] ?? '',
+                    'brand' => $input['brand'] ?? '',
+                    'model' => $input['model'] ?? '',
+                    'price' => floatval($input['price'] ?? 0),
+                    'cost' => floatval($input['cost'] ?? 0),
+                    'stock_quantity' => intval($input['stock_quantity'] ?? 0),
+                    'min_stock_level' => intval($input['min_stock_level'] ?? 0),
+                    'max_stock_level' => intval($input['max_stock_level'] ?? 0),
+                    'category_id' => intval($input['category_id'] ?? 1),
+                    'supplier_id' => intval($input['supplier_id'] ?? 1),
+                    'category_name' => 'Electrónica',
+                    'supplier_name' => 'Mouser Electronics',
+                    'serial_number' => $input['serial_number'],
+                    'department' => $input['department'] ?? '',
+                    'location' => $input['location'] ?? '',
+                    'label' => $input['label'] ?? '',
+                    'barcode' => $input['barcode'] ?? '',
+                    'expiration_date' => $input['expiration_date'] ?? null,
+                    'status' => $input['status'] ?? 'active',
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s')
+                ];
+                
+                // Agregar a los datos
+                $sampleData['products'][] = $newProduct;
+                
+                // Log de creación
+                safeLog('INFO', 'PRODUCT', 'CREATE', "Producto creado: {$newProduct['sku']} - {$newProduct['name']}");
+                
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Producto creado exitosamente',
+                    'data' => $newProduct
+                ]);
+            } else {
+                // GET - Listar productos
+                echo json_encode([
+                    'success' => true,
+                    'data' => $sampleData['products'],
+                    'total' => count($sampleData['products'])
+                ]);
+            }
             break;
             
         case 'categories':

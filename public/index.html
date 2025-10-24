@@ -16,6 +16,14 @@
             background-color: rgba(0,0,0,0.5);
         }
         
+        #addProductModal {
+            z-index: 1055;
+        }
+        
+        #addProductModal.show {
+            display: block !important;
+        }
+        
         .sidebar {
             min-height: 100vh;
             background: linear-gradient(135deg, #2c2c2c 0%, #1a1a1a 100%);
@@ -554,7 +562,7 @@
                                     <i class="fas fa-boxes me-2"></i>
                                     Gestión de Productos
                                 </h5>
-                                <button class="btn btn-primary mt-2 mt-md-0" @click="showAddProduct">
+                                <button class="btn btn-primary mt-2 mt-md-0" onclick="openModal()">
                                     <i class="fas fa-plus me-1"></i>
                                     Agregar Producto
                                 </button>
@@ -1096,60 +1104,11 @@
                 },
 
                 showAddProduct() {
-                    console.log('showAddProduct called');
                     this.showAddProductModal = true;
-                    console.log('Modal should be visible now');
-                    
-                    // Usar Bootstrap para mostrar el modal
-                    this.$nextTick(() => {
-                        const modalElement = document.getElementById('addProductModal');
-                        if (modalElement) {
-                            // Crear backdrop
-                            const backdrop = document.createElement('div');
-                            backdrop.className = 'modal-backdrop fade show';
-                            backdrop.id = 'modalBackdrop';
-                            document.body.appendChild(backdrop);
-                            
-                            // Mostrar modal
-                            modalElement.classList.add('show');
-                            modalElement.style.display = 'block';
-                            document.body.classList.add('modal-open');
-                        }
-                    });
                 },
 
                 closeAddProductModal() {
-                    console.log('closeAddProductModal called');
                     this.showAddProductModal = false;
-                    console.log('showAddProductModal set to false');
-                    
-                    // Limpiar elementos del modal
-                    const modalElement = document.getElementById('addProductModal');
-                    const backdrop = document.getElementById('modalBackdrop');
-                    
-                    if (modalElement) {
-                        modalElement.classList.remove('show');
-                        modalElement.style.display = 'none';
-                        console.log('Modal element hidden');
-                    }
-                    
-                    if (backdrop) {
-                        backdrop.remove();
-                        console.log('Backdrop removed');
-                    }
-                    
-                    document.body.classList.remove('modal-open');
-                    console.log('Modal closed successfully');
-                },
-
-                closeModalX() {
-                    console.log('closeModalX called');
-                    this.closeAddProductModal();
-                },
-
-                closeModalCancel() {
-                    console.log('closeModalCancel called');
-                    this.closeAddProductModal();
                 },
 
                 addProduct() {
@@ -1432,8 +1391,139 @@
         }).mount('#app');
     </script>
 
+    <!-- JavaScript vanilla para el modal -->
+    <script>
+        function openModal() {
+            console.log('openModal called');
+            const modal = document.getElementById('addProductModal');
+            if (modal) {
+                modal.style.display = 'block';
+                modal.style.backgroundColor = 'rgba(0,0,0,0.5)';
+                modal.classList.add('show');
+                document.body.classList.add('modal-open');
+                console.log('Modal opened');
+            } else {
+                console.error('Modal not found');
+            }
+        }
+
+        function closeModal() {
+            console.log('closeModal called');
+            const modal = document.getElementById('addProductModal');
+            if (modal) {
+                modal.style.display = 'none';
+                modal.classList.remove('show');
+                document.body.classList.remove('modal-open');
+                console.log('Modal closed');
+            }
+        }
+
+        // Cerrar modal al hacer clic fuera
+        window.onclick = function(event) {
+            const modal = document.getElementById('addProductModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+
+        function generateBarcode() {
+            const sku = document.getElementById('productSku').value;
+            const name = document.getElementById('productName').value;
+            const barcodeField = document.getElementById('productBarcode');
+            
+            let barcode = '';
+            if (sku) {
+                barcode = 'INV-' + sku.toUpperCase();
+            } else if (name) {
+                barcode = 'INV-' + name.substring(0, 10).replace(/\s+/g, '-').toUpperCase();
+            } else {
+                barcode = 'INV-' + Math.random().toString(36).substr(2, 8).toUpperCase();
+            }
+            
+            barcodeField.value = barcode;
+        }
+
+        function saveProduct() {
+            console.log('saveProduct called');
+            
+            // Recopilar datos del formulario
+            const productData = {
+                sku: document.getElementById('productSku').value,
+                name: document.getElementById('productName').value,
+                brand: document.getElementById('productBrand').value,
+                model: document.getElementById('productModel').value,
+                description: document.getElementById('productDescription').value,
+                serial_number: document.getElementById('productSerial').value,
+                department: document.getElementById('productDepartment').value,
+                location: document.getElementById('productLocation').value,
+                label: document.getElementById('productLabel').value,
+                barcode: document.getElementById('productBarcode').value,
+                cost: parseFloat(document.getElementById('productCost').value) || 0,
+                price: parseFloat(document.getElementById('productPrice').value) || 0,
+                stock_quantity: parseInt(document.getElementById('productStock').value) || 0,
+                min_stock_level: parseInt(document.getElementById('productMinStock').value) || 0,
+                max_stock_level: parseInt(document.getElementById('productMaxStock').value) || 0,
+                expiration_date: document.getElementById('productExpiration').value || null,
+                status: document.getElementById('productStatus').value || 'active',
+                category_id: 1, // Por defecto
+                supplier_id: 1  // Por defecto
+            };
+            
+            console.log('Product data:', productData);
+            
+            // Validar campos requeridos
+            if (!productData.sku || !productData.name || !productData.serial_number) {
+                alert('Por favor completa todos los campos requeridos (SKU, Nombre, Serial)');
+                return;
+            }
+            
+            // Enviar datos al servidor
+            fetch('/api/products', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(productData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Success:', data);
+                alert('Producto guardado exitosamente!');
+                closeModal();
+                clearForm();
+                // Recargar la página para mostrar el nuevo producto
+                location.reload();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error al guardar el producto: ' + error.message);
+            });
+        }
+
+        function clearForm() {
+            // Limpiar todos los campos del formulario
+            document.getElementById('productSku').value = '';
+            document.getElementById('productName').value = '';
+            document.getElementById('productBrand').value = '';
+            document.getElementById('productModel').value = '';
+            document.getElementById('productDescription').value = '';
+            document.getElementById('productSerial').value = '';
+            document.getElementById('productDepartment').value = '';
+            document.getElementById('productLocation').value = '';
+            document.getElementById('productLabel').value = '';
+            document.getElementById('productBarcode').value = '';
+            document.getElementById('productCost').value = '';
+            document.getElementById('productPrice').value = '';
+            document.getElementById('productStock').value = '';
+            document.getElementById('productMinStock').value = '';
+            document.getElementById('productMaxStock').value = '';
+            document.getElementById('productExpiration').value = '';
+            document.getElementById('productStatus').value = 'active';
+        }
+    </script>
+
     <!-- Modal de Agregar Producto -->
-    <div class="modal fade" id="addProductModal" tabindex="-1" v-if="showAddProductModal" @click.self="closeModalCancel">
+    <div class="modal fade" id="addProductModal" tabindex="-1" style="display: none;">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
@@ -1441,7 +1531,7 @@
                         <i class="fas fa-plus me-2"></i>
                         Agregar Nuevo Producto
                     </h5>
-                    <button type="button" class="btn-close" @click="closeModalX"></button>
+                    <button type="button" class="btn-close" onclick="closeModal()"></button>
                 </div>
                 <div class="modal-body">
                     <form @submit.prevent="addProduct">
@@ -1455,32 +1545,32 @@
                                 
                                 <div class="mb-3">
                                     <label class="form-label">SKU *</label>
-                                    <input type="text" class="form-control" v-model="newProduct.sku" required 
-                                           placeholder="Ej: RES-1K-001" maxlength="20" @blur="autoGenerateBarcode">
+                                    <input type="text" class="form-control" id="productSku" required 
+                                           placeholder="Ej: RES-1K-001" maxlength="20">
                                     <div class="form-text">Código único del producto</div>
                                 </div>
                                 
                                 <div class="mb-3">
                                     <label class="form-label">Nombre del Producto *</label>
-                                    <input type="text" class="form-control" v-model="newProduct.name" required 
+                                    <input type="text" class="form-control" id="productName" required 
                                            placeholder="Ej: Resistor 1K Ohm 1/4W">
                                 </div>
                                 
                                 <div class="mb-3">
                                     <label class="form-label">Marca *</label>
-                                    <input type="text" class="form-control" v-model="newProduct.brand" required 
+                                    <input type="text" class="form-control" id="productBrand" required 
                                            placeholder="Ej: Vishay">
                                 </div>
                                 
                                 <div class="mb-3">
                                     <label class="form-label">Modelo *</label>
-                                    <input type="text" class="form-control" v-model="newProduct.model" required 
+                                    <input type="text" class="form-control" id="productModel" required 
                                            placeholder="Ej: CRCW0805">
                                 </div>
                                 
                                 <div class="mb-3">
                                     <label class="form-label">Descripción</label>
-                                    <textarea class="form-control" v-model="newProduct.description" rows="3" 
+                                    <textarea class="form-control" id="productDescription" rows="3" 
                                               placeholder="Descripción detallada del producto"></textarea>
                                 </div>
                                 
@@ -1514,40 +1604,31 @@
                                 
                                 <div class="mb-3">
                                     <label class="form-label">Número de Serial *</label>
-                                    <input type="text" class="form-control" v-model="newProduct.serial_number" required 
+                                    <input type="text" class="form-control" id="productSerial" required 
                                            placeholder="Ej: RES001-2025-001" maxlength="30">
                                     <div class="form-text">Número único de serie del producto</div>
                                 </div>
                                 
                                 <div class="mb-3">
                                     <label class="form-label">Departamento *</label>
-                                    <select class="form-select" v-model="newProduct.department" required>
+                                    <select class="form-select" id="productDepartment" required>
                                         <option value="">Seleccionar departamento</option>
-                                        <option v-for="dept in departments" :key="dept.id" :value="dept.name">
-                                            {{ dept.name }}
-                                        </option>
+                                        <option value="Telemática">Telemática</option>
+                                        <option value="S1">S1</option>
+                                        <option value="Protección">Protección</option>
+                                        <option value="S3">S3</option>
                                     </select>
                                 </div>
                                 
                                 <div class="mb-3">
                                     <label class="form-label">Ubicación Física *</label>
-                                    <select class="form-select" v-model="newProduct.location" required>
-                                        <option value="">Seleccionar ubicación</option>
-                                        <option v-for="location in locations" :key="location.id" :value="location.name + ' - Estante 1'">
-                                            {{ location.name }} - Estante 1
-                                        </option>
-                                        <option v-for="location in locations" :key="location.id + '-2'" :value="location.name + ' - Estante 2'">
-                                            {{ location.name }} - Estante 2
-                                        </option>
-                                        <option v-for="location in locations" :key="location.id + '-3'" :value="location.name + ' - Estante 3'">
-                                            {{ location.name }} - Estante 3
-                                        </option>
-                                    </select>
+                                    <input type="text" class="form-control" id="productLocation" required 
+                                           placeholder="Ej: Almacén A - Estante 1">
                                 </div>
                                 
                                 <div class="mb-3">
                                     <label class="form-label">Marbete/Etiqueta *</label>
-                                    <input type="text" class="form-control" v-model="newProduct.label" required 
+                                    <input type="text" class="form-control" id="productLabel" required 
                                            placeholder="Ej: RES-1K-001" maxlength="20">
                                     <div class="form-text">Etiqueta física del producto</div>
                                 </div>
@@ -1555,9 +1636,9 @@
                                 <div class="mb-3">
                                     <label class="form-label">Código de Barras</label>
                                     <div class="input-group">
-                                        <input type="text" class="form-control" v-model="newProduct.barcode" 
+                                        <input type="text" class="form-control" id="productBarcode" 
                                                placeholder="Se genera automáticamente">
-                                        <button class="btn btn-outline-secondary" type="button" @click="generateBarcode">
+                                        <button class="btn btn-outline-secondary" type="button" onclick="generateBarcode()">
                                             <i class="fas fa-barcode"></i>
                                         </button>
                                     </div>
@@ -1580,7 +1661,7 @@
                                     <label class="form-label">Precio de Costo *</label>
                                     <div class="input-group">
                                         <span class="input-group-text">$</span>
-                                        <input type="number" class="form-control" v-model="newProduct.cost" required 
+                                        <input type="number" class="form-control" id="productCost" required 
                                                step="0.01" min="0" placeholder="0.00">
                                     </div>
                                 </div>
@@ -1589,7 +1670,7 @@
                                     <label class="form-label">Precio de Venta *</label>
                                     <div class="input-group">
                                         <span class="input-group-text">$</span>
-                                        <input type="number" class="form-control" v-model="newProduct.price" required 
+                                        <input type="number" class="form-control" id="productPrice" required 
                                                step="0.01" min="0" placeholder="0.00">
                                     </div>
                                 </div>
@@ -1603,19 +1684,19 @@
                                 
                                 <div class="mb-3">
                                     <label class="form-label">Cantidad en Stock *</label>
-                                    <input type="number" class="form-control" v-model="newProduct.stock_quantity" required 
+                                    <input type="number" class="form-control" id="productStock" required 
                                            min="0" placeholder="0">
                                 </div>
                                 
                                 <div class="mb-3">
                                     <label class="form-label">Stock Mínimo *</label>
-                                    <input type="number" class="form-control" v-model="newProduct.min_stock_level" required 
+                                    <input type="number" class="form-control" id="productMinStock" required 
                                            min="0" placeholder="0">
                                 </div>
                                 
                                 <div class="mb-3">
                                     <label class="form-label">Stock Máximo</label>
-                                    <input type="number" class="form-control" v-model="newProduct.max_stock_level" 
+                                    <input type="number" class="form-control" id="productMaxStock" 
                                            min="0" placeholder="0">
                                 </div>
                             </div>
@@ -1626,7 +1707,7 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Fecha de Expiración</label>
-                                    <input type="date" class="form-control" v-model="newProduct.expiration_date">
+                                    <input type="date" class="form-control" id="productExpiration">
                                     <div class="form-text">Opcional - Para productos perecederos</div>
                                 </div>
                             </div>
@@ -1634,7 +1715,7 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Estado</label>
-                                    <select class="form-select" v-model="newProduct.status">
+                                    <select class="form-select" id="productStatus">
                                         <option value="active">Activo</option>
                                         <option value="inactive">Inactivo</option>
                                         <option value="discontinued">Descontinuado</option>
@@ -1645,11 +1726,11 @@
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @click="closeModalCancel">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">
                         <i class="fas fa-times me-1"></i>
                         Cancelar
                     </button>
-                    <button type="button" class="btn btn-primary" @click="addProduct">
+                    <button type="button" class="btn btn-primary" onclick="saveProduct()">
                         <i class="fas fa-save me-1"></i>
                         Guardar Producto
                     </button>
