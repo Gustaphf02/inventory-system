@@ -121,6 +121,7 @@ function safeLog($level, $module, $action, $details = '') {
 }
 
 // Enrutamiento de API
+try {
 switch ($apiPath) {
     case 'test':
         echo json_encode(['success' => true, 'message' => 'API endpoint working', 'path' => $apiPath, 'method' => $_SERVER['REQUEST_METHOD']]);
@@ -252,55 +253,84 @@ switch ($apiPath) {
         break;
         
     case 'reports/dashboard/stats':
-        // Estadísticas del dashboard
-        $totalProducts = count($sampleData['products']);
-        $totalValue = array_sum(array_column($sampleData['products'], 'price'));
-        $lowStockCount = count(array_filter($sampleData['products'], function($product) {
-            return $product['stock_quantity'] <= $product['min_stock_level'];
-        }));
-        
-        echo json_encode([
-            'success' => true,
-            'data' => [
-                'totalProducts' => $totalProducts,
-                'totalValue' => $totalValue,
-                'lowStockCount' => $lowStockCount,
-                'totalSuppliers' => 4,
-                'avgStockPerProduct' => $totalProducts > 0 ? array_sum(array_column($sampleData['products'], 'stock_quantity')) / $totalProducts : 0
-            ]
-        ]);
+        try {
+            // Estadísticas del dashboard
+            $totalProducts = count($sampleData['products']);
+            $totalValue = 0;
+            $lowStockCount = 0;
+            
+            foreach ($sampleData['products'] as $product) {
+                $totalValue += floatval($product['price']);
+                if ($product['stock_quantity'] <= $product['min_stock_level']) {
+                    $lowStockCount++;
+                }
+            }
+            
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'totalProducts' => $totalProducts,
+                    'totalValue' => $totalValue,
+                    'lowStockCount' => $lowStockCount,
+                    'totalSuppliers' => 4,
+                    'avgStockPerProduct' => $totalProducts > 0 ? $totalValue / $totalProducts : 0
+                ]
+            ]);
+        } catch (Exception $e) {
+            error_log("Dashboard stats error: " . $e->getMessage());
+            echo json_encode([
+                'success' => false,
+                'error' => 'Error calculando estadísticas: ' . $e->getMessage()
+            ]);
+        }
         break;
         
     case 'departments':
-        // Lista de departamentos
-        $departments = [
-            ['id' => 1, 'name' => 'Telemática', 'description' => 'Departamento de Telemática'],
-            ['id' => 2, 'name' => 'S1', 'description' => 'Departamento S1'],
-            ['id' => 3, 'name' => 'Protección', 'description' => 'Departamento de Protección'],
-            ['id' => 4, 'name' => 'S3', 'description' => 'Departamento S3']
-        ];
-        
-        echo json_encode([
-            'success' => true,
-            'data' => $departments,
-            'total' => count($departments)
-        ]);
+        try {
+            // Lista de departamentos
+            $departments = [
+                ['id' => 1, 'name' => 'Telemática', 'description' => 'Departamento de Telemática'],
+                ['id' => 2, 'name' => 'S1', 'description' => 'Departamento S1'],
+                ['id' => 3, 'name' => 'Protección', 'description' => 'Departamento de Protección'],
+                ['id' => 4, 'name' => 'S3', 'description' => 'Departamento S3']
+            ];
+            
+            echo json_encode([
+                'success' => true,
+                'data' => $departments,
+                'total' => count($departments)
+            ]);
+        } catch (Exception $e) {
+            error_log("Departments error: " . $e->getMessage());
+            echo json_encode([
+                'success' => false,
+                'error' => 'Error cargando departamentos: ' . $e->getMessage()
+            ]);
+        }
         break;
         
     case 'locations':
-        // Lista de ubicaciones
-        $locations = [
-            ['id' => 1, 'name' => 'Almacén A - Estante 1', 'description' => 'Almacén principal'],
-            ['id' => 2, 'name' => 'Almacén B - Estante 2', 'description' => 'Almacén secundario'],
-            ['id' => 3, 'name' => 'Oficina - Escritorio 1', 'description' => 'Oficina principal'],
-            ['id' => 4, 'name' => 'Laboratorio - Mesa 1', 'description' => 'Laboratorio de pruebas']
-        ];
-        
-        echo json_encode([
-            'success' => true,
-            'data' => $locations,
-            'total' => count($locations)
-        ]);
+        try {
+            // Lista de ubicaciones
+            $locations = [
+                ['id' => 1, 'name' => 'Almacén A - Estante 1', 'description' => 'Almacén principal'],
+                ['id' => 2, 'name' => 'Almacén B - Estante 2', 'description' => 'Almacén secundario'],
+                ['id' => 3, 'name' => 'Oficina - Escritorio 1', 'description' => 'Oficina principal'],
+                ['id' => 4, 'name' => 'Laboratorio - Mesa 1', 'description' => 'Laboratorio de pruebas']
+            ];
+            
+            echo json_encode([
+                'success' => true,
+                'data' => $locations,
+                'total' => count($locations)
+            ]);
+        } catch (Exception $e) {
+            error_log("Locations error: " . $e->getMessage());
+            echo json_encode([
+                'success' => false,
+                'error' => 'Error cargando ubicaciones: ' . $e->getMessage()
+            ]);
+        }
         break;
         
     case 'api.php':
@@ -322,5 +352,16 @@ switch ($apiPath) {
             'available_endpoints' => ['products', 'test', 'debug', 'reports/dashboard/stats', 'departments', 'locations']
         ]);
         break;
+}
+} catch (Exception $e) {
+    error_log("API Global Error: " . $e->getMessage());
+    error_log("API Global Error Trace: " . $e->getTraceAsString());
+    
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'error' => 'Error interno del servidor: ' . $e->getMessage(),
+        'path' => $apiPath
+    ]);
 }
 ?>
