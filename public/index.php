@@ -273,13 +273,13 @@ if (strpos($path, '/api/') === 0 || in_array($path, ['/auth/me', '/products', '/
         // Enrutamiento de API
         switch ($apiPath) {
         case 'test':
-            echo json_encode(['success' => true, 'message' => 'Test endpoint working']);
+            echo json_encode(['success' => true, 'message' => 'Test endpoint working', 'path' => $apiPath, 'method' => $_SERVER['REQUEST_METHOD']]);
             break;
             
-        case 'api/products':
         case 'products':
             try {
                 // Log del acceso a productos
+                error_log("Products API: Processing request - Method: " . $_SERVER['REQUEST_METHOD'] . ", Path: $apiPath");
                 safeLog('INFO', 'API', 'API_ACCESS', "Consulta de productos");
                 
                 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -287,15 +287,40 @@ if (strpos($path, '/api/') === 0 || in_array($path, ['/auth/me', '/products', '/
                 $input = json_decode(file_get_contents('php://input'), true);
                 
                 if (!$input) {
+                    error_log("Products POST: Datos JSON inválidos");
                     echo json_encode(['success' => false, 'error' => 'Datos JSON inválidos']);
                     break;
                 }
                 
+                error_log("Products POST: Datos recibidos: " . json_encode($input));
+                
                 // Validar campos requeridos
-                $required = ['sku', 'name', 'serial_number'];
+                $required = ['sku', 'name', 'serial_number', 'label'];
                 foreach ($required as $field) {
                     if (empty($input[$field])) {
+                        error_log("Products POST: Campo requerido faltante: $field");
                         echo json_encode(['success' => false, 'error' => "Campo requerido: $field"]);
+                        break 2;
+                    }
+                }
+                
+                // Validar campos únicos
+                foreach ($sampleData['products'] as $existingProduct) {
+                    if (strtolower($existingProduct['sku']) === strtolower($input['sku'])) {
+                        error_log("Products POST: SKU duplicado: " . $input['sku']);
+                        echo json_encode(['success' => false, 'error' => 'El SKU ya existe. Por favor usa un SKU diferente.']);
+                        break 2;
+                    }
+                    
+                    if (strtolower($existingProduct['serial_number']) === strtolower($input['serial_number'])) {
+                        error_log("Products POST: Serial duplicado: " . $input['serial_number']);
+                        echo json_encode(['success' => false, 'error' => 'El número de serial ya existe. Por favor usa un serial diferente.']);
+                        break 2;
+                    }
+                    
+                    if (strtolower($existingProduct['label']) === strtolower($input['label'])) {
+                        error_log("Products POST: Marbete duplicado: " . $input['label']);
+                        echo json_encode(['success' => false, 'error' => 'El marbete ya existe. Por favor usa un marbete diferente.']);
                         break 2;
                     }
                 }
@@ -336,6 +361,7 @@ if (strpos($path, '/api/') === 0 || in_array($path, ['/auth/me', '/products', '/
                 
                 // Log de creación
                 safeLog('INFO', 'PRODUCT', 'CREATE', "Producto creado: {$newProduct['sku']} - {$newProduct['name']}");
+                error_log("Products POST: Producto creado exitosamente con ID: " . $newProduct['id']);
                 
                 echo json_encode([
                     'success' => true,
@@ -351,6 +377,8 @@ if (strpos($path, '/api/') === 0 || in_array($path, ['/auth/me', '/products', '/
                 ]);
             }
             } catch (Exception $e) {
+                error_log("Products API Error: " . $e->getMessage());
+                error_log("Products API Error Trace: " . $e->getTraceAsString());
                 echo json_encode([
                     'success' => false,
                     'error' => 'Error interno del servidor: ' . $e->getMessage()

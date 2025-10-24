@@ -502,11 +502,13 @@
                                         <thead>
                                             <tr>
                                                 <th>SKU</th>
+                                                <th>Nombre</th>
                                                 <th>Descripción</th>
                                                 <th>Marca</th>
                                                 <th>Modelo</th>
                                                 <th>Serial</th>
                                                 <th>Categoría</th>
+                                                <th>Proveedor</th>
                                                 <th>Ubicación</th>
                                                 <th>Stock</th>
                                                 <th>Precio</th>
@@ -518,11 +520,13 @@
                                         <tbody>
                                             <tr v-for="product in filteredInventory" :key="product.id">
                                                 <td><code>{{ product.sku }}</code></td>
+                                                <td><strong>{{ product.name }}</strong></td>
                                                 <td><small>{{ product.description }}</small></td>
                                                 <td><strong>{{ product.brand }}</strong></td>
                                                 <td>{{ product.model }}</td>
                                                 <td><small>{{ product.serial_number }}</small></td>
                                                 <td><span class="badge bg-secondary">{{ product.category_name }}</span></td>
+                                                <td><span class="badge bg-info">{{ product.supplier_name }}</span></td>
                                                 <td><small>{{ product.location }}</small></td>
                                                 <td>
                                                     <span class="badge" :class="product.stock_quantity <= product.min_stock_level ? 'bg-danger' : 'bg-success'">
@@ -601,6 +605,10 @@
                                             <tr>
                                                 <th>SKU</th>
                                                 <th>Nombre</th>
+                                                <th>Descripción</th>
+                                                <th>Marca</th>
+                                                <th>Modelo</th>
+                                                <th>Serial</th>
                                                 <th>Categoría</th>
                                                 <th>Proveedor</th>
                                                 <th>Stock</th>
@@ -614,9 +622,13 @@
                                                 <td>
                                                     <code>{{ product.sku }}</code>
                                                 </td>
-                                                <td>{{ product.name }}</td>
-                                                <td>{{ product.category_name || 'Sin categoría' }}</td>
-                                                <td>{{ product.supplier_name || 'Sin proveedor' }}</td>
+                                                <td><strong>{{ product.name }}</strong></td>
+                                                <td><small>{{ product.description }}</small></td>
+                                                <td><strong>{{ product.brand }}</strong></td>
+                                                <td>{{ product.model }}</td>
+                                                <td><small>{{ product.serial_number }}</small></td>
+                                                <td><span class="badge bg-secondary">{{ product.category_name || 'Sin categoría' }}</span></td>
+                                                <td><span class="badge bg-info">{{ product.supplier_name || 'Sin proveedor' }}</span></td>
                                                 <td>
                                                     <span class="badge" :class="getStockBadgeClass(product.stock_quantity, product.min_stock_level)">
                                                         {{ product.stock_quantity }}
@@ -876,30 +888,8 @@
                     searchQuery: '',
                     selectedCategory: '',
                     selectedSupplier: '',
-                    showAddProductModal: false,
                     showEditProductModal: false,
-                    editingProduct: null,
-                    newProduct: {
-                        sku: '',
-                        name: '',
-                        description: '',
-                        brand: '',
-                        model: '',
-                        category_id: '',
-                        supplier_id: '',
-                        serial_number: '',
-                        department: '',
-                        location: '',
-                        label: '',
-                        barcode: '',
-                        cost: 0,
-                        price: 0,
-                        stock_quantity: 0,
-                        min_stock_level: 0,
-                        max_stock_level: 0,
-                        expiration_date: null,
-                        status: 'active'
-                    }
+                    editingProduct: null
                 }
             },
             async mounted() {
@@ -1104,120 +1094,11 @@
                 },
 
                 showAddProduct() {
-                    this.showAddProductModal = true;
+                    // Esta función ya no se usa, se reemplazó por openModal() de JavaScript vanilla
                 },
 
                 closeAddProductModal() {
-                    this.showAddProductModal = false;
-                },
-
-                addProduct() {
-                    // Validar campos requeridos
-                    if (!this.newProduct.sku || !this.newProduct.name || !this.newProduct.serial_number) {
-                        alert('Por favor completa todos los campos requeridos');
-                        return;
-                    }
-                    
-                    // Validar SKU único
-                    if (this.products.some(p => p.sku.toLowerCase() === this.newProduct.sku.toLowerCase())) {
-                        alert('El SKU ya existe. Por favor usa un SKU diferente.');
-                        return;
-                    }
-                    
-                    // Validar número de serial único
-                    if (this.products.some(p => p.serial_number.toLowerCase() === this.newProduct.serial_number.toLowerCase())) {
-                        alert('El número de serial ya existe. Por favor usa un serial diferente.');
-                        return;
-                    }
-                    
-                    // Generar ID único
-                    const newId = Math.max(...this.products.map(p => p.id)) + 1;
-                    
-                    // Crear nuevo producto
-                    const product = {
-                        id: newId,
-                        ...this.newProduct,
-                        category_name: this.categories.find(c => c.id == this.newProduct.category_id)?.name || '',
-                        supplier_name: this.suppliers.find(s => s.id == this.newProduct.supplier_id)?.name || '',
-                        created_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
-                        updated_at: new Date().toISOString().slice(0, 19).replace('T', ' ')
-                    };
-                    
-                    // Agregar a la lista
-                    this.products.push(product);
-                    this.filteredProducts.push(product);
-                    this.filteredInventory.push(product);
-                    
-                    // Limpiar formulario
-                    this.resetNewProduct();
-                    
-                    // Cerrar modal
-                    this.closeAddProductModal();
-                    
-                    // Mostrar mensaje de éxito
-                    alert('Producto agregado exitosamente');
-                    
-                    // Recargar datos
-                    this.loadInventorySummary();
-                },
-
-                resetNewProduct() {
-                    this.newProduct = {
-                        sku: '',
-                        name: '',
-                        description: '',
-                        brand: '',
-                        model: '',
-                        category_id: '',
-                        supplier_id: '',
-                        serial_number: '',
-                        department: '',
-                        location: '',
-                        label: '',
-                        barcode: '',
-                        cost: 0,
-                        price: 0,
-                        stock_quantity: 0,
-                        min_stock_level: 0,
-                        max_stock_level: 0,
-                        expiration_date: null,
-                        status: 'active'
-                    };
-                },
-
-                generateBarcode() {
-                    // Generar código de barras inteligente
-                    let barcode = '';
-                    
-                    if (this.newProduct && this.newProduct.sku) {
-                        // Usar SKU como base
-                        const skuClean = this.newProduct.sku.replace(/[^A-Z0-9]/g, '');
-                        const timestamp = Date.now().toString().slice(-4);
-                        barcode = `INV-${skuClean}-${timestamp}`;
-                    } else if (this.newProduct && this.newProduct.name) {
-                        // Usar primeras letras del nombre
-                        const nameWords = this.newProduct.name.split(' ');
-                        const initials = nameWords.map(word => word.charAt(0).toUpperCase()).join('');
-                        const timestamp = Date.now().toString().slice(-4);
-                        barcode = `INV-${initials}-${timestamp}`;
-                    } else {
-                        // Generar código aleatorio
-                        const random = Math.random().toString(36).substring(2, 8).toUpperCase();
-                        const timestamp = Date.now().toString().slice(-4);
-                        barcode = `INV-${random}-${timestamp}`;
-                    }
-                    
-                    // Verificar que el código de barras sea único
-                    let counter = 1;
-                    let finalBarcode = barcode;
-                    while (this.products && this.products.some(p => p.barcode === finalBarcode)) {
-                        finalBarcode = `${barcode}-${counter}`;
-                        counter++;
-                    }
-                    
-                    if (this.newProduct) {
-                        this.newProduct.barcode = finalBarcode;
-                    }
+                    // Esta función ya no se usa, se reemplazó por closeModal() de JavaScript vanilla
                 },
 
                 editProduct(product) {
@@ -1371,11 +1252,6 @@
                     return new Intl.NumberFormat('es-MX').format(number);
                 },
 
-                editProduct(product) {
-                    console.log('Edit product:', product);
-                    // Implementar modal de edición
-                },
-
                 viewProduct(product) {
                     console.log('View product:', product);
                     // Implementar modal de visualización
@@ -1395,13 +1271,21 @@
     <script>
         function openModal() {
             console.log('openModal called');
+            
+            // Generar SKU único automáticamente
+            const autoSKU = generateUniqueSKU();
+            document.getElementById('productSku').value = autoSKU;
+            
+            // Auto-rellenar código de barras basado en el SKU generado
+            document.getElementById('productBarcode').value = 'INV-' + autoSKU;
+            
             const modal = document.getElementById('addProductModal');
             if (modal) {
                 modal.style.display = 'block';
                 modal.style.backgroundColor = 'rgba(0,0,0,0.5)';
                 modal.classList.add('show');
                 document.body.classList.add('modal-open');
-                console.log('Modal opened');
+                console.log('Modal opened with auto-generated SKU:', autoSKU);
             } else {
                 console.error('Modal not found');
             }
@@ -1443,6 +1327,62 @@
             barcodeField.value = barcode;
         }
 
+        function generateUniqueSKU() {
+            // Obtener productos existentes desde Vue.js data
+            let existingProducts = [];
+            try {
+                // Intentar obtener productos desde la instancia de Vue
+                const app = document.querySelector('#app').__vue__;
+                if (app && app.products) {
+                    existingProducts = app.products.map(p => ({sku: p.sku}));
+                }
+            } catch (e) {
+                console.log('No se pudo obtener productos de Vue, usando lista por defecto');
+            }
+            
+            // Lista de respaldo con productos existentes conocidos
+            const fallbackProducts = [
+                {sku: 'RES-1K-001'},
+                {sku: 'CAP-100U-001'},
+                {sku: 'LED-RED-001'},
+                {sku: 'CAB-USB-001'},
+                {sku: 'RES-10K-001'}
+            ];
+            
+            if (existingProducts.length === 0) {
+                existingProducts = fallbackProducts;
+            }
+            
+            let attempts = 0;
+            let newSKU;
+            
+            do {
+                // Generar SKU basado en timestamp y número aleatorio
+                const timestamp = Date.now().toString().slice(-6);
+                const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+                newSKU = 'PRD-' + timestamp + '-' + randomNum;
+                attempts++;
+                
+                // Si después de 10 intentos no encuentra uno único, usar timestamp completo
+                if (attempts > 10) {
+                    newSKU = 'PRD-' + Date.now() + '-' + Math.floor(Math.random() * 10000);
+                    break;
+                }
+            } while (existingProducts.some(p => p.sku.toLowerCase() === newSKU.toLowerCase()));
+            
+            console.log('SKU generado:', newSKU, 'después de', attempts, 'intentos');
+            return newSKU;
+        }
+
+        function autoFillFields() {
+            const sku = document.getElementById('productSku').value.trim();
+            
+            // Solo auto-rellenar Código de Barras basado en SKU
+            if (sku && !document.getElementById('productBarcode').value) {
+                document.getElementById('productBarcode').value = 'INV-' + sku.toUpperCase();
+            }
+        }
+
         function saveProduct() {
             console.log('saveProduct called');
             
@@ -1472,8 +1412,33 @@
             console.log('Product data:', productData);
             
             // Validar campos requeridos
-            if (!productData.sku || !productData.name || !productData.serial_number) {
-                alert('Por favor completa todos los campos requeridos (SKU, Nombre, Serial)');
+            if (!productData.sku || !productData.name || !productData.serial_number || !productData.label) {
+                alert('Por favor completa todos los campos requeridos (SKU, Nombre, Serial, Marbete)');
+                return;
+            }
+            
+            // Validar campos únicos (simulación con datos existentes)
+            const existingProducts = [
+                {sku: 'RES-1K-001', serial_number: 'RES001-2024-001', label: 'RES-1K-001'},
+                {sku: 'CAP-100U-001', serial_number: 'CAP001-2024-001', label: 'CAP-100U-001'},
+                {sku: 'LED-RED-001', serial_number: 'LED001-2024-001', label: 'LED-RED-001'}
+            ];
+            
+            // Verificar SKU único
+            if (existingProducts.some(p => p.sku.toLowerCase() === productData.sku.toLowerCase())) {
+                alert('El SKU ya existe. Por favor usa un SKU diferente.');
+                return;
+            }
+            
+            // Verificar Serial único
+            if (existingProducts.some(p => p.serial_number.toLowerCase() === productData.serial_number.toLowerCase())) {
+                alert('El número de serial ya existe. Por favor usa un serial diferente.');
+                return;
+            }
+            
+            // Verificar Marbete único
+            if (existingProducts.some(p => p.label.toLowerCase() === productData.label.toLowerCase())) {
+                alert('El marbete ya existe. Por favor usa un marbete diferente.');
                 return;
             }
             
@@ -1488,15 +1453,33 @@
             .then(response => {
                 console.log('Response status:', response.status);
                 console.log('Response headers:', response.headers.get('content-type'));
-                return response.json();
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                return response.text().then(text => {
+                    console.log('Raw response:', text);
+                    try {
+                        return JSON.parse(text);
+                    } catch (e) {
+                        console.error('JSON parse error:', e);
+                        console.error('Response text:', text);
+                        throw new Error('El servidor no devolvió JSON válido: ' + text.substring(0, 100));
+                    }
+                });
             })
             .then(data => {
                 console.log('Success:', data);
-                alert('Producto guardado exitosamente!');
-                closeModal();
-                clearForm();
-                // Recargar la página para mostrar el nuevo producto
-                location.reload();
+                if (data.success) {
+                    alert('Producto guardado exitosamente!');
+                    closeModal();
+                    clearForm();
+                    // Recargar la página para mostrar el nuevo producto
+                    location.reload();
+                } else {
+                    alert('Error del servidor: ' + (data.error || 'Error desconocido'));
+                }
             })
             .catch(error => {
                 console.error('Error:', error);
@@ -1505,8 +1488,7 @@
         }
 
         function clearForm() {
-            // Limpiar todos los campos del formulario
-            document.getElementById('productSku').value = '';
+            // Limpiar todos los campos del formulario excepto SKU (se genera automáticamente)
             document.getElementById('productName').value = '';
             document.getElementById('productBrand').value = '';
             document.getElementById('productModel').value = '';
@@ -1540,7 +1522,7 @@
                     <button type="button" class="btn-close" onclick="closeModal()"></button>
                 </div>
                 <div class="modal-body">
-                    <form @submit.prevent="addProduct">
+                    <form>
                         <div class="row">
                             <!-- Información Básica -->
                             <div class="col-md-6">
@@ -1552,8 +1534,8 @@
                                 <div class="mb-3">
                                     <label class="form-label">SKU *</label>
                                     <input type="text" class="form-control" id="productSku" required 
-                                           placeholder="Ej: RES-1K-001" maxlength="20">
-                                    <div class="form-text">Código único del producto</div>
+                                           placeholder="Se genera automáticamente" maxlength="20" readonly>
+                                    <div class="form-text">Código único del producto (generado automáticamente)</div>
                                 </div>
                                 
                                 <div class="mb-3">
@@ -1615,7 +1597,7 @@
                                     <label class="form-label">Número de Serial *</label>
                                     <input type="text" class="form-control" id="productSerial" required 
                                            placeholder="Ej: RES001-2025-001" maxlength="30">
-                                    <div class="form-text">Número único de serie del producto</div>
+                                    <div class="form-text">Número único de serie del producto (OBLIGATORIO)</div>
                                 </div>
                                 
                                 <div class="mb-3">
@@ -1639,7 +1621,7 @@
                                     <label class="form-label">Marbete/Etiqueta *</label>
                                     <input type="text" class="form-control" id="productLabel" required 
                                            placeholder="Ej: RES-1K-001" maxlength="20">
-                                    <div class="form-text">Etiqueta física del producto</div>
+                                    <div class="form-text">Etiqueta física del producto (OBLIGATORIO)</div>
                                 </div>
                                 
                                 <div class="mb-3">
