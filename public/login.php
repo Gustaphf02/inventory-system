@@ -61,11 +61,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <form method="POST">
                             <div class="mb-3">
                                 <label class="form-label">Correo</label>
-                                <input type="email" class="form-control" name="email" placeholder="admin@inventory.com" required>
+                                <input type="email" class="form-control" name="email" placeholder="admin@inventory.com" autocomplete="email" required>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Contraseña</label>
-                                <input type="password" class="form-control" name="password" placeholder="******" required>
+                                <input type="password" class="form-control" name="password" placeholder="******" autocomplete="current-password" required>
                             </div>
                             <button class="btn btn-primary w-100" type="submit">
                                 <i class="fas fa-sign-in-alt me-2"></i>Entrar
