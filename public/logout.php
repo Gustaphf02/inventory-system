@@ -1,8 +1,5 @@
 <?php
-// Iniciar sesión solo si no está ya iniciada
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+session_start();
 
 // Versión simplificada sin SystemLogger para evitar errores 503
 // TODO: Restaurar SystemLogger cuando se resuelvan los problemas de permisos
@@ -12,13 +9,9 @@ if (isset($_SESSION['user'])) {
     error_log("LOGOUT: " . ($_SESSION['user']['username'] ?? 'unknown') . " - IP: " . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
 }
 
-session_unset();
+// Destruir la sesión
 session_destroy();
-?>
-<!DOCTYPE html>
-<html><head><meta charset="utf-8">
-<script>
-  localStorage.removeItem('token');
-  window.location.href = '/login.php';
-</script>
-</head><body></body></html>
+
+// Redirigir al login
+header('Location: /login.php');
+exit;

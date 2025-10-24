@@ -1,8 +1,5 @@
 <?php
-// Iniciar sesión solo si no está ya iniciada
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+session_start();
 
 // Versión simplificada sin SystemLogger para evitar errores 503
 // TODO: Restaurar SystemLogger cuando se resuelvan los problemas de permisos
@@ -31,8 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Log simple del login exitoso (sin SystemLogger)
         error_log("LOGIN_SUCCESS: " . $users[$email][3] . " - IP: " . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
         
-        // Redirección inmediata después del login exitoso
-        header('Location: /');
+        echo '<!DOCTYPE html><html><head><meta charset="utf-8"><script>localStorage.setItem("token","demo-token");window.location.href="/";</script></head><body></body></html>';
         exit;
     } else {
         $error = 'Credenciales inválidas';
