@@ -32,9 +32,33 @@ if ($isProduction) {
     header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
 }
 
-// Datos de ejemplo en memoria - EMPEZAR VACÍO
+// Función para cargar productos desde archivo
+function loadProductsFromFile() {
+    $file = __DIR__ . '/data/products.json';
+    if (file_exists($file)) {
+        $content = file_get_contents($file);
+        $data = json_decode($content, true);
+        return $data ? $data : [];
+    }
+    return [];
+}
+
+// Función para guardar productos en archivo
+function saveProductsToFile($products) {
+    $file = __DIR__ . '/data/products.json';
+    $dir = dirname($file);
+    if (!is_dir($dir)) {
+        mkdir($dir, 0755, true);
+    }
+    file_put_contents($file, json_encode($products, JSON_PRETTY_PRINT));
+}
+
+// Cargar productos guardados
+$savedProducts = loadProductsFromFile();
+
+// Datos de ejemplo en memoria - CARGAR DESDE ARCHIVO
 $sampleData = [
-    'products' => [],
+    'products' => $savedProducts,
     'categories' => [
         ['id' => 1, 'name' => 'Electrónica', 'description' => 'Componentes electrónicos'],
         ['id' => 2, 'name' => 'Iluminación', 'description' => 'Productos de iluminación'],
@@ -104,6 +128,45 @@ if (strpos($path, '/api/') === 0 || in_array($path, ['/auth/me', '/products', '/
         
         // Enrutamiento de API
         switch ($apiPath) {
+        case 'auth/me':
+            // Datos del usuario actual
+            $user = $_SESSION['user'] ?? [
+                'name' => 'Usuario Demo',
+                'role' => 'admin',
+                'email' => 'demo@inventory.com'
+            ];
+            
+            echo json_encode([
+                'success' => true,
+                'data' => $user
+            ]);
+            break;
+            
+        case 'inventory/summary':
+            // Resumen del inventario
+            $totalProducts = count($sampleData['products']);
+            $totalValue = 0;
+            $lowStockCount = 0;
+            
+            foreach ($sampleData['products'] as $product) {
+                $totalValue += floatval($product['price']) * intval($product['stock_quantity']);
+                if ($product['stock_quantity'] <= $product['min_stock_level']) {
+                    $lowStockCount++;
+                }
+            }
+            
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'totalProducts' => $totalProducts,
+                    'totalValue' => $totalValue,
+                    'lowStockCount' => $lowStockCount,
+                    'totalSuppliers' => count($sampleData['suppliers']),
+                    'avgStockPerProduct' => $totalProducts > 0 ? $totalValue / $totalProducts : 0
+                ]
+            ]);
+            break;
+            
         case 'test':
             echo json_encode(['success' => true, 'message' => 'Test endpoint working']);
             break;
@@ -189,6 +252,9 @@ if (strpos($path, '/api/') === 0 || in_array($path, ['/auth/me', '/products', '/
                 
                 // Agregar a los datos
                 $sampleData['products'][] = $newProduct;
+                
+                // Guardar en archivo
+                saveProductsToFile($sampleData['products']);
                 
                 // Log de creación
                 safeLog('INFO', 'PRODUCT', 'CREATE', "Producto creado: {$newProduct['sku']} - {$newProduct['name']}");
