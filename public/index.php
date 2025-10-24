@@ -1,4 +1,7 @@
 <?php
+// Configurar headers JSON para todas las respuestas API
+header('Content-Type: application/json; charset=utf-8');
+
 session_start();
 
 // Incluir middleware de autenticación
@@ -112,15 +115,15 @@ function safeLog($level, $module, $action, $details = '') {
     }
 }
 
+try {
 // Obtener la ruta de la API
 $requestUri = $_SERVER['REQUEST_URI'];
 $path = parse_url($requestUri, PHP_URL_PATH);
 
 // Si es una petición API, manejar como JSON
-if (strpos($path, '/api/') === 0 || in_array($path, ['/auth/me', '/products', '/categories', '/suppliers', '/departments', '/locations', '/inventory/summary', '/reports/dashboard/stats', '/reports/inventory/summary', '/reports/inventory/low-stock', '/health', '/test'])) {
-    // Debug: Log de la ruta detectada
-    error_log("API Route detected: $path, Method: " . $_SERVER['REQUEST_METHOD']);
-    try {
+    if (strpos($path, '/api/') === 0 || in_array($path, ['/auth/me', '/products', '/categories', '/suppliers', '/departments', '/locations', '/inventory/summary', '/reports/dashboard/stats', '/reports/inventory/summary', '/reports/inventory/low-stock', '/health', '/test'])) {
+        // Debug: Log de la ruta detectada
+        error_log("API Route detected: $path, Method: " . $_SERVER['REQUEST_METHOD']);
     // Configurar headers para JSON
     header('Content-Type: application/json');
     header('Access-Control-Allow-Origin: *');
@@ -535,5 +538,27 @@ if (strpos($path, '/api/') === 0 || in_array($path, ['/auth/me', '/products', '/
     
     // Incluir la página principal
     include 'index.html';
+}
+
+} catch (Exception $e) {
+    // Manejo global de errores - siempre devolver JSON para APIs
+    error_log("Global Error: " . $e->getMessage());
+    error_log("Global Error Trace: " . $e->getTraceAsString());
+    
+    // Si es una llamada API, devolver JSON de error
+    if (strpos($_SERVER['REQUEST_URI'], '/api/') === 0 || 
+        in_array(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH), ['/auth/me', '/products', '/categories', '/suppliers', '/departments', '/locations', '/inventory/summary', '/reports/dashboard/stats'])) {
+        http_response_code(500);
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => false,
+            'error' => 'Error interno del servidor',
+            'message' => 'Ha ocurrido un error inesperado'
+        ]);
+    } else {
+        // Para páginas normales, mostrar error HTML
+        http_response_code(500);
+        echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Error</title></head><body><h1>Error del Servidor</h1><p>Ha ocurrido un error inesperado.</p></body></html>';
+    }
 }
 ?>

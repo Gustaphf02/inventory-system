@@ -1,10 +1,9 @@
 <?php
-// Guard simple para páginas PHP
+// Middleware de autenticación simplificado
 session_start();
 
-// Middleware de autenticación simplificado
-// NO aplicar redirección automática - dejar que el frontend maneje la autenticación
-// Solo proporcionar información de sesión
+// Solo proporcionar información de sesión - NO aplicar restricciones automáticas
+// Las APIs manejan su propia autenticación
 
 // Información de usuario disponible para las páginas
 $currentUser = $_SESSION['user'] ?? null;
