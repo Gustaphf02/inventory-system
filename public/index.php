@@ -121,7 +121,7 @@ $requestUri = $_SERVER['REQUEST_URI'];
 $path = parse_url($requestUri, PHP_URL_PATH);
 
 // Si es una petición API, manejar como JSON
-    if (strpos($path, '/api/') === 0 || in_array($path, ['/auth/me', '/products', '/categories', '/suppliers', '/departments', '/locations', '/inventory/summary', '/reports/dashboard/stats', '/reports/inventory/summary', '/reports/inventory/low-stock', '/health', '/test'])) {
+if (strpos($path, '/api/') === 0 || in_array($path, ['/auth/me', '/products', '/categories', '/suppliers', '/departments', '/locations', '/inventory/summary', '/reports/dashboard/stats', '/reports/inventory/summary', '/reports/inventory/low-stock', '/health', '/test'])) {
         // Debug: Log de la ruta detectada
         error_log("API Route detected: $path, Method: " . $_SERVER['REQUEST_METHOD']);
     // Configurar headers para JSON
@@ -513,17 +513,6 @@ $path = parse_url($requestUri, PHP_URL_PATH);
                 'path' => $apiPath
             ]);
             break;
-        }
-    } catch (Exception $e) {
-        error_log("API Error: " . $e->getMessage());
-        error_log("API Error Trace: " . $e->getTraceAsString());
-        
-        http_response_code(500);
-        echo json_encode([
-            'success' => false,
-            'message' => 'Error interno del servidor',
-            'error' => $e->getMessage()
-        ]);
     }
 } else {
     // Si no es API, mostrar la página principal
