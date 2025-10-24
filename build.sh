@@ -1,18 +1,26 @@
-# Render Build Script
-# Este archivo se ejecuta durante el build en Render
-
 #!/bin/bash
-# Instalar extensiones PHP necesarias para MongoDB
+# Script de build para Render con MongoDB
 
-echo "Instalando extensiones PHP para MongoDB..."
+echo "=== INSTALANDO EXTENSIONES PHP PARA MONGODB ==="
 
 # Actualizar repositorios
 apt-get update
 
-# Instalar extensión MongoDB
+# Instalar extensiones PHP necesarias
+echo "Instalando extensión MongoDB..."
 apt-get install -y php-mongodb
 
-# Verificar que la extensión se instaló
-php -m | grep mongodb
+echo "Instalando otras extensiones PHP..."
+apt-get install -y php-json php-mbstring php-openssl php-curl
 
-echo "Extensiones instaladas correctamente"
+# Verificar que las extensiones se instalaron
+echo "Verificando extensiones instaladas..."
+php -m | grep mongodb
+php -m | grep json
+php -m | grep mbstring
+
+# Instalar dependencias de Composer
+echo "Instalando dependencias de Composer..."
+composer install --no-dev --optimize-autoloader
+
+echo "=== BUILD COMPLETADO ==="

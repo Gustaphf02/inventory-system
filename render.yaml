@@ -4,7 +4,7 @@ services:
     env: php
     plan: free
     buildCommand: |
-      # Instalar extensiones PHP necesarias
+      # Instalar extensiones PHP necesarias para MongoDB
       apt-get update
       apt-get install -y php-mongodb php-json php-mbstring php-openssl php-curl
       # Instalar dependencias de Composer
