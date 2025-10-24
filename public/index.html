@@ -553,7 +553,7 @@
                                                         <button class="btn btn-outline-primary" :onclick="'editProduct(' + product.id + ')'">
                                                             <i class="fas fa-edit"></i>
                                                         </button>
-                                                        <button class="btn btn-outline-danger" @click="deleteProduct(product)">
+                                                        <button class="btn btn-outline-danger" :onclick="'deleteProduct(' + product.id + ')'">
                                                             <i class="fas fa-trash"></i>
                                                         </button>
                                                     </div>
@@ -650,13 +650,13 @@
                                                 </td>
                                                 <td>
                                                     <div class="btn-group btn-group-sm">
-                                                        <button class="btn btn-outline-primary" @click="editProduct(product)">
+                                                        <button class="btn btn-outline-primary" :onclick="'editProduct(' + product.id + ')'">
                                                             <i class="fas fa-edit"></i>
                                                         </button>
-                                                        <button class="btn btn-outline-info" @click="viewProduct(product)">
+                                                        <button class="btn btn-outline-info" :onclick="'viewProduct(' + product.id + ')'">
                                                             <i class="fas fa-eye"></i>
                                                         </button>
-                                                        <button class="btn btn-outline-danger" @click="deleteProduct(product)">
+                                                        <button class="btn btn-outline-danger" :onclick="'deleteProduct(' + product.id + ')'">
                                                             <i class="fas fa-trash"></i>
                                                         </button>
                                                     </div>
@@ -1528,16 +1528,42 @@
         function editProduct(productId) {
             console.log('editProduct called with ID:', productId);
             
-            // Buscar el producto en los datos de Vue
-            const product = app.products.find(p => p.id == productId);
+            // Buscar el producto en los datos de Vue o cargar desde el servidor
+            let product = null;
+            if (window.app && window.app.products) {
+                product = window.app.products.find(p => p.id == productId);
+            }
+            
             if (!product) {
-                console.error('Producto no encontrado:', productId);
-                alert('Producto no encontrado');
+                console.log('Producto no encontrado en memoria, cargando desde servidor...');
+                // Cargar producto desde el servidor
+                fetch('/products')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const foundProduct = data.data.find(p => p.id == productId);
+                            if (foundProduct) {
+                                fillEditForm(foundProduct);
+                            } else {
+                                alert('Producto no encontrado');
+                            }
+                        } else {
+                            alert('Error al cargar productos');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Error al cargar productos');
+                    });
                 return;
             }
             
+            fillEditForm(product);
+        }
+
+        function fillEditForm(product) {
             // Guardar ID para actualización
-            currentEditProductId = productId;
+            currentEditProductId = product.id;
             
             // Llenar el formulario de edición
             document.getElementById('editProductSku').value = product.sku;
@@ -1643,6 +1669,53 @@
                 console.error('Error:', error);
                 alert('Error al actualizar el producto: ' + error.message);
             });
+        }
+
+        function deleteProduct(productId) {
+            console.log('deleteProduct called with ID:', productId);
+            
+            if (!confirm('¿Estás seguro de que quieres eliminar este producto? Esta acción no se puede deshacer.')) {
+                return;
+            }
+            
+            fetch('/products', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ id: productId })
+            })
+            .then(response => {
+                console.log('Response status:', response.status);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Response data:', data);
+                if (data.success) {
+                    alert('Producto eliminado exitosamente');
+                    // Recargar los productos
+                    if (window.app && window.app.loadProducts) {
+                        window.app.loadProducts();
+                    } else {
+                        location.reload();
+                    }
+                } else {
+                    alert('Error: ' + (data.error || 'Error desconocido'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error al eliminar el producto: ' + error.message);
+            });
+        }
+
+        function viewProduct(productId) {
+            console.log('viewProduct called with ID:', productId);
+            // Por ahora solo mostrar alerta, se puede implementar un modal de vista después
+            alert('Función de vista de producto en desarrollo. ID: ' + productId);
         }
     </script>
 

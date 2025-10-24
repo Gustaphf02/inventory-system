@@ -349,12 +349,61 @@ if (strpos($path, '/api/') === 0 || in_array($path, ['/auth/me', '/products', '/
                     'message' => 'Producto actualizado exitosamente',
                     'data' => $sampleData['products'][$productIndex]
                 ]);
-            } else {
-                // GET - Listar productos
+            } elseif ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
+                // Eliminar producto
+                $input = json_decode(file_get_contents('php://input'), true);
+                
+                if (!$input) {
+                    error_log("Products DELETE: Datos JSON inválidos");
+                    echo json_encode(['success' => false, 'error' => 'Datos JSON inválidos']);
+                    break;
+                }
+                
+                $productId = intval($input['id'] ?? 0);
+                if (!$productId) {
+                    error_log("Products DELETE: ID de producto faltante");
+                    echo json_encode(['success' => false, 'error' => 'ID de producto requerido']);
+                    break;
+                }
+                
+                // Buscar el producto
+                $productIndex = -1;
+                foreach ($sampleData['products'] as $index => $product) {
+                    if ($product['id'] == $productId) {
+                        $productIndex = $index;
+                        break;
+                    }
+                }
+                
+                if ($productIndex === -1) {
+                    error_log("Products DELETE: Producto no encontrado con ID: $productId");
+                    echo json_encode(['success' => false, 'error' => 'Producto no encontrado']);
+                    break;
+                }
+                
+                // Eliminar el producto
+                $deletedProduct = $sampleData['products'][$productIndex];
+                unset($sampleData['products'][$productIndex]);
+                $sampleData['products'] = array_values($sampleData['products']); // Reindexar array
+                
+                // Guardar en archivo
+                saveProductsToFile($sampleData['products']);
+                
+                // Log de eliminación
+                safeLog('INFO', 'PRODUCT', 'DELETE', "Producto eliminado: {$deletedProduct['sku']} - {$deletedProduct['name']}");
+                error_log("Products DELETE: Producto eliminado exitosamente con ID: $productId");
+                
                 echo json_encode([
                     'success' => true,
-                    'data' => $sampleData['products'],
-                    'total' => count($sampleData['products'])
+                    'message' => 'Producto eliminado exitosamente',
+                    'data' => $deletedProduct
+                ]);
+            } else {
+                // GET - Listar productos
+            echo json_encode([
+                'success' => true,
+                'data' => $sampleData['products'],
+                'total' => count($sampleData['products'])
                 ]);
             }
         } catch (Exception $e) {
