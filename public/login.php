@@ -1,5 +1,8 @@
 <?php
-session_start();
+// Iniciar sesión solo si no está ya iniciada
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // Versión simplificada sin SystemLogger para evitar errores 503
 // TODO: Restaurar SystemLogger cuando se resuelvan los problemas de permisos

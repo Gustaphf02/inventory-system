@@ -2,7 +2,10 @@
 // Configurar headers JSON para todas las respuestas API
 header('Content-Type: application/json; charset=utf-8');
 
+// Iniciar sesión solo si no está ya iniciada
+if (session_status() === PHP_SESSION_NONE) {
 session_start();
+}
 
 // Incluir middleware de autenticación
 require_once __DIR__ . '/.auth.php';
