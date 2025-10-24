@@ -962,7 +962,7 @@
                 async loadDashboardData() {
                     this.loading = true;
                     try {
-                        const response = await fetch('/reports/dashboard/stats');
+                        const response = await fetch('/api.php?path=reports/dashboard/stats');
                         const data = await response.json();
                         if (data.success) {
                             this.stats = data.data;
@@ -1017,7 +1017,7 @@
 
                 async loadDepartments() {
                     try {
-                        const response = await fetch('/departments');
+                        const response = await fetch('/api.php?path=departments');
                         const data = await response.json();
                         if (data.success) {
                             this.departments = data.data;
@@ -1029,7 +1029,7 @@
 
                 async loadLocations() {
                     try {
-                        const response = await fetch('/locations');
+                        const response = await fetch('/api.php?path=locations');
                         const data = await response.json();
                         if (data.success) {
                             this.locations = data.data;

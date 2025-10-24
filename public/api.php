@@ -251,12 +251,64 @@ switch ($apiPath) {
         }
         break;
         
+    case 'reports/dashboard/stats':
+        // Estadísticas del dashboard
+        $totalProducts = count($sampleData['products']);
+        $totalValue = array_sum(array_column($sampleData['products'], 'price'));
+        $lowStockCount = count(array_filter($sampleData['products'], function($product) {
+            return $product['stock_quantity'] <= $product['min_stock_level'];
+        }));
+        
+        echo json_encode([
+            'success' => true,
+            'data' => [
+                'totalProducts' => $totalProducts,
+                'totalValue' => $totalValue,
+                'lowStockCount' => $lowStockCount,
+                'totalSuppliers' => 4,
+                'avgStockPerProduct' => $totalProducts > 0 ? array_sum(array_column($sampleData['products'], 'stock_quantity')) / $totalProducts : 0
+            ]
+        ]);
+        break;
+        
+    case 'departments':
+        // Lista de departamentos
+        $departments = [
+            ['id' => 1, 'name' => 'Telemática', 'description' => 'Departamento de Telemática'],
+            ['id' => 2, 'name' => 'S1', 'description' => 'Departamento S1'],
+            ['id' => 3, 'name' => 'Protección', 'description' => 'Departamento de Protección'],
+            ['id' => 4, 'name' => 'S3', 'description' => 'Departamento S3']
+        ];
+        
+        echo json_encode([
+            'success' => true,
+            'data' => $departments,
+            'total' => count($departments)
+        ]);
+        break;
+        
+    case 'locations':
+        // Lista de ubicaciones
+        $locations = [
+            ['id' => 1, 'name' => 'Almacén A - Estante 1', 'description' => 'Almacén principal'],
+            ['id' => 2, 'name' => 'Almacén B - Estante 2', 'description' => 'Almacén secundario'],
+            ['id' => 3, 'name' => 'Oficina - Escritorio 1', 'description' => 'Oficina principal'],
+            ['id' => 4, 'name' => 'Laboratorio - Mesa 1', 'description' => 'Laboratorio de pruebas']
+        ];
+        
+        echo json_encode([
+            'success' => true,
+            'data' => $locations,
+            'total' => count($locations)
+        ]);
+        break;
+        
     case 'api.php':
         // Si se accede directamente a api.php sin parámetros, mostrar información
         echo json_encode([
             'success' => true,
             'message' => 'API endpoint funcionando',
-            'available_endpoints' => ['products', 'test', 'debug'],
+            'available_endpoints' => ['products', 'test', 'debug', 'reports/dashboard/stats', 'departments', 'locations'],
             'usage' => 'Use POST /api.php para crear productos o GET /api.php?path=products para listar'
         ]);
         break;
@@ -267,7 +319,7 @@ switch ($apiPath) {
             'success' => false,
             'error' => 'Endpoint no encontrado',
             'path' => $apiPath,
-            'available_endpoints' => ['products', 'test', 'debug']
+            'available_endpoints' => ['products', 'test', 'debug', 'reports/dashboard/stats', 'departments', 'locations']
         ]);
         break;
 }
