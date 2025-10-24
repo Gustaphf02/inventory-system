@@ -132,6 +132,12 @@ if (strpos($path, '/api/') === 0 || in_array($path, ['/auth/me', '/products', '/
     // Enrutamiento de API
     switch ($apiPath) {
         case 'auth/me':
+            // Debug temporal
+            error_log("Auth/me Debug - hasSession: " . (isset($_SESSION['user']) ? 'true' : 'false'));
+            if (isset($_SESSION['user'])) {
+                error_log("Auth/me Debug - user: " . json_encode($_SESSION['user']));
+            }
+            
             // Verificar si hay una sesión activa
             if (isset($_SESSION['user']) && !empty($_SESSION['user'])) {
                 // Usuario autenticado

@@ -2,14 +2,27 @@
 // Guard simple para páginas PHP
 session_start();
 
-// Permitir pasar si ya está logueado
-if (!isset($_SESSION['user'])) {
+// Solo aplicar autenticación para la página principal (no para APIs)
+$currentUri = $_SERVER['REQUEST_URI'] ?? '';
+$isMainPage = ($currentUri === '/' || $currentUri === '/index.php' || $currentUri === '/index.html');
+
+// Debug temporal
+error_log("Auth Debug - URI: " . $currentUri);
+error_log("Auth Debug - isMainPage: " . ($isMainPage ? 'true' : 'false'));
+error_log("Auth Debug - hasSession: " . (isset($_SESSION['user']) ? 'true' : 'false'));
+if (isset($_SESSION['user'])) {
+    error_log("Auth Debug - user: " . json_encode($_SESSION['user']));
+}
+
+// Solo redirigir al login si es la página principal y no hay sesión
+if ($isMainPage && !isset($_SESSION['user'])) {
+    error_log("Auth Debug - Redirecting to login");
     header('Location: /login.php');
     exit;
 }
 
 // Información de usuario disponible para las páginas
-$currentUser = $_SESSION['user'];
+$currentUser = $_SESSION['user'] ?? null;
 
 // Helper: require role(s)
 function requireRole(array $allowedRoles) {
