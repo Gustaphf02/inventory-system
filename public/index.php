@@ -270,38 +270,13 @@ if (strpos($path, '/api/') === 0 || in_array($path, ['/auth/me', '/products', '/
         
         // Enrutamiento de API
         switch ($apiPath) {
-        case 'auth/me':
-            if (isset($_SESSION['user'])) {
-                echo json_encode([
-                    'authenticated' => true,
-                    'user' => $_SESSION['user']
-                ]);
-            } else {
-                http_response_code(401);
-                echo json_encode([
-                    'authenticated' => false,
-                    'message' => 'Not authenticated'
-                ]);
-            }
-            break;
-        case 'health':
-            echo json_encode([
-                'status' => 'ok',
-                'timestamp' => date('Y-m-d H:i:s'),
-                'version' => '1.0.0',
-                'mode' => $isProduction ? 'production' : 'demo',
-                'environment' => getenv('APP_ENV') ?: 'development',
-                'server' => $_SERVER['SERVER_SOFTWARE'] ?? 'PHP Built-in Server',
-                'php_version' => PHP_VERSION,
-                'render' => getenv('RENDER') ? 'true' : 'false'
-            ]);
-            break;
-            
+        case 'api/products':
         case 'products':
-            // Log del acceso a productos
-            safeLog('INFO', 'API', 'API_ACCESS', "Consulta de productos");
-            
-            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            try {
+                // Log del acceso a productos
+                safeLog('INFO', 'API', 'API_ACCESS', "Consulta de productos");
+                
+                if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Crear nuevo producto
                 $input = json_decode(file_get_contents('php://input'), true);
                 
@@ -369,6 +344,39 @@ if (strpos($path, '/api/') === 0 || in_array($path, ['/auth/me', '/products', '/
                     'total' => count($sampleData['products'])
                 ]);
             }
+            } catch (Exception $e) {
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'Error interno del servidor: ' . $e->getMessage()
+                ]);
+            }
+            break;
+            
+        case 'auth/me':
+            if (isset($_SESSION['user'])) {
+                echo json_encode([
+                    'authenticated' => true,
+                    'user' => $_SESSION['user']
+                ]);
+            } else {
+                http_response_code(401);
+                echo json_encode([
+                    'authenticated' => false,
+                    'message' => 'Not authenticated'
+                ]);
+            }
+            break;
+        case 'health':
+            echo json_encode([
+                'status' => 'ok',
+                'timestamp' => date('Y-m-d H:i:s'),
+                'version' => '1.0.0',
+                'mode' => $isProduction ? 'production' : 'demo',
+                'environment' => getenv('APP_ENV') ?: 'development',
+                'server' => $_SERVER['SERVER_SOFTWARE'] ?? 'PHP Built-in Server',
+                'php_version' => PHP_VERSION,
+                'render' => getenv('RENDER') ? 'true' : 'false'
+            ]);
             break;
             
         case 'categories':
