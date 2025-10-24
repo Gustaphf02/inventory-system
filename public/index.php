@@ -10,10 +10,17 @@ ini_set('log_errors', 1);
 error_reporting(0);
 
 try {
-    // Incluir el sistema de logging
-    require_once __DIR__ . '/includes/SystemLogger.php';
+    // Incluir el sistema de logging de forma segura
+    if (file_exists(__DIR__ . '/includes/SystemLogger.php')) {
+        require_once __DIR__ . '/includes/SystemLogger.php';
+        $systemLoggerAvailable = true;
+    } else {
+        $systemLoggerAvailable = false;
+        error_log('SystemLogger.php not found, continuing without advanced logging');
+    }
 } catch (Exception $e) {
     // Si hay error con SystemLogger, continuar sin logging
+    $systemLoggerAvailable = false;
     error_log('Error loading SystemLogger: ' . $e->getMessage());
 }
 
@@ -92,9 +99,13 @@ $sampleData = [
 
 // Función helper para logging seguro
 function safeLog($level, $module, $action, $details = '') {
+    global $systemLoggerAvailable;
     try {
-        if (class_exists('SystemLogger')) {
+        if ($systemLoggerAvailable && class_exists('SystemLogger')) {
             SystemLogger::logUserActivity($action, $details);
+        } else {
+            // Fallback a error_log simple
+            error_log("[$level] $module - $action: $details");
         }
     } catch (Exception $e) {
         error_log('Error logging: ' . $e->getMessage());
@@ -132,12 +143,6 @@ if (strpos($path, '/api/') === 0 || in_array($path, ['/auth/me', '/products', '/
     // Enrutamiento de API
     switch ($apiPath) {
         case 'auth/me':
-            // Debug temporal
-            error_log("Auth/me Debug - hasSession: " . (isset($_SESSION['user']) ? 'true' : 'false'));
-            if (isset($_SESSION['user'])) {
-                error_log("Auth/me Debug - user: " . json_encode($_SESSION['user']));
-            }
-            
             // Verificar si hay una sesión activa
             if (isset($_SESSION['user']) && !empty($_SESSION['user'])) {
                 // Usuario autenticado

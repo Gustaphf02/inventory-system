@@ -2,13 +2,7 @@
 // Guard simple para páginas PHP
 session_start();
 
-// Debug temporal - solo para entender qué está pasando
-error_log("Auth Debug - URI: " . ($_SERVER['REQUEST_URI'] ?? 'unknown'));
-error_log("Auth Debug - hasSession: " . (isset($_SESSION['user']) ? 'true' : 'false'));
-if (isset($_SESSION['user'])) {
-    error_log("Auth Debug - user: " . json_encode($_SESSION['user']));
-}
-
+// Middleware de autenticación simplificado
 // NO aplicar redirección automática - dejar que el frontend maneje la autenticación
 // Solo proporcionar información de sesión
 
