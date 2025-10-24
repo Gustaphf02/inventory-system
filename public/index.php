@@ -13,8 +13,8 @@ ini_set('log_errors', 1);
 error_reporting(0);
 
 try {
-    // Incluir configuración de MongoDB
-    require_once __DIR__ . '/MongoDBConnection.php';
+    // Incluir DatabaseManager con fallback automático
+    require_once __DIR__ . '/DatabaseManager.php';
     
     // Incluir el sistema de logging de forma segura
     if (file_exists(__DIR__ . '/includes/SystemLogger.php')) {
@@ -38,8 +38,8 @@ try {
         }
     }
     
-    // Obtener instancia de MongoDB
-    $mongo = MongoDBConnection::getInstance();
+    // Obtener instancia del DatabaseManager
+    $db = DatabaseManager::getInstance();
 
 // Obtener la ruta de la API
 $requestUri = $_SERVER['REQUEST_URI'];
@@ -94,8 +94,8 @@ $path = parse_url($requestUri, PHP_URL_PATH);
                 
             case 'products':
                 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-                    // Obtener todos los productos desde MongoDB
-                    $products = $mongo->getAllProducts();
+                    // Obtener todos los productos desde DatabaseManager
+                    $products = $db->getAllProducts();
                     
                     // Agregar información de categoría y proveedor
                     foreach ($products as &$product) {
@@ -129,18 +129,18 @@ $path = parse_url($requestUri, PHP_URL_PATH);
                         }
                     }
                     
-                    // Verificar campos únicos usando MongoDB
-                    if ($mongo->checkUniqueField('sku', $input['sku'])) {
+                    // Verificar campos únicos usando DatabaseManager
+                    if ($db->checkUniqueField('sku', $input['sku'])) {
                         error_log("Products POST: SKU duplicado: " . $input['sku']);
                         echo json_encode(['success' => false, 'error' => 'El SKU ya existe. Por favor usa un SKU diferente.']);
                         break;
                     }
-                    if ($mongo->checkUniqueField('serial_number', $input['serial_number'])) {
+                    if ($db->checkUniqueField('serial_number', $input['serial_number'])) {
                         error_log("Products POST: Serial duplicado: " . $input['serial_number']);
                         echo json_encode(['success' => false, 'error' => 'El número de serial ya existe. Por favor usa un serial diferente.']);
                         break;
                     }
-                    if ($mongo->checkUniqueField('label', $input['label'])) {
+                    if ($db->checkUniqueField('label', $input['label'])) {
                         error_log("Products POST: Marbete duplicado: " . $input['label']);
                         echo json_encode(['success' => false, 'error' => 'El marbete ya existe. Por favor usa un marbete diferente.']);
                         break;
@@ -169,14 +169,11 @@ $path = parse_url($requestUri, PHP_URL_PATH);
                         'status' => $input['status'] ?? 'active'
                     ];
                     
-                    // Crear producto en MongoDB
-                    $newProductId = $mongo->createProduct($productData);
-                    
-                    // Obtener el producto creado
-                    $newProduct = $mongo->getProductById($newProductId);
+                    // Crear producto usando DatabaseManager
+                    $newProduct = $db->createProduct($productData);
                     
                     safeLog('INFO', 'PRODUCT', 'CREATE', "Producto creado: {$newProduct['sku']} - {$newProduct['name']}");
-                    error_log("Products POST: Producto creado exitosamente con ID: " . $newProductId);
+                    error_log("Products POST: Producto creado exitosamente con ID: " . ($newProduct['id'] ?? 'N/A'));
                     
                     echo json_encode([
                         'success' => true,
@@ -286,8 +283,8 @@ $path = parse_url($requestUri, PHP_URL_PATH);
             
             case 'reports/dashboard/stats':
                 try {
-                    // Obtener productos desde MongoDB
-                    $products = $mongo->getAllProducts();
+                    // Obtener productos desde DatabaseManager
+                    $products = $db->getAllProducts();
                     
                     $totalProducts = count($products);
                     $totalValue = 0;
