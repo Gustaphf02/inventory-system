@@ -1,6 +1,9 @@
 <?php
 session_start();
 
+// Incluir middleware de autenticación
+require_once __DIR__ . '/.auth.php';
+
 // Configurar manejo de errores ANTES de incluir otros archivos
 ini_set('display_errors', 0);
 ini_set('log_errors', 1);
@@ -129,17 +132,24 @@ if (strpos($path, '/api/') === 0 || in_array($path, ['/auth/me', '/products', '/
     // Enrutamiento de API
     switch ($apiPath) {
         case 'auth/me':
-            // Datos del usuario actual
-            $user = $_SESSION['user'] ?? [
-                'name' => 'Usuario Demo',
-                'role' => 'admin',
-                'email' => 'demo@inventory.com'
-            ];
-            
+            // Verificar si hay una sesión activa
+            if (isset($_SESSION['user']) && !empty($_SESSION['user'])) {
+                // Usuario autenticado
+                $user = $_SESSION['user'];
                 echo json_encode([
-                'success' => true,
-                'data' => $user
-            ]);
+                    'success' => true,
+                    'data' => $user,
+                    'authenticated' => true
+                ]);
+            } else {
+                // No hay sesión activa
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'No hay sesión activa',
+                    'authenticated' => false,
+                    'data' => null
+                ]);
+            }
             break;
             
         case 'inventory/summary':

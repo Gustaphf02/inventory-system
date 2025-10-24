@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'email' => $email,
             'name' => $users[$email][1],
             'role' => $users[$email][2],
-            'username' => $users[$email][4] ?? $users[$email][3]
+            'username' => $users[$email][3]
         ];
         
         // Log del login exitoso
