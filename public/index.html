@@ -539,6 +539,7 @@
                                                 <th>Modelo</th>
                                                 <th>Serial</th>
                                                 <th>Marbete</th>
+                                                <th>Tipo</th>
                                                 <th>Categoría</th>
                                                 <th>Proveedor</th>
                                                 <th>Ubicación</th>
@@ -558,6 +559,7 @@
                                                 <td>{{ product.model }}</td>
                                                 <td><small>{{ product.serial_number }}</small></td>
                                                 <td><code>{{ product.label }}</code></td>
+                                                <td><span class="badge" :class="product.type === 'telecomunicacion' ? 'bg-primary' : 'bg-success'">{{ product.type === 'telecomunicacion' ? 'Telecomunicación' : 'Cómputo' }}</span></td>
                                                 <td><span class="badge bg-secondary">{{ product.category_name }}</span></td>
                                                 <td><span class="badge bg-info">{{ product.supplier_name }}</span></td>
                                                 <td><small>{{ product.location }}</small></td>

@@ -75,6 +75,7 @@ class DatabaseManager {
                 max_stock_level INTEGER DEFAULT 0,
                 category_id INTEGER DEFAULT 1,
                 supplier_id INTEGER DEFAULT 1,
+                type VARCHAR(50) DEFAULT 'computo',
                 serial_number VARCHAR(100) UNIQUE,
                 department VARCHAR(100),
                 location VARCHAR(100),
@@ -152,7 +153,7 @@ class DatabaseManager {
     public function createProduct($data) {
         try {
             if ($this->usePostgreSQL) {
-                $sql = "INSERT INTO products (sku, name, description, brand, model, price, cost, stock_quantity, min_stock_level, max_stock_level, category_id, supplier_id, serial_number, department, location, label, barcode, expiration_date, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                $sql = "INSERT INTO products (sku, name, description, brand, model, price, cost, stock_quantity, min_stock_level, max_stock_level, category_id, supplier_id, type, serial_number, department, location, label, barcode, expiration_date, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 
                 $stmt = $this->pdo->prepare($sql);
                 $stmt->execute([
@@ -168,6 +169,7 @@ class DatabaseManager {
                     $data['max_stock_level'] ?? 0,
                     $data['category_id'] ?? 1,
                     $data['supplier_id'] ?? 1,
+                    $data['type'] ?? 'computo',
                     $data['serial_number'] ?? null,
                     $data['department'] ?? '',
                     $data['location'] ?? '',
