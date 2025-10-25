@@ -25,9 +25,15 @@ COPY . /var/www/html/
 WORKDIR /var/www/html
 RUN composer install --no-dev --optimize-autoloader --ignore-platform-reqs --ignore-platform-req=ext-gd
 
-# Configurar Apache
+# Configurar Apache para usar el directorio public
 RUN a2enmod rewrite
-COPY .htaccess /var/www/html/.htaccess
+RUN echo '<VirtualHost *:80>\n\
+    DocumentRoot /var/www/html/public\n\
+    <Directory /var/www/html/public>\n\
+        AllowOverride All\n\
+        Require all granted\n\
+    </Directory>\n\
+</VirtualHost>' > /etc/apache2/sites-available/000-default.conf
 
 # Exponer puerto
 EXPOSE 80
