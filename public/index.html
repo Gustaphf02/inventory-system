@@ -977,7 +977,9 @@
                     }
                 },
                 setProductFilter(filter) {
+                    console.log('setProductFilter called with:', filter);
                     this.productFilter = filter;
+                    console.log('productFilter set to:', this.productFilter);
                     this.filterProducts();
                 },
                 
@@ -1246,11 +1248,20 @@
                 },
 
                 filterProducts() {
+                    console.log('filterProducts called with productFilter:', this.productFilter);
+                    console.log('Total products:', this.products.length);
+                    
                     let filtered = this.products;
                     
                     // Filtrar por tipo de producto
                     if (this.productFilter !== 'all') {
-                        filtered = filtered.filter(product => product.type === this.productFilter);
+                        console.log('Filtering by type:', this.productFilter);
+                        const beforeFilter = filtered.length;
+                        filtered = filtered.filter(product => {
+                            console.log('Product type:', product.type, 'Filter:', this.productFilter, 'Match:', product.type === this.productFilter);
+                            return product.type === this.productFilter;
+                        });
+                        console.log('After type filter:', filtered.length, 'products (was', beforeFilter, ')');
                     }
                     
                     if (this.selectedCategory) {
@@ -1261,6 +1272,7 @@
                         filtered = filtered.filter(product => product.supplier_id == this.selectedSupplier);
                     }
                     
+                    console.log('Final filtered products:', filtered.length);
                     this.filteredProducts = filtered;
                 },
 
@@ -1712,6 +1724,9 @@
                 barcode: document.getElementById('editProductBarcode').value,
                 status: document.getElementById('editProductStatus').value
             };
+            
+            console.log('Frontend updateProduct: Datos a enviar:', productData);
+            console.log('Frontend updateProduct: Tipo seleccionado:', productData.type);
             
             // Validar campos requeridos
             const requiredFields = ['name', 'serial_number', 'label'];

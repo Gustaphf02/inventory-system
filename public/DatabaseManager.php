@@ -135,7 +135,12 @@ class DatabaseManager {
         try {
             if ($this->usePostgreSQL) {
                 $stmt = $this->pdo->query("SELECT * FROM products ORDER BY created_at DESC");
-                return $stmt->fetchAll();
+                $products = $stmt->fetchAll();
+                error_log("DatabaseManager getAllProducts: Devolviendo " . count($products) . " productos");
+                if (!empty($products)) {
+                    error_log("DatabaseManager getAllProducts: Primer producto sample: " . json_encode($products[0]));
+                }
+                return $products;
             } else {
                 return $this->loadProductsFromFile();
             }
@@ -203,12 +208,14 @@ class DatabaseManager {
     }
 
     public function updateProduct($id, $data) {
+        error_log("DatabaseManager updateProduct: Actualizando producto ID $id con datos: " . json_encode($data));
         try {
             if ($this->usePostgreSQL) {
                 $sql = "UPDATE products SET name = ?, description = ?, brand = ?, model = ?, price = ?, cost = ?, stock_quantity = ?, min_stock_level = ?, max_stock_level = ?, category_id = ?, supplier_id = ?, type = ?, serial_number = ?, department = ?, location = ?, label = ?, barcode = ?, expiration_date = ?, status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?";
                 
+                error_log("DatabaseManager updateProduct: SQL: " . $sql);
                 $stmt = $this->pdo->prepare($sql);
-                $stmt->execute([
+                $result = $stmt->execute([
                     $data['name'],
                     $data['description'] ?? '',
                     $data['brand'] ?? '',
@@ -231,7 +238,9 @@ class DatabaseManager {
                     $id
                 ]);
 
-                return $stmt->rowCount() > 0;
+                $rowCount = $stmt->rowCount();
+                error_log("DatabaseManager updateProduct: Filas afectadas: $rowCount");
+                return $rowCount > 0;
             } else {
                 return $this->updateProductInFile($id, $data);
             }
