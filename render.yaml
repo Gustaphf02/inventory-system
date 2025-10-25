@@ -3,16 +3,8 @@ services:
     name: inventory-system
     env: php
     plan: free
-    buildCommand: |
-      # Instalar extensiones PHP necesarias para MongoDB
-      apt-get update
-      apt-get install -y php-mongodb php-json php-mbstring php-openssl php-curl
-      # Instalar dependencias de Composer
-      composer install --no-dev --optimize-autoloader
+    buildCommand: composer install --no-dev --optimize-autoloader
     startCommand: php -S 0.0.0.0:$PORT -t public
     envVars:
       - key: MONGODB_URI
         sync: false
-      - key: PHP_INI_SCAN_DIR
-        value: /app/public
-    healthCheckPath: /health

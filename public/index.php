@@ -1,7 +1,7 @@
 <?php
 // Iniciar sesión solo si no está ya iniciada
 if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+session_start();
 }
 
 // Incluir middleware de autenticación limpio
@@ -201,7 +201,7 @@ $path = parse_url($requestUri, PHP_URL_PATH);
                     safeLog('INFO', 'PRODUCT', 'LIST', 'Productos listados: ' . count($products));
                     error_log("Products GET: Devolviendo " . count($products) . " productos");
                     
-                    echo json_encode([
+            echo json_encode([
                         'success' => true,
                         'data' => $products
                     ]);
@@ -238,7 +238,7 @@ $path = parse_url($requestUri, PHP_URL_PATH);
                     if ($db->checkUniqueField('label', $input['label'])) {
                         error_log("Products POST: Marbete duplicado: " . $input['label']);
                         echo json_encode(['success' => false, 'error' => 'El marbete ya existe. Por favor usa un marbete diferente.']);
-                        break;
+            break;
                     }
                     
                     // Preparar datos para MongoDB
@@ -270,8 +270,8 @@ $path = parse_url($requestUri, PHP_URL_PATH);
                     safeLog('INFO', 'PRODUCT', 'CREATE', "Producto creado: {$newProduct['sku']} - {$newProduct['name']}");
                     error_log("Products POST: Producto creado exitosamente con ID: " . ($newProduct['id'] ?? 'N/A'));
                     
-                    echo json_encode([
-                        'success' => true,
+            echo json_encode([
+                'success' => true,
                         'message' => 'Producto creado exitosamente',
                         'data' => $newProduct
                     ]);
@@ -307,7 +307,7 @@ $path = parse_url($requestUri, PHP_URL_PATH);
                     if ($db->checkUniqueField('label', $input['label'], $productId)) {
                         error_log("Products PUT: Marbete duplicado: " . $input['label']);
                         echo json_encode(['success' => false, 'error' => 'El marbete ya existe. Por favor usa un marbete diferente.']);
-                        break;
+            break;
                     }
                     
                     // Preparar datos para actualización
@@ -342,8 +342,8 @@ $path = parse_url($requestUri, PHP_URL_PATH);
                         safeLog('INFO', 'PRODUCT', 'UPDATE', "Producto actualizado: {$updatedProduct['sku']} - {$updatedProduct['name']}");
                         error_log("Products PUT: Producto actualizado exitosamente con ID: $productId");
                         
-                        echo json_encode([
-                            'success' => true,
+            echo json_encode([
+                'success' => true,
                             'message' => 'Producto actualizado exitosamente',
                             'data' => $updatedProduct
                         ]);
@@ -371,7 +371,7 @@ $path = parse_url($requestUri, PHP_URL_PATH);
                     if (!$existingProduct) {
                         error_log("Products DELETE: Producto no encontrado con ID: $productId");
                         echo json_encode(['success' => false, 'error' => 'Producto no encontrado']);
-                        break;
+            break;
                     }
                     
                     // Eliminar producto usando DatabaseManager
@@ -381,11 +381,11 @@ $path = parse_url($requestUri, PHP_URL_PATH);
                         safeLog('INFO', 'PRODUCT', 'DELETE', "Producto eliminado: {$existingProduct['sku']} - {$existingProduct['name']}");
                         error_log("Products DELETE: Producto eliminado exitosamente con ID: $productId");
                         
-                        echo json_encode([
-                            'success' => true,
+            echo json_encode([
+                'success' => true,
                             'message' => 'Producto eliminado exitosamente',
                             'data' => $existingProduct
-                        ]);
+            ]);
                     } else {
                         error_log("Products DELETE: Error eliminando producto con ID: $productId");
                         echo json_encode(['success' => false, 'error' => 'Error al eliminar el producto']);
@@ -424,10 +424,10 @@ $path = parse_url($requestUri, PHP_URL_PATH);
                     safeLog('INFO', 'REPORT', 'DASHBOARD', 'Estadísticas del dashboard generadas');
                     error_log("Dashboard stats: Total productos: $totalProducts, Valor total: $totalValue, Stock bajo: $lowStockProducts");
                     
-                    echo json_encode([
-                        'success' => true,
-                        'data' => $stats
-                    ]);
+            echo json_encode([
+                'success' => true,
+                'data' => $stats
+            ]);
                 } catch (Exception $e) {
                     error_log("Dashboard stats error: " . $e->getMessage());
                     echo json_encode([
