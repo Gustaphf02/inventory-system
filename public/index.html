@@ -545,7 +545,7 @@
                                     <div class="col-md-3">
                                         <div class="card bg-info text-white">
                                             <div class="card-body text-center">
-                                                <h3>{{ Object.keys(inventorySummary.departments || {}).length }}</h3>
+                                                <h3>{{ inventorySummary.unique_departments_count || 0 }}</h3>
                                                 <p class="mb-0">Departamentos</p>
                                             </div>
                                         </div>
@@ -602,12 +602,12 @@
                                                 </td>
                                                 <td>
                                                     <div class="btn-group btn-group-sm">
-                                                        <button class="btn btn-outline-primary" :onclick="'editProduct(' + product.id + ')'">
-                                                            <i class="fas fa-edit"></i>
-                                                        </button>
-                                                        <button class="btn btn-outline-danger" :onclick="'deleteProduct(' + product.id + ')'">
-                                                            <i class="fas fa-trash"></i>
-                                                        </button>
+                                                         <button class="btn btn-outline-primary" @click="editProduct(product)" title="Editar producto">
+                                                              <i class="fas fa-edit"></i>
+                                                          </button>
+                                                         <button class="btn btn-outline-danger" @click="deleteProduct(product.id)" title="Eliminar producto">
+                                                              <i class="fas fa-trash"></i>
+                                                          </button>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -1214,8 +1214,22 @@
                     this.showEditProductModal = false;
                     this.editingProduct = null;
                     
-                    // Mostrar mensaje de éxito
-                    alert('Producto actualizado exitosamente');
+                // Mostrar mensaje de éxito más visible
+                const successMessage = document.createElement('div');
+                successMessage.className = 'alert alert-success alert-dismissible fade show position-fixed';
+                successMessage.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+                successMessage.innerHTML = `
+                    <strong>¡Éxito!</strong> Producto actualizado correctamente.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                document.body.appendChild(successMessage);
+                
+                // Auto-remover después de 5 segundos
+                setTimeout(() => {
+                    if (successMessage.parentNode) {
+                        successMessage.parentNode.removeChild(successMessage);
+                    }
+                }, 5000);
                     
                     // Recargar datos
                     this.loadInventorySummary();
@@ -1788,7 +1802,23 @@
             .then(data => {
                 console.log('Response data:', data);
                 if (data.success) {
-                    alert('Producto actualizado exitosamente');
+                    // Mostrar mensaje de éxito más visible
+                    const successMessage = document.createElement('div');
+                    successMessage.className = 'alert alert-success alert-dismissible fade show position-fixed';
+                    successMessage.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+                    successMessage.innerHTML = `
+                        <strong>¡Éxito!</strong> Producto actualizado correctamente.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                    document.body.appendChild(successMessage);
+                    
+                    // Auto-remover después de 5 segundos
+                    setTimeout(() => {
+                        if (successMessage.parentNode) {
+                            successMessage.parentNode.removeChild(successMessage);
+                        }
+                    }, 5000);
+                    
                     closeEditModal();
                     // Recargar los productos usando window.app
                     if (window.app && window.app.loadProducts) {
@@ -1804,7 +1834,22 @@
                         location.reload();
                     }
                 } else {
-                    alert('Error: ' + (data.error || 'Error desconocido'));
+                    // Mostrar mensaje de error más visible
+                    const errorMessage = document.createElement('div');
+                    errorMessage.className = 'alert alert-danger alert-dismissible fade show position-fixed';
+                    errorMessage.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+                    errorMessage.innerHTML = `
+                        <strong>Error:</strong> ${data.error || 'Error desconocido'}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                    document.body.appendChild(errorMessage);
+                    
+                    // Auto-remover después de 8 segundos
+                    setTimeout(() => {
+                        if (errorMessage.parentNode) {
+                            errorMessage.parentNode.removeChild(errorMessage);
+                        }
+                    }, 8000);
                 }
             })
             .catch(error => {

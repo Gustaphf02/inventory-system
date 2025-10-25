@@ -1,3 +1,4 @@
+
 <?php
 // Iniciar sesión solo si no está ya iniciada
 if (session_status() === PHP_SESSION_NONE) {
@@ -546,23 +547,33 @@ $path = parse_url($requestUri, PHP_URL_PATH);
                     $totalValue = 0;
                     $lowStockProducts = [];
                     $departments = [];
+                    $uniqueDepartments = [];
                     
                     foreach ($products as $product) {
                         $totalValue += $product['price'] * $product['stock_quantity'];
                         if ($product['stock_quantity'] <= $product['min_stock_level']) {
                             $lowStockProducts[] = $product;
                         }
-                        if (!isset($departments[$product['department']])) {
-                            $departments[$product['department']] = 0;
+                        
+                        // Contar departamentos únicos
+                        $dept = $product['department'] ?: 'Sin asignar';
+                        if (!in_array($dept, $uniqueDepartments)) {
+                            $uniqueDepartments[] = $dept;
                         }
-                        $departments[$product['department']]++;
+                        
+                        if (!isset($departments[$dept])) {
+                            $departments[$dept] = 0;
+                        }
+                        $departments[$dept]++;
                     }
                     
                     $summary = [
                         'total_products' => $totalProducts,
                         'total_value' => $totalValue,
                         'low_stock_products' => $lowStockProducts,
-                        'departments' => $departments
+                        'departments' => $departments,
+                        'unique_departments_count' => count($uniqueDepartments),
+                        'unique_departments' => $uniqueDepartments
                     ];
                     
                     echo json_encode([
