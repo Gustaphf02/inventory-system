@@ -78,7 +78,6 @@ class DatabaseManager {
                 type VARCHAR(50) DEFAULT 'computo',
                 serial_number VARCHAR(100) UNIQUE,
                 department VARCHAR(100),
-                location VARCHAR(100),
                 label VARCHAR(100) UNIQUE,
                 barcode VARCHAR(100),
                 expiration_date DATE,
@@ -93,6 +92,16 @@ class DatabaseManager {
                 IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
                               WHERE table_name = 'products' AND column_name = 'type') THEN
                     ALTER TABLE products ADD COLUMN type VARCHAR(50) DEFAULT 'computo';
+                END IF;
+            END
+            \$\$;
+            
+            -- Eliminar columna location si existe (para tablas existentes)
+            DO \$\$
+            BEGIN
+                IF EXISTS (SELECT 1 FROM information_schema.columns 
+                          WHERE table_name = 'products' AND column_name = 'location') THEN
+                    ALTER TABLE products DROP COLUMN location;
                 END IF;
             END
             \$\$;
@@ -168,7 +177,7 @@ class DatabaseManager {
     public function createProduct($data) {
         try {
             if ($this->usePostgreSQL) {
-                $sql = "INSERT INTO products (sku, name, description, brand, model, price, cost, stock_quantity, min_stock_level, max_stock_level, category_id, supplier_id, type, serial_number, department, location, label, barcode, expiration_date, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                $sql = "INSERT INTO products (sku, name, description, brand, model, price, cost, stock_quantity, min_stock_level, max_stock_level, category_id, supplier_id, type, serial_number, department, label, barcode, expiration_date, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 
                 error_log("DatabaseManager createProduct: Ejecutando INSERT con datos: " . json_encode($data));
                 $stmt = $this->pdo->prepare($sql);
@@ -188,7 +197,6 @@ class DatabaseManager {
                     $data['type'] ?? 'computo',
                     $data['serial_number'] ?? null,
                     $data['department'] ?? '',
-                    $data['location'] ?? '',
                     $data['label'] ?? null,
                     $data['barcode'] ?? '',
                     $data['expiration_date'] ?? null,
@@ -211,7 +219,7 @@ class DatabaseManager {
         error_log("DatabaseManager updateProduct: Actualizando producto ID $id con datos: " . json_encode($data));
         try {
             if ($this->usePostgreSQL) {
-                $sql = "UPDATE products SET name = ?, description = ?, brand = ?, model = ?, price = ?, cost = ?, stock_quantity = ?, min_stock_level = ?, max_stock_level = ?, category_id = ?, supplier_id = ?, type = ?, serial_number = ?, department = ?, location = ?, label = ?, barcode = ?, expiration_date = ?, status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?";
+                $sql = "UPDATE products SET name = ?, description = ?, brand = ?, model = ?, price = ?, cost = ?, stock_quantity = ?, min_stock_level = ?, max_stock_level = ?, category_id = ?, supplier_id = ?, type = ?, serial_number = ?, department = ?, label = ?, barcode = ?, expiration_date = ?, status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?";
                 
                 error_log("DatabaseManager updateProduct: SQL: " . $sql);
                 $stmt = $this->pdo->prepare($sql);
@@ -230,7 +238,6 @@ class DatabaseManager {
                     $data['type'] ?? 'computo',
                     $data['serial_number'] ?? null,
                     $data['department'] ?? '',
-                    $data['location'] ?? '',
                     $data['label'] ?? null,
                     $data['barcode'] ?? '',
                     $data['expiration_date'] ?? null,

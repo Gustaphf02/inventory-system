@@ -332,7 +332,6 @@ $path = parse_url($requestUri, PHP_URL_PATH);
                         'type' => $input['type'] ?? 'computo',
                         'serial_number' => $input['serial_number'],
                         'department' => $input['department'] ?? '',
-                        'location' => $input['location'] ?? '',
                         'label' => $input['label'] ?? '',
                         'barcode' => $input['barcode'] ?? '',
                         'expiration_date' => $input['expiration_date'] ?? null,
