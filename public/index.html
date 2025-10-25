@@ -524,6 +524,7 @@
                                                 <th>Marca</th>
                                                 <th>Modelo</th>
                                                 <th>Serial</th>
+                                                <th>Marbete</th>
                                                 <th>Categoría</th>
                                                 <th>Proveedor</th>
                                                 <th>Ubicación</th>
@@ -542,6 +543,7 @@
                                                 <td><strong>{{ product.brand }}</strong></td>
                                                 <td>{{ product.model }}</td>
                                                 <td><small>{{ product.serial_number }}</small></td>
+                                                <td><code>{{ product.label }}</code></td>
                                                 <td><span class="badge bg-secondary">{{ product.category_name }}</span></td>
                                                 <td><span class="badge bg-info">{{ product.supplier_name }}</span></td>
                                                 <td><small>{{ product.location }}</small></td>
@@ -626,6 +628,7 @@
                                                 <th>Marca</th>
                                                 <th>Modelo</th>
                                                 <th>Serial</th>
+                                                <th>Marbete</th>
                                                 <th>Categoría</th>
                                                 <th>Proveedor</th>
                                                 <th>Stock</th>
@@ -644,6 +647,7 @@
                                                 <td><strong>{{ product.brand }}</strong></td>
                                                 <td>{{ product.model }}</td>
                                                 <td><small>{{ product.serial_number }}</small></td>
+                                                <td><code>{{ product.label }}</code></td>
                                                 <td><span class="badge bg-secondary">{{ product.category_name || 'Sin categoría' }}</span></td>
                                                 <td><span class="badge bg-info">{{ product.supplier_name || 'Sin proveedor' }}</span></td>
                                                 <td>
