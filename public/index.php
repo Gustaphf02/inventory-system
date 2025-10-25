@@ -589,6 +589,17 @@ $path = parse_url($requestUri, PHP_URL_PATH);
             ]);
             break;
             
+            case 'postgresql':
+            // Test de conexión PostgreSQL
+            $status = $db->getConnectionStatus();
+            echo json_encode([
+                'success' => true,
+                'message' => 'Test de PostgreSQL',
+                'connection_status' => $status,
+                'timestamp' => date('Y-m-d H:i:s')
+            ]);
+            break;
+            
         default:
             http_response_code(404);
             echo json_encode([

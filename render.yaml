@@ -6,5 +6,5 @@ services:
     buildCommand: composer install --no-dev --optimize-autoloader
     startCommand: php -S 0.0.0.0:$PORT -t public
     envVars:
-      - key: MONGODB_URI
+      - key: DATABASE_URL
         sync: false
