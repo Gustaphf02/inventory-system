@@ -23,7 +23,7 @@ COPY . /var/www/html/
 
 # Instalar dependencias
 WORKDIR /var/www/html
-RUN composer install --no-dev --optimize-autoloader --ignore-platform-reqs --ignore-platform-req-ext-gd
+RUN composer install --no-dev --optimize-autoloader --ignore-platform-reqs --ignore-platform-req=ext-gd
 
 # Configurar Apache
 RUN a2enmod rewrite
