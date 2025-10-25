@@ -241,6 +241,7 @@ class DatabaseManager {
     }
 
     public function checkUniqueField($field, $value, $excludeId = null) {
+        error_log("DatabaseManager checkUniqueField: Verificando campo '$field' con valor '$value'");
         try {
             if ($this->usePostgreSQL) {
                 $sql = "SELECT COUNT(*) FROM products WHERE $field = ?";
@@ -253,13 +254,17 @@ class DatabaseManager {
                 
                 $stmt = $this->pdo->prepare($sql);
                 $stmt->execute($params);
-                return $stmt->fetchColumn() > 0;
+                $count = $stmt->fetchColumn();
+                error_log("DatabaseManager checkUniqueField: PostgreSQL count = $count");
+                return $count > 0;
             } else {
+                error_log("DatabaseManager checkUniqueField: Usando fallback JSON");
                 return $this->checkUniqueFieldInFile($field, $value, $excludeId);
             }
         } catch (Exception $e) {
             error_log("DatabaseManager checkUniqueField error: " . $e->getMessage());
-            return $this->fallbackToJSON ? $this->checkUniqueFieldInFile($field, $value, $excludeId) : false;
+            // Siempre usar fallback JSON si PostgreSQL falla
+            return $this->checkUniqueFieldInFile($field, $value, $excludeId);
         }
     }
 
@@ -338,14 +343,18 @@ class DatabaseManager {
 
     private function checkUniqueFieldInFile($field, $value, $excludeId = null) {
         $products = $this->loadProductsFromFile();
+        error_log("DatabaseManager checkUniqueFieldInFile: Verificando '$field' = '$value' en " . count($products) . " productos");
+        
         foreach ($products as $product) {
             if ($excludeId && $product['id'] == $excludeId) {
                 continue;
             }
             if (isset($product[$field]) && $product[$field] === $value) {
+                error_log("DatabaseManager checkUniqueFieldInFile: DUPLICADO encontrado en producto ID " . $product['id']);
                 return true;
             }
         }
+        error_log("DatabaseManager checkUniqueFieldInFile: No se encontraron duplicados");
         return false;
     }
 

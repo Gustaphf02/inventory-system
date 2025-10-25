@@ -225,21 +225,25 @@ $path = parse_url($requestUri, PHP_URL_PATH);
                     }
                     
                     // Verificar campos únicos usando DatabaseManager
+                    error_log("Products POST: Verificando SKU: " . $input['sku']);
                     if ($db->checkUniqueField('sku', $input['sku'])) {
-                        error_log("Products POST: SKU duplicado: " . $input['sku']);
+                        error_log("Products POST: SKU duplicado encontrado: " . $input['sku']);
                         echo json_encode(['success' => false, 'error' => 'El SKU ya existe. Por favor usa un SKU diferente.']);
                         break;
                     }
+                    error_log("Products POST: Verificando Serial: " . $input['serial_number']);
                     if ($db->checkUniqueField('serial_number', $input['serial_number'])) {
-                        error_log("Products POST: Serial duplicado: " . $input['serial_number']);
+                        error_log("Products POST: Serial duplicado encontrado: " . $input['serial_number']);
                         echo json_encode(['success' => false, 'error' => 'El número de serial ya existe. Por favor usa un serial diferente.']);
                         break;
                     }
+                    error_log("Products POST: Verificando Marbete: " . $input['label']);
                     if ($db->checkUniqueField('label', $input['label'])) {
-                        error_log("Products POST: Marbete duplicado: " . $input['label']);
+                        error_log("Products POST: Marbete duplicado encontrado: " . $input['label']);
                         echo json_encode(['success' => false, 'error' => 'El marbete ya existe. Por favor usa un marbete diferente.']);
                         break;
                     }
+                    error_log("Products POST: Todos los campos únicos verificados correctamente");
                     
                     // Preparar datos para PostgreSQL
                     $productData = [
