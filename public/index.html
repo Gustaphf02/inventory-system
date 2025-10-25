@@ -550,8 +550,8 @@
                                                         {{ product.stock_quantity }}
                                                     </span>
                                                 </td>
-                                                <td>${{ product.price.toFixed(2) }}</td>
-                                                <td>${{ (product.stock_quantity * product.price).toFixed(2) }}</td>
+                                                <td>${{ (parseFloat(product.price) || 0).toFixed(2) }}</td>
+                                                <td>${{ (parseFloat(product.stock_quantity) * parseFloat(product.price) || 0).toFixed(2) }}</td>
                                                 <td>
                                                     <span class="badge" :class="product.status === 'active' ? 'bg-success' : 'bg-secondary'">
                                                         {{ product.status === 'active' ? 'Activo' : 'Inactivo' }}
@@ -1256,7 +1256,8 @@
                 },
 
                 formatNumber(number) {
-                    return new Intl.NumberFormat('es-MX').format(number);
+                    const num = parseFloat(number) || 0;
+                    return new Intl.NumberFormat('es-MX').format(num);
                 },
 
                 viewProduct(product) {

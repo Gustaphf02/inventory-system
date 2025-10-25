@@ -238,7 +238,7 @@ $path = parse_url($requestUri, PHP_URL_PATH);
                     if ($db->checkUniqueField('label', $input['label'])) {
                         error_log("Products POST: Marbete duplicado: " . $input['label']);
                         echo json_encode(['success' => false, 'error' => 'El marbete ya existe. Por favor usa un marbete diferente.']);
-            break;
+                        break;
                     }
                     
                     // Preparar datos para MongoDB
