@@ -1,10 +1,9 @@
 services:
   - type: web
     name: inventory-system
-    env: php
+    env: docker
     plan: free
-    buildCommand: chmod +x build.sh && ./build.sh
-    startCommand: php -S 0.0.0.0:$PORT -t public
+    dockerfilePath: ./Dockerfile
     envVars:
       - key: DATABASE_URL
         sync: false

@@ -1,23 +1,29 @@
-# Dockerfile ultra-simple para Render - Sin Composer
-FROM php:8.1-cli
+# Dockerfile para Render con PostgreSQL
+FROM php:8.2-apache
 
-# Instalar dependencias mínimas
+# Instalar extensiones PHP necesarias
 RUN apt-get update && apt-get install -y \
-    git \
+    libpq-dev \
+    && docker-php-ext-install pdo pdo_pgsql pgsql \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Configurar directorio de trabajo
-WORKDIR /app
+# Instalar Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 # Copiar archivos del proyecto
-COPY . .
+COPY . /var/www/html/
 
-# Configurar permisos
-RUN chmod -R 755 /app
+# Instalar dependencias
+WORKDIR /var/www/html
+RUN composer install --no-dev --optimize-autoloader
+
+# Configurar Apache
+RUN a2enmod rewrite
+COPY public/.htaccess /var/www/html/.htaccess
 
 # Exponer puerto
-EXPOSE 8080
+EXPOSE 80
 
 # Comando de inicio
-CMD ["php", "-S", "0.0.0.0:8080", "-t", "public"]
+CMD ["apache2-foreground"]
