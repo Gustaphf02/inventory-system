@@ -86,6 +86,16 @@ class DatabaseManager {
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
+            
+            -- Agregar columna type si no existe (para tablas existentes)
+            DO \$\$
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                              WHERE table_name = 'products' AND column_name = 'type') THEN
+                    ALTER TABLE products ADD COLUMN type VARCHAR(50) DEFAULT 'computo';
+                END IF;
+            END
+            \$\$;
 
             CREATE TABLE IF NOT EXISTS categories (
                 id SERIAL PRIMARY KEY,
@@ -155,6 +165,7 @@ class DatabaseManager {
             if ($this->usePostgreSQL) {
                 $sql = "INSERT INTO products (sku, name, description, brand, model, price, cost, stock_quantity, min_stock_level, max_stock_level, category_id, supplier_id, type, serial_number, department, location, label, barcode, expiration_date, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 
+                error_log("DatabaseManager createProduct: Ejecutando INSERT con datos: " . json_encode($data));
                 $stmt = $this->pdo->prepare($sql);
                 $stmt->execute([
                     $data['sku'],
@@ -179,7 +190,9 @@ class DatabaseManager {
                     $data['status'] ?? 'active'
                 ]);
 
-                return $this->pdo->lastInsertId();
+                $newId = $this->pdo->lastInsertId();
+                error_log("DatabaseManager createProduct: Producto creado con ID: " . $newId);
+                return $newId;
             } else {
                 return $this->createProductInFile($data);
             }
@@ -192,7 +205,7 @@ class DatabaseManager {
     public function updateProduct($id, $data) {
         try {
             if ($this->usePostgreSQL) {
-                $sql = "UPDATE products SET name = ?, description = ?, brand = ?, model = ?, price = ?, cost = ?, stock_quantity = ?, min_stock_level = ?, max_stock_level = ?, category_id = ?, supplier_id = ?, serial_number = ?, department = ?, location = ?, label = ?, barcode = ?, expiration_date = ?, status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?";
+                $sql = "UPDATE products SET name = ?, description = ?, brand = ?, model = ?, price = ?, cost = ?, stock_quantity = ?, min_stock_level = ?, max_stock_level = ?, category_id = ?, supplier_id = ?, type = ?, serial_number = ?, department = ?, location = ?, label = ?, barcode = ?, expiration_date = ?, status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?";
                 
                 $stmt = $this->pdo->prepare($sql);
                 $stmt->execute([
@@ -207,6 +220,7 @@ class DatabaseManager {
                     $data['max_stock_level'] ?? 0,
                     $data['category_id'] ?? 1,
                     $data['supplier_id'] ?? 1,
+                    $data['type'] ?? 'computo',
                     $data['serial_number'] ?? null,
                     $data['department'] ?? '',
                     $data['location'] ?? '',
