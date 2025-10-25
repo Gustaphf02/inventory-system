@@ -12,6 +12,20 @@ if (isset($_SESSION['user'])) {
 // Destruir la sesión
 session_destroy();
 
-// Redirigir al login
-header('Location: /login.php');
+// Redirigir al login con JavaScript para limpiar historial
+echo '<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Cerrando sesión...</title>
+</head>
+<body>
+    <script>
+        // Limpiar historial del navegador y redirigir
+        window.history.replaceState(null, null, "/login.php");
+        window.location.href = "/login.php";
+    </script>
+    <p>Cerrando sesión...</p>
+</body>
+</html>';
 exit;

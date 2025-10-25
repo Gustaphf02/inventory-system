@@ -929,31 +929,22 @@
                                 this.user = data.data;
                                 console.log('Usuario cargado desde sesión:', this.user);
                             } else {
-                                // No hay sesión activa, pero no redirigir inmediatamente
-                                console.log('No hay sesión activa, pero continuando...');
-                                this.user = {
-                                    name: 'Usuario No Autenticado',
-                                    role: 'guest',
-                                    email: 'guest@inventory.com'
-                                };
+                                // No hay sesión activa - redirigir al login
+                                console.log('No hay sesión activa - redirigiendo al login');
+                                window.location.href = '/login.php';
+                                return;
                             }
                         } else {
-                            // Error en la API, pero no redirigir inmediatamente
-                            console.log('Error en API de autenticación, continuando...');
-                            this.user = {
-                                name: 'Usuario No Autenticado',
-                                role: 'guest',
-                                email: 'guest@inventory.com'
-                            };
+                            // Error en la API - redirigir al login
+                            console.log('Error en API de autenticación - redirigiendo al login');
+                            window.location.href = '/login.php';
+                            return;
                         }
                     } catch (error) {
                         console.error('Error al cargar usuario:', error);
-                        // Error de conexión, pero no redirigir inmediatamente
-                        this.user = {
-                            name: 'Usuario No Autenticado',
-                            role: 'guest',
-                            email: 'guest@inventory.com'
-                        };
+                        // Error de conexión - redirigir al login
+                        window.location.href = '/login.php';
+                        return;
                     }
                 },
                 setView(view) {
@@ -1295,6 +1286,42 @@
         
         // Hacer la instancia de Vue disponible globalmente
         window.app = document.querySelector('#app').__vue__;
+        
+        // CONTROL DE NAVEGACIÓN DEL NAVEGADOR (botones atrás/adelante)
+        window.addEventListener('popstate', function(event) {
+            console.log('Navegación del navegador detectada:', window.location.pathname);
+            
+            // Si el usuario está logueado y trata de ir al login, redirigir al dashboard
+            if (window.location.pathname === '/login.php' && window.app && window.app.user && window.app.user.role !== 'guest') {
+                console.log('Usuario logueado intentando ir al login - redirigiendo al dashboard');
+                window.history.pushState(null, '', '/');
+                return;
+            }
+            
+            // Si el usuario no está logueado y trata de ir al dashboard, redirigir al login
+            if (window.location.pathname === '/' && window.app && window.app.user && window.app.user.role === 'guest') {
+                console.log('Usuario no logueado intentando ir al dashboard - redirigiendo al login');
+                window.history.pushState(null, '', '/login.php');
+                window.location.href = '/login.php';
+                return;
+            }
+        });
+        
+        // Prevenir navegación directa al login si ya está logueado
+        if (window.location.pathname === '/login.php') {
+            // Verificar sesión antes de mostrar la página
+            fetch('/auth/me')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.authenticated) {
+                        console.log('Usuario ya logueado - redirigiendo al dashboard');
+                        window.location.href = '/';
+                    }
+                })
+                .catch(err => {
+                    console.log('Error verificando sesión:', err);
+                });
+        }
     </script>
 
     <!-- JavaScript vanilla para el modal -->

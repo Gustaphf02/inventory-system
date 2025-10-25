@@ -4,6 +4,12 @@ session_start();
 // Versión simplificada sin SystemLogger para evitar errores 503
 // TODO: Restaurar SystemLogger cuando se resuelvan los problemas de permisos
 
+// CONTROL DE NAVEGACIÓN: Si ya está logueado, redirigir al dashboard
+if (isset($_SESSION['user']) && !empty($_SESSION['user'])) {
+    header('Location: /');
+    exit;
+}
+
 // Demo users (email => [password, name, role, username])
 $users = [
     'admin@inventory.com' => ['admin123', 'Administrador Sistema', 'admin', 'admin'],
