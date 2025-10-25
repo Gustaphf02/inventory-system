@@ -1655,6 +1655,7 @@
             document.getElementById('editProductLabel').value = product.label || '';
             document.getElementById('editProductCategory').value = product.category_id || '1';
             document.getElementById('editProductSupplier').value = product.supplier_id || '1';
+            document.getElementById('editProductType').value = product.type || 'computo';
             document.getElementById('editProductDepartment').value = product.department || '';
             document.getElementById('editProductLocation').value = product.location || '';
             document.getElementById('editProductPrice').value = product.price || '';
@@ -1701,6 +1702,7 @@
                 stock_quantity: document.getElementById('editProductStock').value,
                 category_id: document.getElementById('editProductCategory').value,
                 supplier_id: document.getElementById('editProductSupplier').value,
+                type: document.getElementById('editProductType').value,
                 serial_number: document.getElementById('editProductSerial').value,
                 department: document.getElementById('editProductDepartment').value,
                 location: document.getElementById('editProductLocation').value,
@@ -1889,6 +1891,17 @@
                         </div>
                         
                         <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editProductType" class="form-label">Tipo de Equipo</label>
+                                    <select class="form-select" id="editProductType" required>
+                                        <option value="">Seleccionar tipo</option>
+                                        <option value="telecomunicacion">Equipo de telecomunicación</option>
+                                        <option value="computo">Equipos de cómputo</option>
+                                    </select>
+                                    <div class="form-text">Selecciona el tipo de equipo</div>
+                                </div>
+                            </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="editProductDepartment" class="form-label">Departamento</label>
@@ -2261,6 +2274,16 @@
                                             {{ supplier.name }}
                                         </option>
                                     </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Tipo de Equipo *</label>
+                                    <select class="form-select" v-model="editingProduct.type" required>
+                                        <option value="">Seleccionar tipo</option>
+                                        <option value="telecomunicacion">Equipo de telecomunicación</option>
+                                        <option value="computo">Equipos de cómputo</option>
+                                    </select>
+                                    <div class="form-text">Selecciona el tipo de equipo</div>
                                 </div>
                             </div>
                             
