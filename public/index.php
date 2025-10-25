@@ -241,7 +241,7 @@ $path = parse_url($requestUri, PHP_URL_PATH);
                     if ($db->checkUniqueField('label', $input['label'])) {
                         error_log("Products POST: Marbete duplicado encontrado: " . $input['label']);
                         echo json_encode(['success' => false, 'error' => 'El marbete ya existe. Por favor usa un marbete diferente.']);
-                        break;
+            break;
                     }
                     error_log("Products POST: Todos los campos únicos verificados correctamente");
                     
@@ -316,6 +316,7 @@ $path = parse_url($requestUri, PHP_URL_PATH);
                     }
                     
                     // Preparar datos para actualización
+                    error_log("Products PUT: Datos recibidos: " . json_encode($input));
                     $updateData = [
                         'name' => $input['name'],
                         'description' => $input['description'] ?? '',
@@ -328,6 +329,7 @@ $path = parse_url($requestUri, PHP_URL_PATH);
                         'max_stock_level' => intval($input['max_stock_level'] ?? 0),
                         'category_id' => intval($input['category_id'] ?? 1),
                         'supplier_id' => intval($input['supplier_id'] ?? 1),
+                        'type' => $input['type'] ?? 'computo',
                         'serial_number' => $input['serial_number'],
                         'department' => $input['department'] ?? '',
                         'location' => $input['location'] ?? '',
