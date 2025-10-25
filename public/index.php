@@ -241,7 +241,7 @@ $path = parse_url($requestUri, PHP_URL_PATH);
                         break;
                     }
                     
-                    // Preparar datos para MongoDB
+                    // Preparar datos para PostgreSQL
                     $productData = [
                         'sku' => $input['sku'],
                         'name' => $input['name'],
@@ -255,6 +255,7 @@ $path = parse_url($requestUri, PHP_URL_PATH);
                         'max_stock_level' => intval($input['max_stock_level'] ?? 0),
                         'category_id' => intval($input['category_id'] ?? 1),
                         'supplier_id' => intval($input['supplier_id'] ?? 1),
+                        'type' => $input['type'] ?? 'computo',
                         'serial_number' => $input['serial_number'],
                         'department' => $input['department'] ?? '',
                         'location' => $input['location'] ?? '',

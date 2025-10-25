@@ -203,6 +203,20 @@
                                     <i class="fas fa-boxes me-2"></i>
                                     Productos
                                 </a>
+                                <ul class="nav flex-column ms-3">
+                                    <li class="nav-item">
+                                        <a class="nav-link" :class="{active: currentView === 'products' && productFilter === 'telecomunicacion'}" @click="setView('products'); setProductFilter('telecomunicacion')">
+                                            <i class="fas fa-broadcast-tower me-2"></i>
+                                            Equipo de telecomunicación
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" :class="{active: currentView === 'products' && productFilter === 'computo'}" @click="setView('products'); setProductFilter('computo')">
+                                            <i class="fas fa-desktop me-2"></i>
+                                            Equipos de cómputo
+                                        </a>
+                                    </li>
+                                </ul>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" :class="{active: currentView === 'categories'}" @click="setView('categories')">
@@ -629,6 +643,7 @@
                                                 <th>Modelo</th>
                                                 <th>Serial</th>
                                                 <th>Marbete</th>
+                                                <th>Tipo</th>
                                                 <th>Categoría</th>
                                                 <th>Proveedor</th>
                                                 <th>Stock</th>
@@ -648,6 +663,7 @@
                                                 <td>{{ product.model }}</td>
                                                 <td><small>{{ product.serial_number }}</small></td>
                                                 <td><code>{{ product.label }}</code></td>
+                                                <td><span class="badge" :class="product.type === 'telecomunicacion' ? 'bg-primary' : 'bg-success'">{{ product.type === 'telecomunicacion' ? 'Telecomunicación' : 'Cómputo' }}</span></td>
                                                 <td><span class="badge bg-secondary">{{ product.category_name || 'Sin categoría' }}</span></td>
                                                 <td><span class="badge bg-info">{{ product.supplier_name || 'Sin proveedor' }}</span></td>
                                                 <td>
@@ -893,6 +909,7 @@
                     },
                     products: [],
                     filteredProducts: [],
+                    productFilter: 'all', // 'all', 'telecomunicacion', 'computo'
                     recentProducts: [],
                     lowStockProducts: [],
                     categories: [],
@@ -956,6 +973,10 @@
                     if (view === 'products') {
                         this.loadProducts();
                     }
+                },
+                setProductFilter(filter) {
+                    this.productFilter = filter;
+                    this.filterProducts();
                 },
                 
                 getPageTitle() {
@@ -1225,6 +1246,11 @@
                 filterProducts() {
                     let filtered = this.products;
                     
+                    // Filtrar por tipo de producto
+                    if (this.productFilter !== 'all') {
+                        filtered = filtered.filter(product => product.type === this.productFilter);
+                    }
+                    
                     if (this.selectedCategory) {
                         filtered = filtered.filter(product => product.category_id == this.selectedCategory);
                     }
@@ -1461,6 +1487,7 @@
                 description: document.getElementById('productDescription').value,
                 category_id: parseInt(document.getElementById('productCategory').value) || 1,
                 supplier_id: parseInt(document.getElementById('productSupplier').value) || 1,
+                type: document.getElementById('productType').value,
                 serial_number: document.getElementById('productSerial').value,
                 department: document.getElementById('productDepartment').value,
                 location: document.getElementById('productLocation').value,
@@ -1478,8 +1505,8 @@
             console.log('Product data:', productData);
             
             // Validar campos requeridos
-            if (!productData.sku || !productData.name || !productData.serial_number || !productData.label) {
-                alert('Por favor completa todos los campos requeridos (SKU, Nombre, Serial, Marbete)');
+            if (!productData.sku || !productData.name || !productData.serial_number || !productData.label || !productData.type) {
+                alert('Por favor completa todos los campos requeridos (SKU, Nombre, Serial, Marbete, Tipo)');
                 return;
             }
             
@@ -1561,6 +1588,7 @@
             document.getElementById('productDescription').value = '';
             document.getElementById('productCategory').value = '';
             document.getElementById('productSupplier').value = '';
+            document.getElementById('productType').value = '';
             document.getElementById('productSerial').value = '';
             document.getElementById('productDepartment').value = '';
             document.getElementById('productLocation').value = '';
@@ -2006,6 +2034,16 @@
                                         <option value="3">Farnell</option>
                                         <option value="4">RS Components</option>
                                     </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Tipo de Equipo *</label>
+                                    <select class="form-select" id="productType" required>
+                                        <option value="">Seleccionar tipo</option>
+                                        <option value="telecomunicacion">Equipo de telecomunicación</option>
+                                        <option value="computo">Equipos de cómputo</option>
+                                    </select>
+                                    <div class="form-text">Selecciona el tipo de equipo que estás agregando</div>
                                 </div>
                             </div>
                             
