@@ -27,6 +27,7 @@ RUN composer install --no-dev --optimize-autoloader --ignore-platform-reqs --ign
 
 # Configurar Apache para usar el directorio public
 RUN a2enmod rewrite
+RUN a2enmod headers
 RUN echo '<VirtualHost *:80>\n\
     DocumentRoot /var/www/html/public\n\
     <Directory /var/www/html/public>\n\
