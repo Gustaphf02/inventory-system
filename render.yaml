@@ -3,7 +3,7 @@ services:
     name: inventory-system
     env: php
     plan: free
-    buildCommand: composer install --no-dev --optimize-autoloader
+    buildCommand: chmod +x build.sh && ./build.sh
     startCommand: php -S 0.0.0.0:$PORT -t public
     envVars:
       - key: DATABASE_URL
