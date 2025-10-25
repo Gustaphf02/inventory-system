@@ -578,16 +578,16 @@
                                         <tbody>
                                             <tr v-for="product in filteredInventory" :key="product.id">
                                                 <td><code>{{ product.sku }}</code></td>
-                                                <td><strong>{{ product.name }}</strong></td>
-                                                <td><small>{{ product.description }}</small></td>
-                                                <td><strong>{{ product.brand }}</strong></td>
-                                                <td>{{ product.model }}</td>
+                                                <td><strong>{{ product.name || 'Sin nombre' }}</strong></td>
+                                                <td><small>{{ product.description || 'Sin descripción' }}</small></td>
+                                                <td><strong>{{ product.brand || 'Sin marca' }}</strong></td>
+                                                <td>{{ product.model || 'Sin modelo' }}</td>
                                                 <td><small>{{ product.serial_number }}</small></td>
                                                 <td><code>{{ product.label }}</code></td>
                                                 <td><span class="badge" :class="product.type === 'telecomunicacion' ? 'bg-primary' : 'bg-success'">{{ product.type === 'telecomunicacion' ? 'Telecomunicación' : 'Cómputo' }}</span></td>
                                                 <td><span class="badge bg-secondary">{{ product.category_name }}</span></td>
                                                 <td><span class="badge bg-info">{{ product.supplier_name }}</span></td>
-                                                <td><span class="badge bg-warning">{{ product.department || 'Sin departamento' }}</span></td>
+                                                <td><span class="badge bg-warning">{{ product.department || 'Sin asignar' }}</span></td>
                                                 <td>
                                                     <span class="badge" :class="product.stock_quantity <= product.min_stock_level ? 'bg-danger' : 'bg-success'">
                                                         {{ product.stock_quantity }}
@@ -685,10 +685,10 @@
                                                 <td>
                                                     <code>{{ product.sku }}</code>
                                                 </td>
-                                                <td><strong>{{ product.name }}</strong></td>
-                                                <td><small>{{ product.description }}</small></td>
-                                                <td><strong>{{ product.brand }}</strong></td>
-                                                <td>{{ product.model }}</td>
+                                                <td><strong>{{ product.name || 'Sin nombre' }}</strong></td>
+                                                <td><small>{{ product.description || 'Sin descripción' }}</small></td>
+                                                <td><strong>{{ product.brand || 'Sin marca' }}</strong></td>
+                                                <td>{{ product.model || 'Sin modelo' }}</td>
                                                 <td><small>{{ product.serial_number }}</small></td>
                                                 <td><code>{{ product.label }}</code></td>
                                                 <td><span class="badge" :class="product.type === 'telecomunicacion' ? 'bg-primary' : 'bg-success'">{{ product.type === 'telecomunicacion' ? 'Telecomunicación' : 'Cómputo' }}</span></td>
@@ -1549,6 +1549,14 @@
                 return;
             }
             
+            // Campos opcionales pueden quedar en blanco
+            console.log('Creando producto con campos opcionales:', {
+                department: productData.department,
+                brand: productData.brand,
+                model: productData.model,
+                description: productData.description
+            });
+            
             // Validar campos únicos (simulación con datos existentes)
             const existingProducts = [
                 {sku: 'RES-1K-001', serial_number: 'RES001-2024-001', label: 'RES-1K-001'},
@@ -1686,7 +1694,7 @@
             
             // Llenar el formulario de edición
             document.getElementById('editProductSku').value = product.sku;
-            document.getElementById('editProductName').value = product.name;
+            document.getElementById('editProductName').value = product.name || '';
             document.getElementById('editProductBrand').value = product.brand || '';
             document.getElementById('editProductModel').value = product.model || '';
             document.getElementById('editProductSerial').value = product.serial_number || '';
