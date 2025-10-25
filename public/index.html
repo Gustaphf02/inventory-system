@@ -198,20 +198,20 @@
                                     Inventario
                                 </a>
                             </li>
-                            <li class="nav-item">
-                                <a class="nav-link" :class="{active: currentView === 'products'}" @click="setView('products')">
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                     <i class="fas fa-boxes me-2"></i>
                                     Productos
                                 </a>
-                                <ul class="nav flex-column ms-3">
-                                    <li class="nav-item">
-                                        <a class="nav-link" :class="{active: currentView === 'products' && productFilter === 'telecomunicacion'}" @click="setView('products'); setProductFilter('telecomunicacion')">
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <a class="dropdown-item" :class="{active: currentView === 'products' && productFilter === 'telecomunicacion'}" @click="setView('products'); setProductFilter('telecomunicacion')">
                                             <i class="fas fa-broadcast-tower me-2"></i>
                                             Equipo de telecomunicación
                                         </a>
                                     </li>
-                                    <li class="nav-item">
-                                        <a class="nav-link" :class="{active: currentView === 'products' && productFilter === 'computo'}" @click="setView('products'); setProductFilter('computo')">
+                                    <li>
+                                        <a class="dropdown-item" :class="{active: currentView === 'products' && productFilter === 'computo'}" @click="setView('products'); setProductFilter('computo')">
                                             <i class="fas fa-desktop me-2"></i>
                                             Equipos de cómputo
                                         </a>
@@ -1016,7 +1016,7 @@
                         const data = await response.json();
                         if (data.success) {
                             this.products = data.data;
-                            this.filteredProducts = data.data;
+                            this.filterProducts(); // Aplicar filtro actual
                             this.recentProducts = data.data.slice(0, 10);
                             // También actualizar filteredInventory
                             this.filteredInventory = data.data;
