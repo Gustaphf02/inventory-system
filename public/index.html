@@ -587,7 +587,7 @@
                                                 <td><span class="badge" :class="product.type === 'telecomunicacion' ? 'bg-primary' : 'bg-success'">{{ product.type === 'telecomunicacion' ? 'Telecomunicación' : 'Cómputo' }}</span></td>
                                                 <td><span class="badge bg-secondary">{{ product.category_name }}</span></td>
                                                 <td><span class="badge bg-info">{{ product.supplier_name }}</span></td>
-                                                <td><span class="badge bg-warning">{{ product.department }}</span></td>
+                                                <td><span class="badge bg-warning">{{ product.department || 'Sin departamento' }}</span></td>
                                                 <td>
                                                     <span class="badge" :class="product.stock_quantity <= product.min_stock_level ? 'bg-danger' : 'bg-success'">
                                                         {{ product.stock_quantity }}
@@ -1749,6 +1749,7 @@
             
             console.log('Frontend updateProduct: Datos a enviar:', productData);
             console.log('Frontend updateProduct: Tipo seleccionado:', productData.type);
+            console.log('Frontend updateProduct: Departamento seleccionado:', productData.department);
             
             // Validar campos requeridos
             const requiredFields = ['name', 'serial_number', 'label'];
@@ -1783,8 +1784,14 @@
                     closeEditModal();
                     // Recargar los productos usando window.app
                     if (window.app && window.app.loadProducts) {
+                        console.log('Recargando productos después de actualizar...');
                         window.app.loadProducts();
+                        // También recargar el resumen del inventario
+                        if (window.app.loadInventorySummary) {
+                            window.app.loadInventorySummary();
+                        }
                     } else {
+                        console.log('Fallback: recargando página completa');
                         // Fallback: recargar la página
                         location.reload();
                     }
