@@ -9,13 +9,10 @@
         "monolog/monolog": "^3.0",
         "vlucas/phpdotenv": "^5.5",
         "firebase/php-jwt": "^6.8",
-        "phpoffice/phpspreadsheet": "^1.29",
-        "tecnickcom/tcpdf": "^6.6",
         "guzzlehttp/guzzle": "^7.8",
         "ramsey/uuid": "^4.7",
         "respect/validation": "^2.2",
         "league/csv": "^9.12",
-        "intervention/image": "^2.7",
         "predis/predis": "^2.2",
         "ext-pdo": "*",
         "ext-pdo_pgsql": "*"
