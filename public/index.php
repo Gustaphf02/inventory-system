@@ -1,17 +1,12 @@
 
 <?php
-// Iniciar sesión solo si no está ya iniciada
-if (session_status() === PHP_SESSION_NONE) {
-session_start();
-}
-
-// Incluir middleware de autenticación limpio
-require_once __DIR__ . '/.auth.php';
-
-// Configurar manejo de errores ANTES de incluir otros archivos
+// Configurar manejo de errores ANTES de cualquier output
 ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 error_reporting(0);
+
+// Incluir middleware de autenticación limpio
+require_once __DIR__ . '/.auth.php';
 
 try {
     // Incluir DatabaseManager con fallback automático
@@ -140,6 +135,11 @@ if (isset($_GET['test'])) {
 // Obtener la ruta de la API
 $requestUri = $_SERVER['REQUEST_URI'];
 $path = parse_url($requestUri, PHP_URL_PATH);
+
+// Iniciar sesión solo si no está ya iniciada (después de configurar errores)
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // Si es una petición API, manejar como JSON
     if (strpos($path, '/api/') === 0 || in_array($path, ['/auth/me', '/products', '/categories', '/suppliers', '/departments', '/locations', '/inventory/summary', '/reports/dashboard/stats', '/reports/inventory/summary', '/reports/inventory/low-stock', '/health', '/test'])) {
