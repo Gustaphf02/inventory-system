@@ -14,6 +14,22 @@ ini_set('session.gc_maxlifetime', 86400); // 24 horas
 
 // Iniciar sesión
 if (session_status() === PHP_SESSION_NONE) {
+    // Intentar usar sesiones en base de datos
+    try {
+        require_once __DIR__ . '/DatabaseManager.php';
+        $db = DatabaseManager::getInstance();
+        $pdo = $db->getConnection();
+        
+        if ($pdo) {
+            require_once __DIR__ . '/SessionHandler.php';
+            $handler = new DatabaseSessionHandler($pdo);
+            session_set_save_handler($handler, true);
+            error_log("Using database session handler");
+        }
+    } catch (Exception $e) {
+        error_log("Failed to set database session handler: " . $e->getMessage());
+    }
+    
     session_start();
 }
 

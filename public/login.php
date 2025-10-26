@@ -6,7 +6,25 @@ ini_set('session.cookie_samesite', 'Lax');
 ini_set('session.use_strict_mode', 1);
 ini_set('session.gc_maxlifetime', 86400); // 24 horas
 
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    // Intentar usar sesiones en base de datos
+    try {
+        require_once __DIR__ . '/DatabaseManager.php';
+        $db = DatabaseManager::getInstance();
+        $pdo = $db->getConnection();
+        
+        if ($pdo) {
+            require_once __DIR__ . '/SessionHandler.php';
+            $handler = new DatabaseSessionHandler($pdo);
+            session_set_save_handler($handler, true);
+            error_log("Using database session handler");
+        }
+    } catch (Exception $e) {
+        error_log("Failed to set database session handler: " . $e->getMessage());
+    }
+    
+    session_start();
+}
 
 // Versión simplificada sin SystemLogger para evitar errores 503
 // TODO: Restaurar SystemLogger cuando se resuelvan los problemas de permisos

@@ -405,6 +405,10 @@ class DatabaseManager {
         }
     }
 
+    public function getConnection() {
+        return $this->pdo;
+    }
+
     public function getConnectionStatus() {
         return [
             'postgresql_connected' => $this->usePostgreSQL,
