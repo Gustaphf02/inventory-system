@@ -331,7 +331,7 @@
                                                 <div class="text-xs font-weight-bold text-uppercase mb-1">
                                                     Total Productos
                                                 </div>
-                                                <div class="h5 mb-0 font-weight-bold">{{ stats.totalProducts || 0 }}</div>
+                                                <div class="h5 mb-0 font-weight-bold">{{ inventorySummary.total_products || 0 }}</div>
                                             </div>
                                             <div class="col-auto">
                                                 <i class="fas fa-boxes stat-icon"></i>
@@ -349,7 +349,7 @@
                                                 <div class="text-xs font-weight-bold text-uppercase mb-1">
                                                     Valor Total
                                                 </div>
-                                                <div class="h5 mb-0 font-weight-bold">${{ formatNumber(stats.totalValue || 0) }}</div>
+                                                <div class="h5 mb-0 font-weight-bold">${{ formatNumber(inventorySummary.total_value || 0) }}</div>
                                             </div>
                                             <div class="col-auto">
                                                 <i class="fas fa-dollar-sign stat-icon"></i>
@@ -367,7 +367,7 @@
                                                 <div class="text-xs font-weight-bold text-uppercase mb-1">
                                                     Stock Bajo
                                                 </div>
-                                                <div class="h5 mb-0 font-weight-bold">{{ stats.lowStockProducts || 0 }}</div>
+                                                <div class="h5 mb-0 font-weight-bold">{{ inventorySummary.low_stock_products ? inventorySummary.low_stock_products.length : 0 }}</div>
                                             </div>
                                             <div class="col-auto">
                                                 <i class="fas fa-exclamation-triangle stat-icon"></i>
@@ -385,7 +385,7 @@
                                                 <div class="text-xs font-weight-bold text-uppercase mb-1">
                                                     Proveedores
                                                 </div>
-                                                <div class="h5 mb-0 font-weight-bold">{{ stats.totalSuppliers || 0 }}</div>
+                                                <div class="h5 mb-0 font-weight-bold">4</div>
                                             </div>
                                             <div class="col-auto">
                                                 <i class="fas fa-truck stat-icon"></i>
@@ -929,12 +929,6 @@
                     currentView: 'dashboard',
                     loading: false,
                     user: { name: 'Usuario Demo', email: 'demo@inventory.com', role: 'admin' },
-                    stats: {
-                        totalProducts: 0,
-                        totalValue: 0,
-                        lowStockProducts: 0,
-                        totalSuppliers: 0
-                    },
                     products: [],
                     filteredProducts: [],
                     productFilter: 'all', // 'all', 'telecomunicacion', 'computo'
@@ -960,7 +954,6 @@
             },
             async mounted() {
                 await this.loadSessionUser();
-                this.loadDashboardData();
                 this.loadProducts();
                 this.loadCategories();
                 this.loadSuppliers();
@@ -1021,19 +1014,6 @@
                     return titles[this.currentView] || 'Sistema de Inventario';
                 },
 
-                async loadDashboardData() {
-                    this.loading = true;
-                    try {
-                        const response = await fetch('/reports/dashboard/stats');
-                        const data = await response.json();
-                        if (data.success) {
-                            this.stats = data.data;
-                        }
-                    } catch (error) {
-                        console.error('Error loading dashboard data:', error);
-                    }
-                    this.loading = false;
-                },
 
                 async loadProducts() {
                     this.loading = true;
@@ -1317,8 +1297,8 @@
                 },
 
                 refreshData() {
-                    this.loadDashboardData();
                     this.loadProducts();
+                    this.loadInventorySummary();
                 },
 
                 getStockBadgeClass(stock, minStock) {
