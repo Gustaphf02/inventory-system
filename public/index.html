@@ -286,8 +286,8 @@
                         
                         <div class="text-center">
                             <small class="text-white-50">
-                                <span v-if="user.role !== 'guest'">
-                                Usuario: {{ user.name || 'Usuario' }} ({{ user.role || 'role' }})<br>
+                                <span v-if="user && user.role !== 'guest'">
+                                Usuario: {{ user.name }} ({{ user.role }})<br>
                                 <a href="/logout.php" class="btn btn-sm btn-outline-light mt-2">
                                     <i class="fas fa-sign-out-alt me-1"></i>
                                     Cerrar Sesión
@@ -938,7 +938,7 @@
                 return {
                     currentView: 'dashboard',
                     loading: false,
-                    user: { name: 'Usuario Demo', email: 'demo@inventory.com', role: 'admin' },
+                    user: null,
                     products: [],
                     filteredProducts: [],
                     productFilter: 'all', // 'all', 'telecomunicacion', 'computo'
@@ -997,16 +997,16 @@
                                 this.user = data.data;
                                 console.log('✅ Usuario autenticado cargado:', this.user);
                             } else {
-                                console.warn('⚠️ No hay sesión activa');
-                                this.user = { name: 'Usuario Demo', email: 'demo@inventory.com', role: 'admin' };
+                                console.error('❌ NO HAY SESIÓN ACTIVA - Datos recibidos:', data);
+                                this.user = null;
                             }
                         } else {
-                            console.warn('⚠️ Error en respuesta del servidor:', res.status);
-                            this.user = { name: 'Usuario Demo', email: 'demo@inventory.com', role: 'admin' };
+                            console.error('❌ ERROR EN RESPUESTA DEL SERVIDOR:', res.status);
+                            this.user = null;
                         }
                     } catch (error) {
                         console.error('❌ Error al cargar usuario:', error);
-                        this.user = { name: 'Usuario Demo', email: 'demo@inventory.com', role: 'admin' };
+                        this.user = null;
                     }
                     
                     console.log('👤 Usuario final asignado:', this.user);
