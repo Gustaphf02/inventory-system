@@ -385,7 +385,7 @@
                                                 <div class="text-xs font-weight-bold text-uppercase mb-1">
                                                     Proveedores
                                                 </div>
-                                                <div class="h5 mb-0 font-weight-bold">4</div>
+                                                <div class="h5 mb-0 font-weight-bold">{{ suppliers.length }}</div>
                                             </div>
                                             <div class="col-auto">
                                                 <i class="fas fa-truck stat-icon"></i>
@@ -407,7 +407,17 @@
                                         </h5>
                                     </div>
                                     <div class="card-body">
-                                        <div class="table-responsive">
+                                        <div v-if="loading" class="text-center py-5">
+                                            <div class="spinner-border" role="status">
+                                                <span class="visually-hidden">Cargando...</span>
+                                            </div>
+                                            <p class="mt-2">Cargando...</p>
+                                        </div>
+                                        <div v-else-if="recentProducts.length === 0" class="text-center py-5 text-muted">
+                                            <i class="fas fa-box-open fa-3x mb-3"></i>
+                                            <p>No hay productos recientes.</p>
+                                        </div>
+                                        <div v-else class="table-responsive">
                                             <table class="table table-hover">
                                                 <thead>
                                                     <tr>
