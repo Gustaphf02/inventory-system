@@ -5,33 +5,7 @@ ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 error_reporting(0);
 
-// Configurar sesión ANTES de iniciar la sesión
-ini_set('session.cookie_lifetime', 86400); // 24 horas
-ini_set('session.cookie_httponly', 1);
-ini_set('session.cookie_samesite', 'Lax');
-ini_set('session.use_strict_mode', 1);
-ini_set('session.gc_maxlifetime', 86400); // 24 horas
-
-// Iniciar sesión
-if (session_status() === PHP_SESSION_NONE) {
-    // Intentar usar sesiones en base de datos
-    try {
-        require_once __DIR__ . '/DatabaseManager.php';
-        $db = DatabaseManager::getInstance();
-        $pdo = $db->getConnection();
-        
-        if ($pdo) {
-            require_once __DIR__ . '/SessionHandler.php';
-            $handler = new DatabaseSessionHandler($pdo);
-            session_set_save_handler($handler, true);
-            error_log("Using database session handler");
-        }
-    } catch (Exception $e) {
-        error_log("Failed to set database session handler: " . $e->getMessage());
-    }
-    
-    session_start();
-}
+session_start();
 
 // Incluir middleware de autenticación limpio
 require_once __DIR__ . '/.auth.php';
