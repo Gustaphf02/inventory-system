@@ -160,10 +160,12 @@ if (session_status() === PHP_SESSION_NONE) {
     
         // Determinar la ruta de la API
         if (strpos($path, '/api/') === 0) {
-    $apiPath = substr($path, 4);
+            $apiPath = substr($path, 5); // quitar '/api'
         } else {
-            $apiPath = ltrim($path, '/');
+            $apiPath = ltrim($path, '/'); // quitar la '/' inicial
         }
+        
+        error_log("API Path normalizado: $apiPath");
     
     // Enrutamiento de API
     switch ($apiPath) {
@@ -626,11 +628,11 @@ if (session_status() === PHP_SESSION_NONE) {
             ]);
             break;
     }
+    exit; // Salir después de manejar la API
 } else {
-        // Si no es una petición API, mostrar la página HTML
+    // Si no es una petición API, mostrar la página HTML
     include 'index.html';
-    }
-
+}
 } catch (Exception $e) {
     // Manejo global de errores - siempre devolver JSON para APIs
     error_log("Global Error: " . $e->getMessage());
