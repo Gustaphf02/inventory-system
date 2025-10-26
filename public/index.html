@@ -959,10 +959,17 @@
                     selectedCategory: '',
                     selectedSupplier: '',
                     showEditProductModal: false,
-                    editingProduct: null
+                    editingProduct: null,
+                    _mounted: false // Flag para prevenir múltiples mountings
                 }
             },
             async mounted() {
+                if (this._mounted) {
+                    console.log('Mounted ya fue llamado, omitiendo...');
+                    return;
+                }
+                this._mounted = true;
+                console.log('Mounted ejecutándose por primera vez...');
                 await this.loadSessionUser();
                 this.loadProducts();
                 this.loadCategories();
