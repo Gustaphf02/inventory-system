@@ -1,6 +1,9 @@
 <?php
 // Middleware de autenticación simplificado
-// NO iniciar sesión aquí - se maneja en index.php
+// Iniciar sesión si no está ya iniciada
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // Solo proporcionar información de sesión - NO aplicar restricciones automáticas
 // Las APIs manejan su propia autenticación

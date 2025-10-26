@@ -170,25 +170,32 @@ if (session_status() === PHP_SESSION_NONE) {
     // Enrutamiento de API
     switch ($apiPath) {
             case 'auth/me':
+                // Debug: Log de sesión
+                error_log("Auth/me - Session status: " . session_status());
+                error_log("Auth/me - Session ID: " . session_id());
+                error_log("Auth/me - Session data: " . json_encode($_SESSION));
+                
                 // Verificar si hay una sesión activa
                 if (isset($_SESSION['user']) && !empty($_SESSION['user'])) {
                     // Usuario autenticado
                     $user = $_SESSION['user'];
-                echo json_encode([
+                    error_log("Auth/me - Usuario autenticado: " . json_encode($user));
+                    echo json_encode([
                         'success' => true,
                         'data' => $user,
                         'authenticated' => true
-                ]);
-            } else {
+                    ]);
+                } else {
                     // No hay sesión activa
-                echo json_encode([
+                    error_log("Auth/me - No hay sesión activa");
+                    echo json_encode([
                         'success' => false,
                         'error' => 'No hay sesión activa',
-                    'authenticated' => false,
+                        'authenticated' => false,
                         'data' => null
-                ]);
-            }
-            break;
+                    ]);
+                }
+                break;
                 
             case 'products':
                 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
