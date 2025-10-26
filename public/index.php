@@ -11,12 +11,6 @@ ini_set('session.cookie_httponly', 1);
 ini_set('session.cookie_samesite', 'Lax');
 ini_set('session.use_strict_mode', 1);
 ini_set('session.gc_maxlifetime', 86400); // 24 horas
-ini_set('session.save_path', '/tmp/sessions'); // Usar tmp persistente
-
-// Crear directorio de sesiones si no existe
-if (!file_exists('/tmp/sessions')) {
-    mkdir('/tmp/sessions', 0777, true);
-}
 
 // Incluir middleware de autenticación limpio
 require_once __DIR__ . '/.auth.php';
@@ -212,6 +206,15 @@ if (session_status() === PHP_SESSION_NONE) {
                 
             case 'products':
                 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+                    // Validar sesión activa
+                    if (!isset($_SESSION['user']) || empty($_SESSION['user'])) {
+                        echo json_encode([
+                            'success' => false,
+                            'error' => 'No autorizado - Debes iniciar sesión'
+                        ]);
+                        break;
+                    }
+                    
                     // Obtener todos los productos desde DatabaseManager
                     $products = $db->getAllProducts();
                     
@@ -557,6 +560,15 @@ if (session_status() === PHP_SESSION_NONE) {
                 
             case 'inventory/summary':
                 try {
+                    // Validar sesión activa
+                    if (!isset($_SESSION['user']) || empty($_SESSION['user'])) {
+                        echo json_encode([
+                            'success' => false,
+                            'error' => 'No autorizado - Debes iniciar sesión'
+                        ]);
+                        break;
+                    }
+                    
                     // Obtener productos usando DatabaseManager
                     $products = $db->getAllProducts();
                     
