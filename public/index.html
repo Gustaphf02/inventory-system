@@ -938,7 +938,7 @@
                 return {
                     currentView: 'dashboard',
                     loading: false,
-                    user: null,
+                    user: { name: 'Cargando...', email: '', role: 'guest' },
                     products: [],
                     filteredProducts: [],
                     productFilter: 'all', // 'all', 'telecomunicacion', 'computo'
@@ -998,24 +998,24 @@
                                 console.log('✅ Usuario autenticado cargado:', this.user);
                             } else {
                                 console.error('❌ NO HAY SESIÓN ACTIVA - Datos recibidos:', data);
-                                this.user = null;
+                                this.user = { name: 'No autenticado', email: '', role: 'guest' };
                             }
                         } else {
                             console.error('❌ ERROR EN RESPUESTA DEL SERVIDOR:', res.status);
-                            this.user = null;
+                            this.user = { name: 'Error de conexión', email: '', role: 'guest' };
                         }
                     } catch (error) {
                         console.error('❌ Error al cargar usuario:', error);
-                        this.user = null;
+                        this.user = { name: 'Error de conexión', email: '', role: 'guest' };
                     }
                     
                     console.log('👤 Usuario final asignado:', this.user);
                     
                     // Actualizar el DOM para mostrar el usuario real
-                    if (this.user && this.user.email !== 'demo@inventory.com') {
-                        console.log('✅ Usuario real detectado, NO es demo');
+                    if (this.user && this.user.role !== 'guest') {
+                        console.log('✅ Usuario real detectado, rol:', this.user.role);
                     } else {
-                        console.log('⚠️ Usando usuario demo por defecto');
+                        console.log('⚠️ Usuario no autenticado (guest)');
                     }
                 },
                 setView(view) {
