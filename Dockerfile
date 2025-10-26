@@ -1,8 +1,8 @@
 # Dockerfile para Render con PostgreSQL
-FROM php:8.2-apache
+FROM php:8.2.30-apache
 
 # Instalar extensiones PHP necesarias
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get upgrade -y && apt-get install -y \
     libpq-dev \
     libfreetype6-dev \
     libjpeg62-turbo-dev \
@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Instalar Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+COPY --from=composer:2.7 /usr/bin/composer /usr/bin/composer
 
 # Copiar archivos del proyecto
 COPY . /var/www/html/
