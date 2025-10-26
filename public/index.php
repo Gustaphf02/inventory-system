@@ -636,6 +636,7 @@ if (session_status() === PHP_SESSION_NONE) {
             break;
     }
     exit; // Salir después de manejar la API
+    } // Cerrar el if principal de la línea 145
 } else {
     // Si no es una petición API, mostrar la página HTML
     include 'index.html';
