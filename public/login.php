@@ -5,6 +5,12 @@ ini_set('session.cookie_httponly', 1);
 ini_set('session.cookie_samesite', 'Lax');
 ini_set('session.use_strict_mode', 1);
 ini_set('session.gc_maxlifetime', 86400); // 24 horas
+ini_set('session.save_path', '/tmp/sessions'); // Usar tmp persistente
+
+// Crear directorio de sesiones si no existe
+if (!file_exists('/tmp/sessions')) {
+    mkdir('/tmp/sessions', 0777, true);
+}
 
 session_start();
 
