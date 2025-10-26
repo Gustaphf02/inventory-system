@@ -1,4 +1,9 @@
 <?php
+// Configurar cookies de sesión ANTES de iniciar la sesión
+ini_set('session.cookie_lifetime', 86400); // 24 horas
+ini_set('session.cookie_httponly', 1);
+ini_set('session.cookie_samesite', 'Lax');
+
 session_start();
 
 // Versión simplificada sin SystemLogger para evitar errores 503
@@ -30,11 +35,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'role' => $users[$email][2],
             'username' => $users[$email][3]
         ];
-        
-        // Configurar cookies de sesión para que persistan
-        ini_set('session.cookie_lifetime', 86400); // 24 horas
-        ini_set('session.cookie_httponly', 1);
-        ini_set('session.cookie_samesite', 'Lax');
         
         // Log simple del login exitoso (sin SystemLogger)
         error_log("LOGIN_SUCCESS: " . $users[$email][3] . " - IP: " . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
