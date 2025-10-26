@@ -12,6 +12,7 @@ class DatabaseSessionHandler implements SessionHandlerInterface {
         $this->pdo = $pdo;
     }
 
+    #[\ReturnTypeWillChange]
     public function open($save_path, $session_name) {
         // Create sessions table if it doesn't exist
         try {
@@ -29,10 +30,12 @@ class DatabaseSessionHandler implements SessionHandlerInterface {
         }
     }
 
+    #[\ReturnTypeWillChange]
     public function close() {
         return true;
     }
 
+    #[\ReturnTypeWillChange]
     public function read($id) {
         try {
             $stmt = $this->pdo->prepare("SELECT data FROM {$this->tableName} WHERE id = ?");
@@ -45,6 +48,7 @@ class DatabaseSessionHandler implements SessionHandlerInterface {
         }
     }
 
+    #[\ReturnTypeWillChange]
     public function write($id, $data) {
         try {
             $stmt = $this->pdo->prepare("
@@ -61,6 +65,7 @@ class DatabaseSessionHandler implements SessionHandlerInterface {
         }
     }
 
+    #[\ReturnTypeWillChange]
     public function destroy($id) {
         try {
             $stmt = $this->pdo->prepare("DELETE FROM {$this->tableName} WHERE id = ?");
@@ -72,6 +77,7 @@ class DatabaseSessionHandler implements SessionHandlerInterface {
         }
     }
 
+    #[\ReturnTypeWillChange]
     public function gc($maxlifetime) {
         try {
             $stmt = $this->pdo->prepare("DELETE FROM {$this->tableName} WHERE last_activity < ?");

@@ -1,4 +1,9 @@
 <?php
+// Configurar manejo de errores ANTES de cualquier output
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+error_reporting(0);
+
 // Configurar cookies de sesión ANTES de iniciar la sesión
 ini_set('session.cookie_lifetime', 86400); // 24 horas
 ini_set('session.cookie_httponly', 1);
