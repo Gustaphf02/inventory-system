@@ -1841,9 +1841,18 @@
                             window.app.loadInventorySummary();
                         }
                     } else {
-                        console.log('Fallback: recargando página completa');
-                        // Fallback: recargar la página
-                        location.reload();
+                        console.log('window.app no disponible - esperando a que se inicialice...');
+                        // Esperar un momento y luego intentar recargar
+                        setTimeout(() => {
+                            if (window.app && window.app.loadProducts) {
+                                window.app.loadProducts();
+                                if (window.app.loadInventorySummary) {
+                                    window.app.loadInventorySummary();
+                                }
+                            } else {
+                                console.error('No se pudo recargar los productos - window.app no disponible');
+                            }
+                        }, 1000);
                     }
                 } else {
                     // Mostrar mensaje de error más visible
