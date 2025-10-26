@@ -60,6 +60,20 @@ class DatabaseManager {
     }
 
     private function createTablesIfNotExist() {
+        // Crear tabla de sesiones primero
+        $this->pdo->exec("
+            CREATE TABLE IF NOT EXISTS sessions (
+                id VARCHAR(255) PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                email VARCHAR(255) NOT NULL,
+                name VARCHAR(255) NOT NULL,
+                role VARCHAR(50) NOT NULL,
+                username VARCHAR(255) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                expires_at TIMESTAMP NOT NULL
+            )
+        ");
+        
         $sql = "
             CREATE TABLE IF NOT EXISTS products (
                 id SERIAL PRIMARY KEY,
@@ -402,6 +416,80 @@ class DatabaseManager {
             file_put_contents($file, json_encode($products, JSON_PRETTY_PRINT));
         } catch (Exception $e) {
             error_log("DatabaseManager saveProductsToFile error: " . $e->getMessage());
+        }
+    }
+
+    public function saveSession($sessionId, $userData) {
+        try {
+            // Limpiar sesiones expiradas
+            $this->pdo->exec("DELETE FROM sessions WHERE expires_at < NOW()");
+            
+            // Guardar nueva sesión
+            $expiresAt = date('Y-m-d H:i:s', time() + 86400); // 24 horas
+            $stmt = $this->pdo->prepare("
+                INSERT INTO sessions (id, user_id, email, name, role, username, expires_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT (id) DO UPDATE SET 
+                    email = EXCLUDED.email,
+                    name = EXCLUDED.name,
+                    role = EXCLUDED.role,
+                    username = EXCLUDED.username,
+                    expires_at = EXCLUDED.expires_at
+            ");
+            $stmt->execute([
+                $sessionId,
+                1, // user_id placeholder
+                $userData['email'],
+                $userData['name'],
+                $userData['role'],
+                $userData['username'],
+                $expiresAt
+            ]);
+            
+            error_log("Session saved: $sessionId for user: " . $userData['email']);
+            return true;
+        } catch (PDOException $e) {
+            error_log("Error saving session: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function getSession($sessionId) {
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT * FROM sessions 
+                WHERE id = ? AND expires_at > NOW()
+            ");
+            $stmt->execute([$sessionId]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($result) {
+                error_log("Session found: $sessionId");
+                return [
+                    'email' => $result['email'],
+                    'name' => $result['name'],
+                    'role' => $result['role'],
+                    'username' => $result['username']
+                ];
+            }
+            
+            error_log("Session not found or expired: $sessionId");
+            return null;
+        } catch (PDOException $e) {
+            error_log("Error getting session: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    public function destroySession($sessionId) {
+        try {
+            $stmt = $this->pdo->prepare("DELETE FROM sessions WHERE id = ?");
+            $stmt->execute([$sessionId]);
+            error_log("Session destroyed: $sessionId");
+            return true;
+        } catch (PDOException $e) {
+            error_log("Error destroying session: " . $e->getMessage());
+            return false;
         }
     }
 

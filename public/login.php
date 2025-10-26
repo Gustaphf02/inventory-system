@@ -29,21 +29,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = trim($_POST['password'] ?? '');
 
     if (isset($users[$email]) && $users[$email][0] === $password) {
-        $_SESSION['user'] = [
+        $userData = [
             'email' => $email,
             'name' => $users[$email][1],
             'role' => $users[$email][2],
             'username' => $users[$email][3]
         ];
         
-        // Log simple del login exitoso (sin SystemLogger)
-        error_log("LOGIN_SUCCESS: " . $users[$email][3] . " - IP: " . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
-        
-        // Verificar que la sesión se guardó
-        if (isset($_SESSION['user'])) {
-            error_log("LOGIN_SUCCESS - Session saved: " . json_encode($_SESSION['user']));
-        } else {
-            error_log("LOGIN_SUCCESS - Session NOT saved!");
+        // Guardar sesión en base de datos
+        try {
+            require_once __DIR__ . '/DatabaseManager.php';
+            $db = DatabaseManager::getInstance();
+            
+            // Guardar en base de datos
+            $sessionId = session_id();
+            $db->saveSession($sessionId, $userData);
+            
+            // También guardar en $_SESSION por compatibilidad
+            $_SESSION['user'] = $userData;
+            
+            error_log("LOGIN_SUCCESS: " . $users[$email][3] . " - IP: " . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
+            
+        } catch (Exception $e) {
+            error_log("Error saving session to database: " . $e->getMessage());
+            // Continuar de todos modos con sesión normal
+            $_SESSION['user'] = $userData;
         }
         
         // Usar header de redirección en lugar de JavaScript

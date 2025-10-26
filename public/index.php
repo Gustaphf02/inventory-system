@@ -177,27 +177,61 @@ if (session_status() === PHP_SESSION_NONE) {
                 error_log("Auth/me - Session ID: " . session_id());
                 error_log("Auth/me - Session data: " . json_encode($_SESSION));
                 
-                // Verificar si hay una sesión activa
+                // Verificar primero en $_SESSION
                 if (isset($_SESSION['user']) && !empty($_SESSION['user'])) {
-                    // Usuario autenticado
+                    // Usuario autenticado en sesión
                     $user = $_SESSION['user'];
-                    error_log("Auth/me - Usuario autenticado: " . json_encode($user));
-                echo json_encode([
+                    error_log("Auth/me - Usuario autenticado en sesión: " . json_encode($user));
+                    echo json_encode([
                         'success' => true,
                         'data' => $user,
                         'authenticated' => true
+                    ]);
+                } else {
+                    // Intentar recuperar de base de datos
+                    try {
+                        $db = DatabaseManager::getInstance();
+                        $sessionId = session_id();
+                        $user = $db->getSession($sessionId);
+                        
+                        if ($user) {
+                            // Usuario encontrado en BD, guardarlo en $_SESSION
+                            $_SESSION['user'] = $user;
+                            error_log("Auth/me - Usuario recuperado de BD: " . json_encode($user));
+                echo json_encode([
+                                'success' => true,
+                                'data' => $user,
+                                'authenticated' => true
                 ]);
             } else {
-                    // No hay sesión activa
-                    error_log("Auth/me - No hay sesión activa");
+                            error_log("Auth/me - No se encontró sesión en BD");
+                            echo json_encode([
+                                'success' => false,
+                                'error' => 'No hay sesión activa',
+                                'authenticated' => false,
+                                'data' => null
+                            ]);
+                        }
+                    } catch (Exception $e) {
+                        error_log("Auth/me - Error al recuperar sesión de BD: " . $e->getMessage());
+                        echo json_encode([
+                            'success' => false,
+                            'error' => 'No hay sesión activa',
+                            'authenticated' => false,
+                            'data' => null
+                        ]);
+                    }
+                }
+                break;
+            default:
+                error_log("Auth/me - No hay sesión en $_SESSION");
                 echo json_encode([
-                        'success' => false,
-                        'error' => 'No hay sesión activa',
+                    'success' => false,
+                    'error' => 'No hay sesión activa',
                     'authenticated' => false,
-                        'data' => null
+                    'data' => null
                 ]);
-            }
-            break;
+                break;
                 
             case 'products':
                 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
