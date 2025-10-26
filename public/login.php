@@ -31,10 +31,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'username' => $users[$email][3]
         ];
         
+        // Configurar cookies de sesión para que persistan
+        ini_set('session.cookie_lifetime', 86400); // 24 horas
+        ini_set('session.cookie_httponly', 1);
+        ini_set('session.cookie_samesite', 'Lax');
+        
         // Log simple del login exitoso (sin SystemLogger)
         error_log("LOGIN_SUCCESS: " . $users[$email][3] . " - IP: " . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
         
-        echo '<!DOCTYPE html><html><head><meta charset="utf-8"><script>localStorage.setItem("token","demo-token");window.location.href="/";</script></head><body></body></html>';
+        // Verificar que la sesión se guardó
+        if (isset($_SESSION['user'])) {
+            error_log("LOGIN_SUCCESS - Session saved: " . json_encode($_SESSION['user']));
+        } else {
+            error_log("LOGIN_SUCCESS - Session NOT saved!");
+        }
+        
+        // Usar header de redirección en lugar de JavaScript
+        header('Location: /');
         exit;
     } else {
         $error = 'Credenciales inválidas';
