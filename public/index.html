@@ -1364,13 +1364,18 @@
         }).mount('#app');
         
         // Hacer la instancia de Vue disponible globalmente
-        const appElement = document.querySelector('#app');
-        if (appElement && appElement.__vue__) {
-            window.app = appElement.__vue__;
-            console.log('Vue app montado correctamente en window.app');
-        } else {
-            console.error('Error: No se pudo acceder a la instancia de Vue');
-        }
+        // En Vue 3, necesitamos acceder al componente raíz
+        setTimeout(() => {
+            const appElement = document.querySelector('#app');
+            if (appElement && appElement._vnode && appElement._vnode.component) {
+                window.app = appElement._vnode.component.ctx;
+                console.log('Vue app montado correctamente en window.app');
+            } else {
+                console.warn('No se pudo acceder a la instancia de Vue - window.app puede no funcionar');
+                // Fallback: usar el elemento directamente
+                window.app = appElement;
+            }
+        }, 100);
         
         // CONTROL DE NAVEGACIÓN DEL NAVEGADOR (botones atrás/adelante)
         window.addEventListener('popstate', function(event) {
