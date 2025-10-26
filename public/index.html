@@ -1616,11 +1616,33 @@
             .then(data => {
                 console.log('Success:', data);
                 if (data.success) {
-                    alert('Producto guardado exitosamente!');
+                    // Mostrar mensaje de éxito más visible
+                    const successMessage = document.createElement('div');
+                    successMessage.className = 'alert alert-success alert-dismissible fade show position-fixed';
+                    successMessage.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+                    successMessage.innerHTML = `
+                        <strong>¡Éxito!</strong> Producto guardado correctamente.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                    document.body.appendChild(successMessage);
+                    
+                    // Auto-remover después de 5 segundos
+                    setTimeout(() => {
+                        if (successMessage.parentNode) {
+                            successMessage.parentNode.removeChild(successMessage);
+                        }
+                    }, 5000);
+                    
                     closeModal();
                     clearForm();
-                    // Recargar la página para mostrar el nuevo producto
-                    location.reload();
+                    
+                    // Recargar productos en lugar de la página completa
+                    if (window.app && window.app.loadProducts) {
+                        window.app.loadProducts();
+                        if (window.app.loadInventorySummary) {
+                            window.app.loadInventorySummary();
+                        }
+                    }
                 } else {
                     alert('Error del servidor: ' + (data.error || 'Error desconocido'));
                 }
@@ -1872,12 +1894,29 @@
             .then(data => {
                 console.log('Response data:', data);
                 if (data.success) {
-                    alert('Producto eliminado exitosamente');
+                    // Mostrar mensaje de éxito
+                    const successMessage = document.createElement('div');
+                    successMessage.className = 'alert alert-success alert-dismissible fade show position-fixed';
+                    successMessage.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+                    successMessage.innerHTML = `
+                        <strong>¡Éxito!</strong> Producto eliminado correctamente.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                    document.body.appendChild(successMessage);
+                    
+                    // Auto-remover después de 5 segundos
+                    setTimeout(() => {
+                        if (successMessage.parentNode) {
+                            successMessage.parentNode.removeChild(successMessage);
+                        }
+                    }, 5000);
+                    
                     // Recargar los productos
                     if (window.app && window.app.loadProducts) {
                         window.app.loadProducts();
-                    } else {
-                        location.reload();
+                        if (window.app.loadInventorySummary) {
+                            window.app.loadInventorySummary();
+                        }
                     }
                 } else {
                     alert('Error: ' + (data.error || 'Error desconocido'));
