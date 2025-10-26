@@ -3,6 +3,8 @@
 ini_set('session.cookie_lifetime', 86400); // 24 horas
 ini_set('session.cookie_httponly', 1);
 ini_set('session.cookie_samesite', 'Lax');
+ini_set('session.use_strict_mode', 1);
+ini_set('session.gc_maxlifetime', 86400); // 24 horas
 
 session_start();
 

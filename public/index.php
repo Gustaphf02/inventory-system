@@ -5,6 +5,13 @@ ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 error_reporting(0);
 
+// Configurar sesión ANTES de incluir otros archivos
+ini_set('session.cookie_lifetime', 86400); // 24 horas
+ini_set('session.cookie_httponly', 1);
+ini_set('session.cookie_samesite', 'Lax');
+ini_set('session.use_strict_mode', 1);
+ini_set('session.gc_maxlifetime', 86400); // 24 horas
+
 // Incluir middleware de autenticación limpio
 require_once __DIR__ . '/.auth.php';
 
