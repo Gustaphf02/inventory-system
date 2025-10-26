@@ -981,27 +981,31 @@
             methods: {
                 async loadSessionUser() {
                     try {
+                        console.log('🔍 Iniciando carga de sesión de usuario...');
                         const res = await fetch('/auth/me');
+                        console.log('📡 Respuesta del servidor:', res.status, res.statusText);
+                        
                         if (res.ok) {
                             const data = await res.json();
+                            console.log('📦 Datos recibidos:', data);
+                            
                             if (data.success && data.authenticated) {
                                 this.user = data.data;
-                                console.log('Usuario cargado desde sesión:', this.user);
+                                console.log('✅ Usuario autenticado cargado:', this.user);
                             } else {
-                                // No hay sesión activa - usar usuario demo por defecto
-                                console.log('No hay sesión activa - usando usuario demo');
+                                console.warn('⚠️ No hay sesión activa');
                                 this.user = { name: 'Usuario Demo', email: 'demo@inventory.com', role: 'admin' };
                             }
                         } else {
-                            // Error en la API - usar usuario demo por defecto
-                            console.log('Error en API de autenticación - usando usuario demo');
+                            console.warn('⚠️ Error en respuesta del servidor:', res.status);
                             this.user = { name: 'Usuario Demo', email: 'demo@inventory.com', role: 'admin' };
                         }
                     } catch (error) {
-                        console.error('Error al cargar usuario:', error);
-                        // Error de conexión - usar usuario demo por defecto
+                        console.error('❌ Error al cargar usuario:', error);
                         this.user = { name: 'Usuario Demo', email: 'demo@inventory.com', role: 'admin' };
                     }
+                    
+                    console.log('👤 Usuario final asignado:', this.user);
                 },
                 setView(view) {
                     this.currentView = view;
