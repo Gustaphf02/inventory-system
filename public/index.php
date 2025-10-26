@@ -214,24 +214,15 @@ if (session_status() === PHP_SESSION_NONE) {
                         }
                     } catch (Exception $e) {
                         error_log("Auth/me - Error al recuperar sesión de BD: " . $e->getMessage());
-                        echo json_encode([
+                echo json_encode([
                             'success' => false,
                             'error' => 'No hay sesión activa',
-                            'authenticated' => false,
-                            'data' => null
-                        ]);
-                    }
-                }
-                break;
-            default:
-                error_log("Auth/me - No hay sesión en $_SESSION");
-                echo json_encode([
-                    'success' => false,
-                    'error' => 'No hay sesión activa',
                     'authenticated' => false,
-                    'data' => null
+                            'data' => null
                 ]);
-                break;
+                    }
+            }
+            break;
                 
             case 'products':
                 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
