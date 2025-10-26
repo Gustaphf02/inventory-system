@@ -970,6 +970,10 @@
                 }
                 this._mounted = true;
                 console.log('Mounted ejecutándose por primera vez...');
+                
+                // Verificar si hay cookies de sesión antes de intentar cargar el usuario
+                console.log('🍪 Verificando cookies de sesión:', document.cookie);
+                
                 await this.loadSessionUser();
                 this.loadProducts();
                 this.loadCategories();
