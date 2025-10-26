@@ -981,22 +981,19 @@
                                 this.user = data.data;
                                 console.log('Usuario cargado desde sesión:', this.user);
                             } else {
-                                // No hay sesión activa - redirigir al login
-                                console.log('No hay sesión activa - redirigiendo al login');
-                                window.location.href = '/login.php';
-                                return;
+                                // No hay sesión activa - usar usuario demo por defecto
+                                console.log('No hay sesión activa - usando usuario demo');
+                                this.user = { name: 'Usuario Demo', email: 'demo@inventory.com', role: 'admin' };
                             }
                         } else {
-                            // Error en la API - redirigir al login
-                            console.log('Error en API de autenticación - redirigiendo al login');
-                            window.location.href = '/login.php';
-                            return;
+                            // Error en la API - usar usuario demo por defecto
+                            console.log('Error en API de autenticación - usando usuario demo');
+                            this.user = { name: 'Usuario Demo', email: 'demo@inventory.com', role: 'admin' };
                         }
                     } catch (error) {
                         console.error('Error al cargar usuario:', error);
-                        // Error de conexión - redirigir al login
-                        window.location.href = '/login.php';
-                        return;
+                        // Error de conexión - usar usuario demo por defecto
+                        this.user = { name: 'Usuario Demo', email: 'demo@inventory.com', role: 'admin' };
                     }
                 },
                 setView(view) {
@@ -1360,7 +1357,13 @@
         }).mount('#app');
         
         // Hacer la instancia de Vue disponible globalmente
-        window.app = document.querySelector('#app').__vue__;
+        const appElement = document.querySelector('#app');
+        if (appElement && appElement.__vue__) {
+            window.app = appElement.__vue__;
+            console.log('Vue app montado correctamente en window.app');
+        } else {
+            console.error('Error: No se pudo acceder a la instancia de Vue');
+        }
         
         // CONTROL DE NAVEGACIÓN DEL NAVEGADOR (botones atrás/adelante)
         window.addEventListener('popstate', function(event) {
