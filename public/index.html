@@ -295,7 +295,7 @@
                                 </span>
                                 <span v-else>
                                     No Autenticado<br>
-                                    <a href="/login.php" class="btn btn-sm btn-outline-light mt-2">
+                                    <a href="/login.php" class="btn btn-sm btn-outline-light mt-2" @click.prevent="goToLogin">
                                         <i class="fas fa-sign-in-alt me-1"></i>
                                         Iniciar Sesión
                                     </a>
@@ -1363,6 +1363,10 @@
                         console.log('Delete product:', product);
                         // Implementar eliminación
                     }
+                },
+                goToLogin() {
+                    console.log('🔐 Redirigiendo al login...');
+                    window.location.href = '/login.php';
                 },
                 navigateToPHP(path) {
                     // Verificar que el usuario esté autenticado y tenga permisos
