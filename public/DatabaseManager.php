@@ -74,6 +74,20 @@ class DatabaseManager {
             )
         ");
         
+        // Si la columna expira_at existe de versiones anteriores, renombrarla
+        $this->pdo->exec("
+            DO \$\$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1 FROM information_schema.columns 
+                    WHERE table_name = 'sessions' AND column_name = 'expira_at'
+                ) THEN
+                    ALTER TABLE sessions RENAME COLUMN expira_at TO expires_at;
+                END IF;
+            END
+            \$\$;
+        ");
+        
         $sql = "
             CREATE TABLE IF NOT EXISTS products (
                 id SERIAL PRIMARY KEY,
