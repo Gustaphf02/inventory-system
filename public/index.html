@@ -742,13 +742,13 @@
                                                 </td>
                                                 <td>
                                                     <div class="btn-group btn-group-sm">
-                                                        <button class="btn btn-outline-primary" :onclick="'editProduct(' + product.id + ')'">
+                                                        <button class="btn btn-outline-primary" @click="editProduct(product.id)">
                                                             <i class="fas fa-edit"></i>
                                                         </button>
-                                                        <button class="btn btn-outline-info" :onclick="'viewProduct(' + product.id + ')'">
+                                                        <button class="btn btn-outline-info" @click="viewProduct(product.id)">
                                                             <i class="fas fa-eye"></i>
                                                         </button>
-                                                        <button class="btn btn-outline-danger" :onclick="'deleteProduct(' + product.id + ')'">
+                                                        <button class="btn btn-outline-danger" @click="deleteProduct(product.id)">
                                                             <i class="fas fa-trash"></i>
                                                         </button>
                                                     </div>
@@ -1213,6 +1213,9 @@
                     document.getElementById('editProductDepartment').value = product.department || '';
                     document.getElementById('editProductPrice').value = product.price || 0;
                     document.getElementById('editProductStock').value = product.stock_quantity || 0;
+                    document.getElementById('editProductDescription').value = product.description || '';
+                    document.getElementById('editProductBarcode').value = product.barcode || '';
+                    document.getElementById('editProductStatus').value = product.status || 'active';
                     
                     // Establecer el ID global para la función updateProduct
                     window.currentEditProductId = product.id;
