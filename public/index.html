@@ -95,6 +95,31 @@
             border-radius: 8px;
             overflow: hidden;
         }
+        
+        /* Colores pastel y hover para filas de tabla */
+        .table tbody tr {
+            background-color: #fff;
+            transition: background-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .table tbody tr:hover {
+            background-color: #f8f9fa;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transform: translateY(-1px);
+        }
+        
+        .table tbody tr:nth-child(even) {
+            background-color: #f5f7fa;
+        }
+        
+        .table tbody tr:nth-child(even):hover {
+            background-color: #e8ebef;
+        }
+        
+        .table-responsive {
+            overflow-x: auto;
+            max-width: 100%;
+        }
         .btn-primary {
             background: linear-gradient(135deg, #FFD700 0%, #B8860B 100%);
             border: none;
@@ -1177,8 +1202,24 @@
                 },
 
                 editProduct(product) {
-                    this.editingProduct = { ...product };
-                    this.showEditProductModal = true;
+                    // Llenar el formulario del modal con los datos del producto
+                    document.getElementById('editProductSku').value = product.sku || '';
+                    document.getElementById('editProductName').value = product.name || '';
+                    document.getElementById('editProductBrand').value = product.brand || '';
+                    document.getElementById('editProductModel').value = product.model || '';
+                    document.getElementById('editProductSerial').value = product.serial_number || '';
+                    document.getElementById('editProductLabel').value = product.label || '';
+                    document.getElementById('editProductType').value = product.type || 'computo';
+                    document.getElementById('editProductDepartment').value = product.department || '';
+                    document.getElementById('editProductPrice').value = product.price || 0;
+                    document.getElementById('editProductStock').value = product.stock_quantity || 0;
+                    
+                    // Establecer el ID global para la función updateProduct
+                    window.currentEditProductId = product.id;
+                    
+                    // Mostrar el modal
+                    const modal = new bootstrap.Modal(document.getElementById('editProductModal'));
+                    modal.show();
                 },
 
                 updateProduct() {
