@@ -456,6 +456,33 @@ class DatabaseManager {
 
     public function getSession($sessionId) {
         try {
+            if (empty($sessionId)) {
+                error_log("getSession: sessionId is empty");
+                
+                // Si no hay sessionId, buscar la última sesión activa
+                $stmt = $this->pdo->prepare("
+                    SELECT * FROM sessions 
+                    WHERE expires_at > NOW()
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                ");
+                $stmt->execute();
+                $result = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+                if ($result) {
+                    error_log("Session found by latest: " . $result['id']);
+                    return [
+                        'email' => $result['email'],
+                        'name' => $result['name'],
+                        'role' => $result['role'],
+                        'username' => $result['username']
+                    ];
+                }
+                
+                error_log("No active session found in database");
+                return null;
+            }
+            
             $stmt = $this->pdo->prepare("
                 SELECT * FROM sessions 
                 WHERE id = ? AND expires_at > NOW()
