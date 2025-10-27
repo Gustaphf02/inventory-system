@@ -1865,22 +1865,13 @@
             console.log('Frontend updateProduct: Departamento seleccionado:', productData.department);
             
             // Validar campos requeridos
-            const requiredFields = ['name'];
+            const requiredFields = ['name', 'serial_number', 'label'];
             for (const field of requiredFields) {
                 if (!productData[field]) {
                     alert(`El campo ${field} es obligatorio`);
                     return;
                 }
             }
-            
-            // Asegurar que los campos opcionales no sean undefined
-            productData.description = productData.description || '';
-            productData.brand = productData.brand || '';
-            productData.model = productData.model || '';
-            productData.department = productData.department || '';
-            productData.label = productData.label || '';
-            productData.serial_number = productData.serial_number || '';
-            productData.barcode = productData.barcode || '';
             
             console.log('Enviando datos de actualización:', productData);
             
@@ -2053,7 +2044,7 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="editProductName" class="form-label">Nombre del Producto</label>
-                                    <input type="text" class="form-control" id="editProductName" required>
+                                    <input type="text" class="form-control" id="editProductName">
                                 </div>
                             </div>
                         </div>
@@ -2077,15 +2068,15 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="editProductSerial" class="form-label">Número de Serial</label>
-                                    <input type="text" class="form-control" id="editProductSerial" required>
-                                    <div class="form-text">(OBLIGATORIO - Debe ser único)</div>
+                                    <input type="text" class="form-control" id="editProductSerial">
+                                    <div class="form-text">(De debe ser único)</div>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="editProductLabel" class="form-label">Marbete</label>
-                                    <input type="text" class="form-control" id="editProductLabel" required>
-                                    <div class="form-text">(OBLIGATORIO - Debe ser único)</div>
+                                    <input type="text" class="form-control" id="editProductLabel">
+                                    <div class="form-text">(Debe ser único)</div>
                                 </div>
                             </div>
                         </div>
@@ -2094,7 +2085,7 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="editProductCategory" class="form-label">Categoría</label>
-                                    <select class="form-select" id="editProductCategory" required>
+                                    <select class="form-select" id="editProductCategory">
                                         <option value="1">Electrónica</option>
                                         <option value="2">Iluminación</option>
                                         <option value="3">Resistores</option>
@@ -2105,7 +2096,7 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="editProductSupplier" class="form-label">Proveedor</label>
-                                    <select class="form-select" id="editProductSupplier" required>
+                                    <select class="form-select" id="editProductSupplier">
                                         <option value="1">Mouser Electronics</option>
                                         <option value="2">Digi-Key</option>
                                         <option value="3">Arrow Electronics</option>
@@ -2119,7 +2110,7 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="editProductType" class="form-label">Tipo de Equipo</label>
-                                    <select class="form-select" id="editProductType" required>
+                                    <select class="form-select" id="editProductType">
                                         <option value="">Seleccionar tipo</option>
                                         <option value="telecomunicacion">Equipo de telecomunicación</option>
                                         <option value="computo">Equipos de cómputo</option>
@@ -2130,15 +2121,12 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="editProductDepartment" class="form-label">Departamento</label>
-                                    <select class="form-select" id="editProductDepartment" required>
+                                    <select class="form-select" id="editProductDepartment">
                                         <option value="Telemática">Telemática</option>
                                         <option value="S1">S1</option>
                                         <option value="Protección">Protección</option>
                                         <option value="S3">S3</option>
                                     </select>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
                                 </div>
                             </div>
                         </div>
@@ -2147,13 +2135,13 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="editProductPrice" class="form-label">Precio</label>
-                                    <input type="number" step="0.01" class="form-control" id="editProductPrice" required>
+                                    <input type="number" step="0.01" class="form-control" id="editProductPrice">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="editProductStock" class="form-label">Cantidad en Stock</label>
-                                    <input type="number" class="form-control" id="editProductStock" required>
+                                    <input type="number" class="form-control" id="editProductStock">
                                 </div>
                             </div>
                         </div>
@@ -2415,240 +2403,3 @@
         </div>
     </div>
 
-    <!-- Modal de Editar Producto -->
-    <div class="modal fade" id="editProductModal" tabindex="-1" v-if="showEditProductModal">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">
-                        <i class="fas fa-edit me-2"></i>
-                        Editar Producto
-                    </h5>
-                    <button type="button" class="btn-close" @click="cancelEdit"></button>
-                </div>
-                <div class="modal-body">
-                    <form @submit.prevent="updateProduct">
-                        <div class="row">
-                            <!-- Información Básica -->
-                            <div class="col-md-6">
-                                <h6 class="text-primary mb-3">
-                                    <i class="fas fa-info-circle me-2"></i>
-                                    Información Básica
-                                </h6>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">SKU *</label>
-                                    <input type="text" class="form-control" v-model="editingProduct.sku" required 
-                                           placeholder="Ej: RES-1K-001" maxlength="20">
-                                    <div class="form-text">Código único del producto</div>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">Nombre del Producto *</label>
-                                    <input type="text" class="form-control" v-model="editingProduct.name" required 
-                                           placeholder="Ej: Resistor 1K Ohm 1/4W">
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">Marca *</label>
-                                    <input type="text" class="form-control" v-model="editingProduct.brand" required 
-                                           placeholder="Ej: Vishay">
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">Modelo *</label>
-                                    <input type="text" class="form-control" v-model="editingProduct.model" required 
-                                           placeholder="Ej: CRCW0805">
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">Descripción</label>
-                                    <textarea class="form-control" v-model="editingProduct.description" rows="3" 
-                                              placeholder="Descripción detallada del producto"></textarea>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">Categoría *</label>
-                                    <select class="form-select" v-model="editingProduct.category_id" required>
-                                        <option value="">Seleccionar categoría</option>
-                                        <option v-for="category in categories" :key="category.id" :value="category.id">
-                                            {{ category.name }}
-                                        </option>
-                                    </select>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">Proveedor *</label>
-                                    <select class="form-select" v-model="editingProduct.supplier_id" required>
-                                        <option value="">Seleccionar proveedor</option>
-                                        <option v-for="supplier in suppliers" :key="supplier.id" :value="supplier.id">
-                                            {{ supplier.name }}
-                                        </option>
-                                    </select>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">Tipo de Equipo *</label>
-                                    <select class="form-select" v-model="editingProduct.type" required>
-                                        <option value="">Seleccionar tipo</option>
-                                        <option value="telecomunicacion">Equipo de telecomunicación</option>
-                                        <option value="computo">Equipos de cómputo</option>
-                                    </select>
-                                    <div class="form-text">Selecciona el tipo de equipo</div>
-                                </div>
-                            </div>
-                            
-                            <!-- Información de Inventario -->
-                            <div class="col-md-6">
-                                <h6 class="text-success mb-3">
-                                    <i class="fas fa-warehouse me-2"></i>
-                                    Información de Inventario
-                                </h6>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">Número de Serial *</label>
-                                    <input type="text" class="form-control" v-model="editingProduct.serial_number" required 
-                                           placeholder="Ej: RES001-2025-001" maxlength="30">
-                                    <div class="form-text">Número único de serie del producto</div>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">Departamento *</label>
-                                    <select class="form-select" v-model="editingProduct.department" required>
-                                        <option value="">Seleccionar departamento</option>
-                                        <option v-for="dept in departments" :key="dept.id" :value="dept.name">
-                                            {{ dept.name }}
-                                        </option>
-                                    </select>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">Ubicación Física *</label>
-                                    <select class="form-select" v-model="editingProduct.location" required>
-                                        <option value="">Seleccionar ubicación</option>
-                                        <option v-for="location in locations" :key="location.id" :value="location.name + ' - Estante 1'">
-                                            {{ location.name }} - Estante 1
-                                        </option>
-                                        <option v-for="location in locations" :key="location.id + '-2'" :value="location.name + ' - Estante 2'">
-                                            {{ location.name }} - Estante 2
-                                        </option>
-                                        <option v-for="location in locations" :key="location.id + '-3'" :value="location.name + ' - Estante 3'">
-                                            {{ location.name }} - Estante 3
-                                        </option>
-                                    </select>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">Marbete/Etiqueta *</label>
-                                    <input type="text" class="form-control" v-model="editingProduct.label" required 
-                                           placeholder="Ej: RES-1K-001" maxlength="20">
-                                    <div class="form-text">Etiqueta física del producto</div>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">Código de Barras</label>
-                                    <div class="input-group">
-                                        <input type="text" class="form-control" v-model="editingProduct.barcode" 
-                                               placeholder="Código de barras">
-                                        <button class="btn btn-outline-secondary" type="button" @click="generateEditBarcode">
-                                            <i class="fas fa-barcode"></i>
-                                        </button>
-                                    </div>
-                                    <div class="form-text">Código de barras para escaneo</div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <hr>
-                        
-                        <!-- Información Financiera -->
-                        <div class="row">
-                            <div class="col-md-6">
-                                <h6 class="text-warning mb-3">
-                                    <i class="fas fa-dollar-sign me-2"></i>
-                                    Información Financiera
-                                </h6>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">Precio de Costo *</label>
-                                    <div class="input-group">
-                                        <span class="input-group-text">$</span>
-                                        <input type="number" class="form-control" v-model="editingProduct.cost" required 
-                                               step="0.01" min="0" placeholder="0.00">
-                                    </div>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">Precio de Venta *</label>
-                                    <div class="input-group">
-                                        <span class="input-group-text">$</span>
-                                        <input type="number" class="form-control" v-model="editingProduct.price" required 
-                                               step="0.01" min="0" placeholder="0.00">
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <h6 class="text-info mb-3">
-                                    <i class="fas fa-boxes me-2"></i>
-                                    Control de Stock
-                                </h6>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">Cantidad en Stock *</label>
-                                    <input type="number" class="form-control" v-model="editingProduct.stock_quantity" required 
-                                           min="0" placeholder="0">
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">Stock Mínimo *</label>
-                                    <input type="number" class="form-control" v-model="editingProduct.min_stock_level" required 
-                                           min="0" placeholder="0">
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">Stock Máximo</label>
-                                    <input type="number" class="form-control" v-model="editingProduct.max_stock_level" 
-                                           min="0" placeholder="0">
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Información Adicional -->
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Fecha de Expiración</label>
-                                    <input type="date" class="form-control" v-model="editingProduct.expiration_date">
-                                    <div class="form-text">Opcional - Para productos perecederos</div>
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Estado</label>
-                                    <select class="form-select" v-model="editingProduct.status">
-                                        <option value="active">Activo</option>
-                                        <option value="inactive">Inactivo</option>
-                                        <option value="discontinued">Descontinuado</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @click="cancelEdit">
-                        <i class="fas fa-times me-1"></i>
-                        Cancelar
-                    </button>
-                    <button type="button" class="btn btn-primary" @click="updateProduct">
-                        <i class="fas fa-save me-1"></i>
-                        Actualizar Producto
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-</body>
-</html>
