@@ -577,13 +577,20 @@ if (session_status() === PHP_SESSION_NONE) {
                 
             case 'inventory/summary':
                 try {
-                    // Validar sesión activa
+                    // Validar sesión activa - primero en $_SESSION
                     if (!isset($_SESSION['user']) || empty($_SESSION['user'])) {
-                        echo json_encode([
-                            'success' => false,
-                            'error' => 'No autorizado - Debes iniciar sesión'
-                        ]);
-                        break;
+                        // Si no hay en $_SESSION, buscar en PostgreSQL
+                        $sessionId = session_id();
+                        $user = $db->getSession($sessionId);
+                        if (!$user) {
+                            echo json_encode([
+                                'success' => false,
+                                'error' => 'No autorizado - Debes iniciar sesión'
+                            ]);
+                            break;
+                        }
+                        // Guardar en $_SESSION
+                        $_SESSION['user'] = $user;
                     }
                     
                     // Obtener productos usando DatabaseManager
