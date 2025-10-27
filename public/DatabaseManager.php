@@ -60,12 +60,9 @@ class DatabaseManager {
     }
 
     private function createTablesIfNotExist() {
-        // Eliminar tabla de sesiones si existe (para recrear con schema correcto)
-        $this->pdo->exec("DROP TABLE IF EXISTS sessions");
-        
-        // Crear tabla de sesiones con el schema correcto
+        // Crear tabla de sesiones solo si no existe
         $this->pdo->exec("
-            CREATE TABLE sessions (
+            CREATE TABLE IF NOT EXISTS sessions (
                 id VARCHAR(255) PRIMARY KEY,
                 user_id INTEGER NOT NULL,
                 email VARCHAR(255) NOT NULL,
