@@ -999,26 +999,18 @@
                             } else {
                                 console.error('❌ NO HAY SESIÓN ACTIVA - Datos recibidos:', data);
                                 this.user = { name: 'No autenticado', email: '', role: 'guest' };
-                                // REDIRIGIR A LOGIN si no hay sesión
-                                console.log('🚪 No hay sesión activa, redirigiendo a login...');
-                                window.location.href = '/login.php';
-                                return;
+                                // NO redirigir automáticamente, solo mostrar el estado
+                                console.log('⚠️ Sin sesión activa, usuario en modo invitado');
                             }
                         } else {
                             console.error('❌ ERROR EN RESPUESTA DEL SERVIDOR:', res.status);
                             this.user = { name: 'Error de conexión', email: '', role: 'guest' };
-                            // REDIRIGIR A LOGIN si error del servidor
-                            console.log('🚪 Error del servidor, redirigiendo a login...');
-                            window.location.href = '/login.php';
-                            return;
+                            console.log('⚠️ Error del servidor, usuario en modo invitado');
                         }
                     } catch (error) {
                         console.error('❌ Error al cargar usuario:', error);
                         this.user = { name: 'Error de conexión', email: '', role: 'guest' };
-                        // REDIRIGIR A LOGIN si error de conexión
-                        console.log('🚪 Error de conexión, redirigiendo a login...');
-                        window.location.href = '/login.php';
-                        return;
+                        console.log('⚠️ Error de conexión, usuario en modo invitado');
                     }
                     
                     console.log('👤 Usuario final asignado:', this.user);
