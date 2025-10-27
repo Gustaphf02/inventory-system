@@ -60,9 +60,12 @@ class DatabaseManager {
     }
 
     private function createTablesIfNotExist() {
-        // Crear tabla de sesiones primero
+        // Eliminar tabla de sesiones si existe (para recrear con schema correcto)
+        $this->pdo->exec("DROP TABLE IF EXISTS sessions");
+        
+        // Crear tabla de sesiones con el schema correcto
         $this->pdo->exec("
-            CREATE TABLE IF NOT EXISTS sessions (
+            CREATE TABLE sessions (
                 id VARCHAR(255) PRIMARY KEY,
                 user_id INTEGER NOT NULL,
                 email VARCHAR(255) NOT NULL,
@@ -72,20 +75,6 @@ class DatabaseManager {
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 expires_at TIMESTAMP NOT NULL
             )
-        ");
-        
-        // Si la columna expira_at existe de versiones anteriores, renombrarla
-        $this->pdo->exec("
-            DO \$\$
-            BEGIN
-                IF EXISTS (
-                    SELECT 1 FROM information_schema.columns 
-                    WHERE table_name = 'sessions' AND column_name = 'expira_at'
-                ) THEN
-                    ALTER TABLE sessions RENAME COLUMN expira_at TO expires_at;
-                END IF;
-            END
-            \$\$;
         ");
         
         $sql = "
