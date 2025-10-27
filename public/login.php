@@ -36,23 +36,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'username' => $users[$email][3]
         ];
         
-        // Guardar sesión en base de datos
+        // Guardar sesión en base de datos Y en $_SESSION
         try {
             require_once __DIR__ . '/DatabaseManager.php';
             $db = DatabaseManager::getInstance();
             
-            // Guardar en base de datos
             $sessionId = session_id();
-            $db->saveSession($sessionId, $userData);
+            error_log("LOGIN: Session ID: $sessionId");
+            error_log("LOGIN: Saving session to database...");
             
-            // También guardar en $_SESSION por compatibilidad
+            $db->saveSession($sessionId, $userData);
             $_SESSION['user'] = $userData;
             
-            error_log("LOGIN_SUCCESS: " . $users[$email][3] . " - IP: " . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
+            error_log("LOGIN_SUCCESS: User=" . $users[$email][3] . ", Session=$sessionId, IP=" . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
             
         } catch (Exception $e) {
-            error_log("Error saving session to database: " . $e->getMessage());
-            // Continuar de todos modos con sesión normal
+            error_log("LOGIN_ERROR: " . $e->getMessage());
             $_SESSION['user'] = $userData;
         }
         
