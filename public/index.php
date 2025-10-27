@@ -190,12 +190,12 @@ if (session_status() === PHP_SESSION_NONE) {
                         if ($user) {
                             // Guardar en $_SESSION para próxima vez
                             $_SESSION['user'] = $user;
-                            echo json_encode([
+                echo json_encode([
                                 'success' => true,
                                 'data' => $user,
                                 'authenticated' => true
-                            ]);
-                        } else {
+                ]);
+            } else {
                             echo json_encode([
                                 'success' => false,
                                 'error' => 'No hay sesión activa',
@@ -205,14 +205,14 @@ if (session_status() === PHP_SESSION_NONE) {
                         }
                     }
                 } catch (Exception $e) {
-                    echo json_encode([
+                echo json_encode([
                         'success' => false,
                         'error' => 'Error al recuperar sesión: ' . $e->getMessage(),
-                        'authenticated' => false,
+                    'authenticated' => false,
                         'data' => null
-                    ]);
-                }
-                break;
+                ]);
+            }
+            break;
                 
             case 'products':
                 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
@@ -222,11 +222,11 @@ if (session_status() === PHP_SESSION_NONE) {
                         $sessionId = session_id();
                         $user = $db->getSession($sessionId);
                         if (!$user) {
-                            echo json_encode([
+            echo json_encode([
                                 'success' => false,
                                 'error' => 'No autorizado - Debes iniciar sesión'
-                            ]);
-                            break;
+            ]);
+            break;
                         }
                         // Guardar en $_SESSION
                         $_SESSION['user'] = $user;
@@ -324,25 +324,6 @@ if (session_status() === PHP_SESSION_NONE) {
                         'data' => $newProduct
                     ]);
                 } elseif ($_SERVER['REQUEST_METHOD'] === 'PUT') {
-                    // Obtener instancia de DatabaseManager
-                    try {
-                        $db = DatabaseManager::getInstance();
-                    } catch (Exception $e) {
-                        error_log("Error obteniendo DatabaseManager: " . $e->getMessage());
-                    }
-                    
-                    // Validar sesión activa - primero en $_SESSION
-                    if (!isset($_SESSION['user']) || empty($_SESSION['user'])) {
-                        // Si no hay en $_SESSION, buscar en PostgreSQL
-                        $sessionId = session_id();
-                        if (isset($db)) {
-                            $user = $db->getSession($sessionId);
-                            if ($user) {
-                                $_SESSION['user'] = $user;
-                            }
-                        }
-                    }
-                    
                     $input = json_decode(file_get_contents('php://input'), true);
                     if (!$input) {
                         error_log("Products PUT: Datos JSON inválidos");
@@ -401,23 +382,32 @@ if (session_status() === PHP_SESSION_NONE) {
                     ];
                     
                     // Actualizar producto usando DatabaseManager
+                    error_log("Products PUT: Llamando a updateProduct con ID=$productId y datos: " . json_encode($updateData));
                     $success = $db->updateProduct($productId, $updateData);
+                    error_log("Products PUT: Resultado de updateProduct: " . ($success ? 'true' : 'false'));
                     
                     if ($success) {
                         // Obtener el producto actualizado
                         $updatedProduct = $db->getProductById($productId);
+                        error_log("Products PUT: Producto actualizado recuperado: " . json_encode($updatedProduct));
+                        
+                        if (!$updatedProduct) {
+                            error_log("Products PUT: ERROR - No se pudo recuperar el producto actualizado");
+                            echo json_encode(['success' => false, 'error' => 'Producto actualizado pero no se pudo recuperar']);
+            break;
+                        }
                         
                         safeLog('INFO', 'PRODUCT', 'UPDATE', "Producto actualizado: {$updatedProduct['sku']} - {$updatedProduct['name']}");
                         error_log("Products PUT: Producto actualizado exitosamente con ID: $productId");
-                        
+            
             echo json_encode([
                 'success' => true,
                             'message' => 'Producto actualizado exitosamente',
                             'data' => $updatedProduct
                         ]);
                     } else {
-                        error_log("Products PUT: Error actualizando producto con ID: $productId");
-                        echo json_encode(['success' => false, 'error' => 'Error al actualizar el producto']);
+                        error_log("Products PUT: ERROR - updateProduct devolvió false para ID: $productId");
+                        echo json_encode(['success' => false, 'error' => 'Error al actualizar el producto en la base de datos']);
                     }
                 } elseif ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
                     $input = json_decode(file_get_contents('php://input'), true);
