@@ -324,20 +324,23 @@ if (session_status() === PHP_SESSION_NONE) {
                         'data' => $newProduct
                     ]);
                 } elseif ($_SERVER['REQUEST_METHOD'] === 'PUT') {
+                    // Obtener instancia de DatabaseManager
+                    try {
+                        $db = DatabaseManager::getInstance();
+                    } catch (Exception $e) {
+                        error_log("Error obteniendo DatabaseManager: " . $e->getMessage());
+                    }
+                    
                     // Validar sesión activa - primero en $_SESSION
                     if (!isset($_SESSION['user']) || empty($_SESSION['user'])) {
                         // Si no hay en $_SESSION, buscar en PostgreSQL
                         $sessionId = session_id();
-                        $user = $db->getSession($sessionId);
-                        if (!$user) {
-                            echo json_encode([
-                                'success' => false,
-                                'error' => 'No autorizado - Debes iniciar sesión'
-                            ]);
-                            break;
+                        if (isset($db)) {
+                            $user = $db->getSession($sessionId);
+                            if ($user) {
+                                $_SESSION['user'] = $user;
+                            }
                         }
-                        // Guardar en $_SESSION
-                        $_SESSION['user'] = $user;
                     }
                     
                     $input = json_decode(file_get_contents('php://input'), true);
