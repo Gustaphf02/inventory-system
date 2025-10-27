@@ -602,7 +602,8 @@ if (session_status() === PHP_SESSION_NONE) {
                     
                     foreach ($products as $product) {
                         $totalValue += $product['price'] * $product['stock_quantity'];
-                        if ($product['stock_quantity'] <= $product['min_stock_level']) {
+                        // Producto con stock bajo si: stock = 0 o stock <= min_stock_level
+                        if ($product['stock_quantity'] == 0 || ($product['min_stock_level'] > 0 && $product['stock_quantity'] <= $product['min_stock_level'])) {
                             $lowStockProducts[] = $product;
                         }
                         
