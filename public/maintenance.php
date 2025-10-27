@@ -1,6 +1,6 @@
 <?php
+session_start();
 require_once __DIR__ . '/.auth.php';
-require_once __DIR__ . '/includes/SystemLogger.php';
 // Admin y Manager
 requireRole(['admin','manager']);
 /**

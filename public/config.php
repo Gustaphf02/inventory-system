@@ -1,11 +1,8 @@
 <?php
+session_start();
 require_once __DIR__ . '/.auth.php';
-require_once __DIR__ . '/includes/SystemLogger.php';
 // Solo Admin y Manager
 requireRole(['admin','manager']);
-
-// Log del acceso a configuración
-SystemLogger::logUserActivity('CONFIG_ACCESS', "Acceso a página de configuración");
 /**
  * Sistema de Inventario - Configuración del Sistema
  * Sección completa de configuraciones administrativas
