@@ -740,10 +740,15 @@
                                                         {{ product.department || 'Sin asignar' }}
                                                     </span>
                                                 </td>
+                                                <td>
+                                                    <span class="badge" :class="getStockBadgeClass(product.stock_quantity, product.min_stock_level)">
+                                                        {{ product.stock_quantity }}
+                                                    </span>
+                                                </td>
                                                 <td>${{ formatNumber(product.price) }}</td>
                                                 <td>
-                                                    <span class="badge badge-status" :class="getStatusBadgeClass(product.stock_quantity, product.min_stock_level)">
-                                                        {{ getStatusText(product.stock_quantity, product.min_stock_level) }}
+                                                    <span class="badge" :class="product.status === 'active' ? 'bg-success' : product.status === 'maintenance' ? 'bg-warning text-dark' : 'bg-secondary'">
+                                                        {{ product.status === 'active' ? 'Activo' : product.status === 'maintenance' ? 'Mantenimiento' : 'Inactivo' }}
                                                     </span>
                                                 </td>
                                                 <td>
