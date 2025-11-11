@@ -1396,28 +1396,25 @@
                     // Esta función ya no se usa, se reemplazó por closeModal() de JavaScript vanilla
                 },
 
-                editProduct(product) {
-                    // Llenar el formulario del modal con los datos del producto
-                    document.getElementById('editProductSku').value = product.sku || '';
-                    document.getElementById('editProductName').value = product.name || '';
-                    document.getElementById('editProductBrand').value = product.brand || '';
-                    document.getElementById('editProductModel').value = product.model || '';
-                    document.getElementById('editProductSerial').value = product.serial_number || '';
-                    document.getElementById('editProductLabel').value = product.label || '';
-                    document.getElementById('editProductType').value = product.type || 'computo';
-                    document.getElementById('editProductDepartment').value = product.department || '';
-                    document.getElementById('editProductPrice').value = product.price || 0;
-                    document.getElementById('editProductStock').value = product.stock_quantity || 0;
-                    document.getElementById('editProductDescription').value = product.description || '';
-                    document.getElementById('editProductBarcode').value = product.barcode || '';
-                    document.getElementById('editProductStatus').value = product.status || 'active';
+                editProduct(productOrId) {
+                    let product = null;
                     
-                    // Establecer el ID global para la función updateProduct
-                    window.currentEditProductId = product.id;
+                    if (productOrId && typeof productOrId === 'object') {
+                        product = productOrId;
+                    } else {
+                        const idToFind = productOrId ?? null;
+                        product = this.products.find(p => p.id == idToFind) 
+                            || this.filteredProducts.find(p => p.id == idToFind) 
+                            || this.filteredInventory.find(p => p.id == idToFind);
+                    }
                     
-                    // Mostrar el modal
-                    const modal = new bootstrap.Modal(document.getElementById('editProductModal'));
-                    modal.show();
+                    if (!product) {
+                        console.error('editProduct: producto no encontrado', productOrId);
+                        alert('No se pudo cargar el producto para editar.');
+                        return;
+                    }
+                    
+                    openEditModalWithProduct(product);
                 },
 
                 updateProduct() {
@@ -1601,10 +1598,27 @@
                     // Implementar modal de visualización
                 },
 
-                deleteProduct(product) {
-                    if (confirm('¿Estás seguro de eliminar el producto "' + product.name + '"?')) {
-                        console.log('Delete product:', product);
-                        // Implementar eliminación
+                deleteProduct(productOrId) {
+                    let targetProduct = null;
+                    
+                    if (productOrId && typeof productOrId === 'object') {
+                        targetProduct = productOrId;
+                    } else {
+                        targetProduct = this.products.find(p => p.id == productOrId)
+                            || this.filteredProducts.find(p => p.id == productOrId)
+                            || this.filteredInventory.find(p => p.id == productOrId);
+                    }
+                    
+                    const productId = targetProduct ? targetProduct.id : productOrId;
+                    const productName = targetProduct ? targetProduct.name || 'este producto' : 'este producto';
+                    
+                    if (!productId) {
+                        alert('No se pudo determinar el producto a eliminar.');
+                        return;
+                    }
+                    
+                    if (confirm(`¿Estás seguro de eliminar el producto "${productName}"?`)) {
+                        window.deleteProduct(productId);
                     }
                 },
                 goToLogin() {
@@ -2077,81 +2091,146 @@
             document.getElementById('productStatus').value = 'active';
         }
 
-        // Variables globales para edición
+        // Variables y utilidades globales para edición
         let currentEditProductId = null;
 
-        function editProduct(productId) {
-            console.log('editProduct called with ID:', productId);
-            
-            // Buscar el producto en los datos de Vue o cargar desde el servidor
-            let product = null;
-            if (window.app && window.app.products) {
-                product = window.app.products.find(p => p.id == productId);
+        function resolveProduct(productOrId) {
+            if (!productOrId) {
+                return null;
             }
-            
+
+            if (typeof productOrId === 'object') {
+                return productOrId;
+            }
+
+            const id = parseInt(productOrId, 10);
+            if (Number.isNaN(id)) {
+                return null;
+            }
+
+            if (window.app && Array.isArray(window.app.products)) {
+                const fromProducts = window.app.products.find(p => p.id == id);
+                if (fromProducts) {
+                    return fromProducts;
+                }
+            }
+
+            if (window.app && Array.isArray(window.app.filteredProducts)) {
+                const fromFiltered = window.app.filteredProducts.find(p => p.id == id);
+                if (fromFiltered) {
+                    return fromFiltered;
+                }
+            }
+
+            if (window.app && Array.isArray(window.app.filteredInventory)) {
+                const fromInventory = window.app.filteredInventory.find(p => p.id == id);
+                if (fromInventory) {
+                    return fromInventory;
+                }
+            }
+
+            return null;
+        }
+
+        function openEditModalWithProduct(product) {
             if (!product) {
-                console.log('Producto no encontrado en memoria, cargando desde servidor...');
-                // Cargar producto desde el servidor
-                fetch('/products')
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            const foundProduct = data.data.find(p => p.id == productId);
-                            if (foundProduct) {
-                                fillEditForm(foundProduct);
-                            } else {
-                                alert('Producto no encontrado');
-                            }
-                        } else {
-                            alert('Error al cargar productos');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('Error al cargar productos');
-                    });
                 return;
             }
-            
+
             fillEditForm(product);
+            const modalElement = document.getElementById('editProductModal');
+            if (!modalElement) {
+                console.error('openEditModalWithProduct: modal no encontrado');
+                return;
+            }
+
+            const modalInstance = bootstrap.Modal.getOrCreateInstance(modalElement);
+            modalInstance.show();
+        }
+
+        function editProduct(productOrId) {
+            const product = resolveProduct(productOrId);
+
+            if (product) {
+                openEditModalWithProduct(product);
+                return;
+            }
+
+            console.log('Producto no encontrado en memoria, cargando desde servidor...');
+            fetch('/products')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && Array.isArray(data.data)) {
+                        const foundProduct = data.data.find(p => p.id == productOrId);
+                        if (foundProduct) {
+                            openEditModalWithProduct(foundProduct);
+                        } else {
+                            alert('Producto no encontrado');
+                        }
+                    } else {
+                        alert('Error al cargar productos');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error al cargar productos');
+                });
+        }
+
+        function ensureSelectValue(selectId, value) {
+            const select = document.getElementById(selectId);
+            if (!select) {
+                return;
+            }
+
+            if (value === null || value === undefined || value === '') {
+                select.value = '';
+                return;
+            }
+
+            const exists = Array.from(select.options).some(option => option.value == value);
+            if (!exists) {
+                const newOption = new Option(value, value, true, true);
+                select.add(newOption);
+            } else {
+                select.value = value;
+            }
         }
 
         function fillEditForm(product) {
-            // Guardar ID para actualización
             currentEditProductId = product.id;
-            
-            // Llenar el formulario de edición
-            document.getElementById('editProductSku').value = product.sku;
-            document.getElementById('editProductName').value = product.name || '';
-            document.getElementById('editProductBrand').value = product.brand || '';
-            document.getElementById('editProductModel').value = product.model || '';
-            document.getElementById('editProductSerial').value = product.serial_number || '';
-            document.getElementById('editProductLabel').value = product.label || '';
-            document.getElementById('editProductCategory').value = product.category_id || '1';
-            document.getElementById('editProductSupplier').value = product.supplier_id || '1';
-            document.getElementById('editProductType').value = product.type || 'computo';
-            document.getElementById('editProductDepartment').value = product.department || '';
-            document.getElementById('editProductPrice').value = product.price || '';
-            document.getElementById('editProductStock').value = product.stock_quantity || '';
-            document.getElementById('editProductDescription').value = product.description || '';
-            document.getElementById('editProductBarcode').value = product.barcode || '';
-            document.getElementById('editProductStatus').value = product.status || 'active';
-            
-            // Mostrar el modal
-            const modal = document.getElementById('editProductModal');
-            if (modal) {
-                modal.style.display = 'block';
-                modal.style.backgroundColor = 'rgba(0,0,0,0.5)';
-                modal.classList.add('show');
-            }
+
+            const assignValue = (id, value) => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.value = value ?? '';
+                }
+            };
+
+            assignValue('editProductSku', product.sku);
+            assignValue('editProductName', product.name);
+            assignValue('editProductBrand', product.brand);
+            assignValue('editProductModel', product.model);
+            assignValue('editProductSerial', product.serial_number);
+            assignValue('editProductLabel', product.label);
+            assignValue('editProductPrice', product.price);
+            assignValue('editProductStock', product.stock_quantity);
+            assignValue('editProductDescription', product.description);
+            assignValue('editProductBarcode', product.barcode);
+            assignValue('editProductStatus', product.status || 'active');
+
+            ensureSelectValue('editProductCategory', product.category_id ?? '1');
+            ensureSelectValue('editProductSupplier', product.supplier_id ?? '1');
+            ensureSelectValue('editProductType', product.type || 'computo');
+            ensureSelectValue('editProductDepartment', product.department || '');
         }
 
         function closeEditModal() {
             console.log('closeEditModal called');
-            const modal = document.getElementById('editProductModal');
-            if (modal) {
-                modal.style.display = 'none';
-                modal.classList.remove('show');
+            const modalElement = document.getElementById('editProductModal');
+            if (modalElement) {
+                const modalInstance = bootstrap.Modal.getInstance(modalElement) || bootstrap.Modal.getOrCreateInstance(modalElement);
+                modalInstance.hide();
             }
             currentEditProductId = null;
         }
@@ -2165,22 +2244,27 @@
             }
             
             // Recopilar datos del formulario
+            const getTrimmedValue = (id) => {
+                const element = document.getElementById(id);
+                return element && typeof element.value === 'string' ? element.value.trim() : '';
+            };
+
             const productData = {
                 id: currentEditProductId,
-                name: document.getElementById('editProductName').value,
-                description: document.getElementById('editProductDescription').value,
-                brand: document.getElementById('editProductBrand').value,
-                model: document.getElementById('editProductModel').value,
-                price: document.getElementById('editProductPrice').value,
-                stock_quantity: document.getElementById('editProductStock').value,
-                category_id: document.getElementById('editProductCategory').value,
-                supplier_id: document.getElementById('editProductSupplier').value,
-                type: document.getElementById('editProductType').value,
-                serial_number: document.getElementById('editProductSerial').value,
-                department: document.getElementById('editProductDepartment').value,
-                label: document.getElementById('editProductLabel').value,
-                barcode: document.getElementById('editProductBarcode').value,
-                status: document.getElementById('editProductStatus').value
+                name: getTrimmedValue('editProductName'),
+                description: getTrimmedValue('editProductDescription'),
+                brand: getTrimmedValue('editProductBrand'),
+                model: getTrimmedValue('editProductModel'),
+                price: parseFloat(getTrimmedValue('editProductPrice')) || 0,
+                stock_quantity: parseInt(getTrimmedValue('editProductStock'), 10) || 0,
+                category_id: getTrimmedValue('editProductCategory') || '1',
+                supplier_id: getTrimmedValue('editProductSupplier') || '1',
+                type: getTrimmedValue('editProductType') || 'computo',
+                serial_number: getTrimmedValue('editProductSerial'),
+                department: getTrimmedValue('editProductDepartment'),
+                label: getTrimmedValue('editProductLabel'),
+                barcode: getTrimmedValue('editProductBarcode'),
+                status: getTrimmedValue('editProductStatus') || 'active'
             };
             
             console.log('Frontend updateProduct: Datos a enviar:', productData);
@@ -2445,6 +2529,7 @@
                                 <div class="mb-3">
                                     <label for="editProductDepartment" class="form-label">Departamento</label>
                                     <select class="form-select" id="editProductDepartment">
+                                        <option value="">Sin asignar</option>
                                         <option value="Telemática">Telemática</option>
                                         <option value="S1">S1</option>
                                         <option value="Protección">Protección</option>
