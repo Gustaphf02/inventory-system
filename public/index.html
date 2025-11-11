@@ -736,8 +736,8 @@
                                                 <td><span class="badge bg-secondary">{{ product.category_name || 'Sin categoría' }}</span></td>
                                                 <td><span class="badge bg-info">{{ product.supplier_name || 'Sin proveedor' }}</span></td>
                                                 <td>
-                                                    <span class="badge" :class="getStockBadgeClass(product.stock_quantity, product.min_stock_level)">
-                                                        {{ product.stock_quantity }}
+                                                    <span class="badge bg-warning text-dark">
+                                                        {{ product.department || 'Sin asignar' }}
                                                     </span>
                                                 </td>
                                                 <td>${{ formatNumber(product.price) }}</td>
