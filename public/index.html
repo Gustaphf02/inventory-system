@@ -794,6 +794,32 @@
                                 </button>
                             </div>
                             <div class="card-body">
+                                <!-- Filtros y Exportar -->
+                                <div class="row mb-3">
+                                    <div class="col-md-4">
+                                        <label for="filterDepartment" class="form-label">Filtrar por Departamento</label>
+                                        <select class="form-select" id="filterDepartment" v-model="existingEquipmentFilters.department" @change="filterExistingEquipment">
+                                            <option value="">Todos los departamentos</option>
+                                            <option v-for="dept in uniqueDepartments" :key="dept" :value="dept">
+                                                {{ dept }}
+                                            </option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="filterNumericAssign" class="form-label">Filtrar por Asig. Numérica</label>
+                                        <input type="text" class="form-control" id="filterNumericAssign" 
+                                               v-model="existingEquipmentFilters.numericAssign" 
+                                               @input="filterExistingEquipment"
+                                               placeholder="Buscar por Asig. Numérica...">
+                                    </div>
+                                    <div class="col-md-4 d-flex align-items-end">
+                                        <button class="btn btn-success w-100" @click="exportExistingEquipmentToExcel">
+                                            <i class="fas fa-file-excel me-2"></i>
+                                            Exportar a Excel
+                                        </button>
+                                    </div>
+                                </div>
+                                
                                 <!-- Tabla de Equipos Existentes -->
                                 <div class="table-responsive">
                                     <table class="table table-hover">
@@ -815,7 +841,7 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <tr v-for="product in existingEquipment" :key="product.id">
+                                            <tr v-for="product in filteredExistingEquipment" :key="product.id">
                                                 <td><code>{{ product.sku }}</code></td>
                                                 <td><strong>{{ product.name || 'Sin nombre' }}</strong></td>
                                                 <td>{{ product.brand || 'Sin marca' }}</td>
@@ -851,10 +877,15 @@
                                                     </div>
                                                 </td>
                                             </tr>
-                                            <tr v-if="existingEquipment.length === 0">
+                                            <tr v-if="filteredExistingEquipment.length === 0">
                                                 <td colspan="13" class="text-center text-muted py-4">
                                                     <i class="fas fa-inbox fa-2x mb-2"></i><br>
-                                                    No hay equipos existentes registrados. Haz clic en "Agregar Producto" para comenzar.
+                                                    <span v-if="existingEquipment.length === 0">
+                                                        No hay equipos existentes registrados. Haz clic en "Agregar Producto" para comenzar.
+                                                    </span>
+                                                    <span v-else>
+                                                        No se encontraron equipos con los filtros aplicados.
+                                                    </span>
                                                 </td>
                                             </tr>
                                         </tbody>
@@ -1089,7 +1120,12 @@
                     showEditProductModal: false,
                     editingProduct: null,
                     _mounted: false, // Flag para prevenir múltiples mountings
-                    existingEquipment: [] // Equipos existentes
+                    existingEquipment: [], // Equipos existentes
+                    filteredExistingEquipment: [], // Equipos existentes filtrados
+                    existingEquipmentFilters: {
+                        department: '',
+                        numericAssign: ''
+                    }
                 }
             },
             async mounted() {
@@ -1205,6 +1241,8 @@
                             this.filteredInventory = data.data;
                             // Actualizar equipos existentes (solo los que tienen type === 'existing_equipment')
                             this.existingEquipment = data.data.filter(product => product.type === 'existing_equipment');
+                            // Inicializar equipos filtrados
+                            this.filterExistingEquipment();
                         }
                     } catch (error) {
                         console.error('Error loading products:', error);
@@ -1563,6 +1601,66 @@
                     return statusMap[status] || status || 'Desconocido';
                 },
 
+                filterExistingEquipment() {
+                    let filtered = [...this.existingEquipment];
+                    
+                    // Filtrar por departamento
+                    if (this.existingEquipmentFilters.department) {
+                        filtered = filtered.filter(product => 
+                            product.department && 
+                            product.department.toLowerCase() === this.existingEquipmentFilters.department.toLowerCase()
+                        );
+                    }
+                    
+                    // Filtrar por Asig. Numérica (barcode)
+                    if (this.existingEquipmentFilters.numericAssign) {
+                        const searchTerm = this.existingEquipmentFilters.numericAssign.toLowerCase();
+                        filtered = filtered.filter(product => 
+                            product.barcode && 
+                            product.barcode.toLowerCase().includes(searchTerm)
+                        );
+                    }
+                    
+                    this.filteredExistingEquipment = filtered;
+                },
+
+                exportExistingEquipmentToExcel() {
+                    // Los datos a exportar son los que están filtrados
+                    const dataToExport = this.filteredExistingEquipment;
+                    
+                    if (dataToExport.length === 0) {
+                        alert('No hay datos para exportar con los filtros aplicados.');
+                        return;
+                    }
+                    
+                    // Preparar los datos para Excel
+                    const excelData = dataToExport.map(product => ({
+                        'SKU': product.sku || '',
+                        'Nombre': product.name || '',
+                        'Marca': product.brand || '',
+                        'Modelo': product.model || '',
+                        'Serie': product.serial_number || '',
+                        'Departamento': product.department || 'Sin asignar',
+                        'Cantidad': product.stock_quantity || 0,
+                        'Especificaciones/EXT': this.extractSpecs(product.description) || '',
+                        'Sub-Especific': this.extractSubSpecs(product.description) || '',
+                        'Asig. Numérica': product.barcode || 'Sin asignar',
+                        'Descripción': this.extractDescription(product.description) || '',
+                        'Estado': this.getEquipmentStatusText(product.status)
+                    }));
+                    
+                    // Llamar a la función de exportación (se implementará después)
+                    this.downloadExcel(excelData, 'Equipos_Existentes');
+                },
+
+                downloadExcel(data, filename) {
+                    // Esta función se completará cuando el usuario especifique el formato del Excel
+                    // Por ahora, mostrar un mensaje
+                    console.log('Datos a exportar:', data);
+                    console.log('Nombre del archivo:', filename);
+                    alert('Función de exportación a Excel lista. Los datos están preparados. Por favor, especifica el formato deseado del Excel.');
+                },
+
                 viewProduct(product) {
                     console.log('View product:', product);
                     // Implementar modal de visualización
@@ -1609,127 +1707,19 @@
                 
                 setView(view) {
                     this.currentView = view;
-                    if (view === 'sports-calendar') {
-                        // Generar fechas automáticamente cuando se accede al calendario
-                        if (this.matchdays.length === 0) {
-                            this.generateMatchdays();
-                        }
+                    if (view === 'products') {
+                        this.loadProducts();
+                    } else if (view === 'existing-equipment') {
+                        this.loadProducts(); // Cargar productos para actualizar equipos existentes
                     }
-                },
-                
-                // Sports Calendar Methods
-                generateMatchdays() {
-                    // Generar fechas automáticamente (7 fechas para 8 equipos)
-                    const numTeams = this.teams.length;
-                    const numMatchdays = numTeams - 1;
-                    this.matchdays = [];
-                    
-                    for (let i = 0; i < numMatchdays; i++) {
-                        const matches = [];
-                        // Generar partidos para cada fecha usando algoritmo round-robin
-                        for (let j = 0; j < numTeams / 2; j++) {
-                            const home = (i + j) % (numTeams - 1);
-                            const away = (numTeams - 1 - j + i) % (numTeams - 1);
-                            const homeTeam = home === numTeams - 1 ? numTeams - 1 : home;
-                            const awayTeam = away === numTeams - 1 ? numTeams - 1 : away;
-                            
-                            matches.push({
-                                id: `match-${i}-${j}`,
-                                homeTeam: this.teams[homeTeam],
-                                awayTeam: this.teams[awayTeam],
-                                homeScore: 0,
-                                awayScore: 0,
-                                matchday: i + 1
-                            });
-                        }
-                        this.matchdays.push(matches);
-                    }
-                    
-                    // Generar tabla de eliminación automáticamente
-                    this.generateEliminationTable();
-                    
-                    // Cargar partidos de la primera fecha
-                    if (this.matchdays.length > 0) {
-                        this.loadMatchesForMatchday(1);
-                    }
-                },
-                
-                generateEliminationTable() {
-                    // Generar tabla de eliminación basada en los equipos
-                    this.eliminationTable = this.teams.map(team => ({
-                        name: team,
-                        played: 0,
-                        wins: 0,
-                        draws: 0,
-                        losses: 0,
-                        goalsFor: 0,
-                        goalsAgainst: 0,
-                        goalDiff: 0,
-                        points: 0
-                    }));
-                    
-                    // Calcular estadísticas basadas en resultados
-                    this.matchdays.forEach(matchday => {
-                        matchday.forEach(match => {
-                            if (match.homeScore !== null && match.awayScore !== null && (match.homeScore > 0 || match.awayScore > 0)) {
-                                const homeTeam = this.eliminationTable.find(t => t.name === match.homeTeam);
-                                const awayTeam = this.eliminationTable.find(t => t.name === match.awayTeam);
-                                
-                                if (homeTeam && awayTeam) {
-                                    homeTeam.played++;
-                                    awayTeam.played++;
-                                    homeTeam.goalsFor += match.homeScore;
-                                    homeTeam.goalsAgainst += match.awayScore;
-                                    awayTeam.goalsFor += match.awayScore;
-                                    awayTeam.goalsAgainst += match.homeScore;
-                                    
-                                    if (match.homeScore > match.awayScore) {
-                                        homeTeam.wins++;
-                                        homeTeam.points += 3;
-                                        awayTeam.losses++;
-                                    } else if (match.homeScore < match.awayScore) {
-                                        awayTeam.wins++;
-                                        awayTeam.points += 3;
-                                        homeTeam.losses++;
-                                    } else {
-                                        homeTeam.draws++;
-                                        awayTeam.draws++;
-                                        homeTeam.points += 1;
-                                        awayTeam.points += 1;
-                                    }
-                                    
-                                    homeTeam.goalDiff = homeTeam.goalsFor - homeTeam.goalsAgainst;
-                                    awayTeam.goalDiff = awayTeam.goalsFor - awayTeam.goalsAgainst;
-                                }
-                            }
-                        });
-                    });
-                    
-                    // Ordenar por puntos, diferencia de goles, goles a favor
-                    this.eliminationTable.sort((a, b) => {
-                        if (b.points !== a.points) return b.points - a.points;
-                        if (b.goalDiff !== a.goalDiff) return b.goalDiff - a.goalDiff;
-                        return b.goalsFor - a.goalsFor;
-                    });
-                },
-                
-                loadMatchesForMatchday(matchdayNumber) {
-                    this.currentMatchday = matchdayNumber;
-                    if (this.matchdays && this.matchdays[matchdayNumber - 1]) {
-                        this.currentMatches = this.matchdays[matchdayNumber - 1];
-                    } else {
-                        this.currentMatches = [];
-                    }
-                },
-                
-                updateTable() {
-                    // Actualizar tabla de eliminación cuando se actualizan resultados
-                    this.generateEliminationTable();
-                },
-                
-                updateMatchResult(match) {
-                    // Actualizar resultado del partido
-                    this.generateEliminationTable();
+                }
+            },
+            computed: {
+                uniqueDepartments() {
+                    const departments = this.existingEquipment
+                        .map(product => product.department)
+                        .filter(dept => dept && dept.trim() !== '');
+                    return [...new Set(departments)].sort();
                 }
             }
         }).mount('#app');
