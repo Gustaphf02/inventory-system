@@ -1659,7 +1659,35 @@
                         // Intentar cargar el archivo de formato si existe
                         let templateWorkbook = null;
                         let templateSheet = null;
-                        let templateHeaders = [];
+                        let dataStartRow = 15; // Fila donde empiezan los datos (fila 15 = índice 14)
+                        // Mapeo de columnas del template a nuestras claves de datos
+                        let columnMapping = {
+                            'Cantidad': 'Cantidad',
+                            'Especificaciones/EXT.': 'Especificaciones/EXT',
+                            'Especificaciones/EXT': 'Especificaciones/EXT',
+                            'Sub-Especific.': 'Sub-Especific',
+                            'Sub-Especific': 'Sub-Especific',
+                            'Asig. Numerica': 'Asig. Numérica',
+                            'Asig. Numérica': 'Asig. Numérica',
+                            'Descripción': 'Descripción',
+                            'Marca': 'Marca',
+                            'Modelo': 'Modelo',
+                            'Serie': 'Serie',
+                            'Estado': 'Estado'
+                        };
+                        
+                        // Mapeo inverso: nuestras claves de datos a columnas del template
+                        let dataKeyMapping = {
+                            'Cantidad': 'Cantidad',
+                            'Especificaciones/EXT': 'Especificaciones/EXT.',
+                            'Sub-Especific': 'Sub-Especific.',
+                            'Asig. Numérica': 'Asig. Numerica',
+                            'Descripción': 'Descripción',
+                            'Marca': 'Marca',
+                            'Modelo': 'Modelo',
+                            'Serie': 'Serie',
+                            'Estado': 'Estado'
+                        };
                         
                         try {
                             const response = await fetch('/formato.xlsx');
@@ -1668,20 +1696,22 @@
                                 templateWorkbook = XLSX.read(arrayBuffer, { type: 'array', cellStyles: true });
                                 templateSheet = templateWorkbook.Sheets[templateWorkbook.SheetNames[0]];
                                 
-                                // Extraer encabezados de la primera fila del template
-                                const range = XLSX.utils.decode_range(templateSheet['!ref'] || 'A1:Z1');
-                                for (let col = range.s.c; col <= range.e.c; col++) {
-                                    const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
-                                    const cell = templateSheet[cellAddress];
-                                    if (cell && cell.v) {
-                                        templateHeaders.push(cell.v.toString().trim());
-                                    } else {
-                                        templateHeaders.push('');
+                                // Buscar la fila donde están los encabezados de datos (buscar "Cantidad")
+                                const range = XLSX.utils.decode_range(templateSheet['!ref'] || 'A1:Z100');
+                                for (let row = 0; row <= range.e.r; row++) {
+                                    for (let col = 0; col <= range.e.c; col++) {
+                                        const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+                                        const cell = templateSheet[cellAddress];
+                                        if (cell && cell.v && cell.v.toString().trim() === 'Cantidad') {
+                                            dataStartRow = row;
+                                            console.log('Fila de encabezados encontrada en:', dataStartRow);
+                                            break;
+                                        }
                                     }
+                                    if (dataStartRow !== 15) break;
                                 }
                                 
                                 console.log('Formato cargado desde formato.xlsx');
-                                console.log('Encabezados del template:', templateHeaders);
                             }
                         } catch (e) {
                             console.log('No se encontró formato.xlsx, usando formato por defecto:', e);
@@ -1689,56 +1719,153 @@
                         
                         // Crear un nuevo workbook
                         const wb = XLSX.utils.book_new();
-                        
-                        // Si tenemos template, usar su estructura; si no, usar los datos directamente
                         let ws;
+                        
                         if (templateWorkbook && templateSheet) {
-                            // Crear worksheet basado en el template
-                            // Primero, crear una copia del template
-                            const templateData = XLSX.utils.sheet_to_json(templateSheet, { header: 1, defval: '' });
+                            // Copiar TODO el template completo (incluyendo logos, encabezados, estructura)
+                            // Crear una copia profunda del worksheet manualmente
+                            ws = {};
                             
-                            // Reemplazar los datos manteniendo la estructura del template
-                            // La primera fila son los encabezados del template
-                            const newData = [templateData[0]]; // Mantener encabezados del template
-                            
-                            // Mapear nuestros datos a las columnas del template
-                            data.forEach(row => {
-                                const newRow = [];
-                                templateHeaders.forEach((header, index) => {
-                                    // Buscar el valor correspondiente en nuestros datos
-                                    const value = row[header] || row[Object.keys(row).find(k => k.toLowerCase() === header.toLowerCase())] || '';
-                                    newRow.push(value);
-                                });
-                                newData.push(newRow);
-                            });
-                            
-                            // Crear worksheet desde los datos estructurados
-                            ws = XLSX.utils.aoa_to_sheet(newData);
-                            
-                            // Copiar TODOS los estilos y formato del template
-                            Object.keys(templateSheet).forEach(cellAddress => {
-                                if (!cellAddress.startsWith('!')) {
-                                    const templateCell = templateSheet[cellAddress];
-                                    
-                                    // Aplicar estilos a todas las celdas correspondientes
-                                    if (ws[cellAddress]) {
-                                        // Copiar estilo completo
-                                        if (templateCell.s) {
-                                            ws[cellAddress].s = JSON.parse(JSON.stringify(templateCell.s));
-                                        }
-                                        // Copiar formato de número
-                                        if (templateCell.z) {
-                                            ws[cellAddress].z = templateCell.z;
-                                        }
-                                        // Copiar tipo
-                                        if (templateCell.t) {
-                                            ws[cellAddress].t = templateCell.t;
-                                        }
+                            // Copiar todas las celdas del template
+                            Object.keys(templateSheet).forEach(key => {
+                                if (key.startsWith('!')) {
+                                    // Copiar propiedades especiales
+                                    if (key === '!ref' || key === '!merges' || key === '!cols' || key === '!rows') {
+                                        ws[key] = JSON.parse(JSON.stringify(templateSheet[key]));
+                                    } else {
+                                        ws[key] = templateSheet[key];
                                     }
+                                } else {
+                                    // Copiar celdas con todos sus atributos
+                                    const cell = templateSheet[key];
+                                    ws[key] = {
+                                        t: cell.t,
+                                        v: cell.v,
+                                        w: cell.w,
+                                        f: cell.f,
+                                        r: cell.r,
+                                        h: cell.h,
+                                        c: cell.c,
+                                        z: cell.z,
+                                        l: cell.l,
+                                        s: cell.s ? JSON.parse(JSON.stringify(cell.s)) : undefined
+                                    };
                                 }
                             });
                             
-                            // Copiar propiedades del template
+                            // Limpiar las celdas de datos existentes (desde dataStartRow + 1 en adelante)
+                            const range = XLSX.utils.decode_range(templateSheet['!ref'] || 'A1:Z100');
+                            for (let row = dataStartRow + 1; row <= range.e.r; row++) {
+                                for (let col = 0; col <= range.e.c; col++) {
+                                    const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+                                    if (ws[cellAddress]) {
+                                        delete ws[cellAddress];
+                                    }
+                                }
+                            }
+                            
+                            // Obtener los encabezados de la fila de datos
+                            const headerRow = dataStartRow;
+                            const headerMapping = {};
+                            for (let col = 0; col <= range.e.c; col++) {
+                                const cellAddress = XLSX.utils.encode_cell({ r: headerRow, c: col });
+                                const cell = templateSheet[cellAddress];
+                                if (cell && cell.v) {
+                                    const headerName = cell.v.toString().trim();
+                                    headerMapping[col] = headerName;
+                                }
+                            }
+                            
+                            console.log('Mapeo de columnas:', headerMapping);
+                            console.log('Datos a insertar:', data);
+                            console.log('Fila de inicio de datos:', dataStartRow);
+                            
+                            // Insertar los datos en las filas correctas
+                            data.forEach((dataRow, dataIndex) => {
+                                console.log(`Insertando fila ${dataIndex + 1}:`, dataRow);
+                                const targetRow = dataStartRow + 1 + dataIndex;
+                                
+                                // Mapear cada columna según el header
+                                Object.keys(headerMapping).forEach(colIndex => {
+                                    const headerName = headerMapping[colIndex];
+                                    const cellAddress = XLSX.utils.encode_cell({ r: targetRow, c: parseInt(colIndex) });
+                                    
+                                    // Buscar el valor correspondiente en nuestros datos
+                                    let value = '';
+                                    
+                                    // Normalizar el nombre del header (quitar puntos, espacios extra)
+                                    const normalizedHeader = headerName.replace(/\./g, '').trim().toLowerCase();
+                                    
+                                    // Buscar directamente en nuestros datos
+                                    const directMatch = Object.keys(dataRow).find(k => {
+                                        const normalizedKey = k.replace(/\./g, '').trim().toLowerCase();
+                                        return normalizedKey === normalizedHeader || 
+                                               normalizedKey.includes(normalizedHeader) ||
+                                               normalizedHeader.includes(normalizedKey);
+                                    });
+                                    
+                                    if (directMatch) {
+                                        value = dataRow[directMatch];
+                                    } else {
+                                        // Intentar con el mapeo
+                                        const mappedKey = dataKeyMapping[Object.keys(dataKeyMapping).find(k => {
+                                            const normalizedKey = k.replace(/\./g, '').trim().toLowerCase();
+                                            return normalizedKey === normalizedHeader;
+                                        })];
+                                        if (mappedKey) {
+                                            value = dataRow[mappedKey] || '';
+                                        }
+                                    }
+                                    
+                                    // Si es número, asegurarse de que sea número
+                                    if (typeof value === 'string' && !isNaN(value) && value !== '') {
+                                        value = parseFloat(value);
+                                    }
+                                    
+                                    // Crear la celda con el valor y copiar el estilo
+                                    // Buscar una celda de ejemplo en esa columna para copiar el estilo
+                                    let styleCell = null;
+                                    // Intentar obtener estilo de la primera fila de datos del template (si existe)
+                                    const exampleRow = dataStartRow + 1;
+                                    const styleCellAddress = XLSX.utils.encode_cell({ r: exampleRow, c: parseInt(colIndex) });
+                                    if (templateSheet[styleCellAddress]) {
+                                        styleCell = templateSheet[styleCellAddress];
+                                    } else {
+                                        // Si no hay, usar el estilo del header
+                                        const headerCellAddress = XLSX.utils.encode_cell({ r: dataStartRow, c: parseInt(colIndex) });
+                                        styleCell = templateSheet[headerCellAddress];
+                                    }
+                                    
+                                    // Crear la celda
+                                    ws[cellAddress] = {
+                                        t: typeof value === 'number' ? 'n' : (value === '' ? 's' : 's'),
+                                        v: value === '' ? '' : value
+                                    };
+                                    
+                                    // Copiar estilo completo si existe
+                                    if (styleCell) {
+                                        if (styleCell.s) {
+                                            ws[cellAddress].s = JSON.parse(JSON.stringify(styleCell.s));
+                                        }
+                                        if (styleCell.z) {
+                                            ws[cellAddress].z = styleCell.z;
+                                        }
+                                        if (styleCell.t) {
+                                            ws[cellAddress].t = styleCell.t;
+                                        }
+                                    }
+                                });
+                            });
+                            
+                            // Ajustar el rango para incluir nuestros datos
+                            const newMaxRow = dataStartRow + data.length;
+                            const currentRange = XLSX.utils.decode_range(ws['!ref'] || 'A1:Z100');
+                            ws['!ref'] = XLSX.utils.encode_range({
+                                s: { r: 0, c: 0 },
+                                e: { r: Math.max(newMaxRow, currentRange.e.r), c: currentRange.e.c }
+                            });
+                            
+                            // Copiar todas las propiedades del template
                             if (templateSheet['!cols']) {
                                 ws['!cols'] = JSON.parse(JSON.stringify(templateSheet['!cols']));
                             }
@@ -1748,16 +1875,7 @@
                             if (templateSheet['!merges']) {
                                 ws['!merges'] = JSON.parse(JSON.stringify(templateSheet['!merges']));
                             }
-                            if (templateSheet['!ref']) {
-                                // Ajustar el rango para incluir nuestros datos
-                                const templateRange = XLSX.utils.decode_range(templateSheet['!ref']);
-                                const dataRows = data.length;
-                                const newRange = {
-                                    s: { r: 0, c: 0 },
-                                    e: { r: dataRows, c: templateRange.e.c }
-                                };
-                                ws['!ref'] = XLSX.utils.encode_range(newRange);
-                            }
+                            
                         } else {
                             // Sin template: usar formato por defecto
                             ws = XLSX.utils.json_to_sheet(data);
@@ -1772,7 +1890,7 @@
                         }
                         
                         // Agregar la hoja al workbook
-                        XLSX.utils.book_append_sheet(wb, ws, 'Equipos Existentes');
+                        XLSX.utils.book_append_sheet(wb, ws, templateWorkbook ? templateWorkbook.SheetNames[0] : 'Equipos Existentes');
                         
                         // Generar el archivo Excel con estilos
                         const excelBuffer = XLSX.write(wb, { 
