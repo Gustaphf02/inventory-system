@@ -32,6 +32,14 @@
             display: block !important;
         }
         
+        #addExistingEquipmentModal {
+            z-index: 1055;
+        }
+        
+        #addExistingEquipmentModal.show {
+            display: block !important;
+        }
+        
         .sidebar {
             min-height: 100vh;
             background: linear-gradient(135deg, #2c2c2c 0%, #1a1a1a 100%);
@@ -264,6 +272,12 @@
                                         <a class="dropdown-item" :class="{active: currentView === 'products' && productFilter === 'computo'}" @click="setView('products'); setProductFilter('computo')">
                                             <i class="fas fa-desktop me-2"></i>
                                             Equipos de cómputo
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" :class="{active: currentView === 'existing-equipment'}" @click="setView('existing-equipment')">
+                                            <i class="fas fa-server me-2"></i>
+                                            Equipos existentes
                                         </a>
                                     </li>
                                 </ul>
@@ -772,6 +786,25 @@
                         </div>
                     </div>
 
+                    <!-- Existing Equipment View -->
+                    <div v-if="currentView === 'existing-equipment'">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
+                                <h5 class="card-title mb-0">
+                                    <i class="fas fa-server me-2"></i>
+                                    Equipos existentes
+                                </h5>
+                                <button class="btn btn-primary mt-2 mt-md-0" onclick="openModalForExistingEquipment()">
+                                    <i class="fas fa-plus me-1"></i>
+                                    Agregar Producto
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <!-- Contenido del formulario para equipos existentes -->
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Categories View -->
                     <div v-if="currentView === 'categories'">
                         <div class="card">
@@ -1264,6 +1297,7 @@
                     const titles = {
                         'dashboard': 'Dashboard',
                         'products': 'Productos',
+                        'existing-equipment': 'Equipos existentes',
                         'categories': 'Categorías',
                         'suppliers': 'Proveedores',
                         'reports': 'Reportes',
@@ -1277,7 +1311,19 @@
                     this.loading = true;
                     try {
                         const response = await fetch('/products');
-                        const data = await response.json();
+                        const responseText = await response.text();
+                        let data;
+                        try {
+                            data = JSON.parse(responseText);
+                        } catch (e) {
+                            console.error('Error parsing products response:', e);
+                            console.error('Response was:', responseText.substring(0, 200));
+                            if (responseText.includes('<!DOCTYPE')) {
+                                console.error('El servidor está devolviendo HTML en lugar de JSON. Asegúrate de acceder a través de index.php, no index.html directamente.');
+                            }
+                            this.loading = false;
+                            return;
+                        }
                         if (data.success) {
                             this.products = data.data;
                             this.filterProducts(); // Aplicar filtro actual
@@ -1855,16 +1901,254 @@
             }
         }
 
+        function openModalForExistingEquipment() {
+            console.log('openModalForExistingEquipment called');
+            
+            // Limpiar el formulario
+            document.getElementById('existingEquipmentForm').reset();
+            
+            // Abrir el modal usando Bootstrap
+            const modalElement = document.getElementById('addExistingEquipmentModal');
+            if (modalElement) {
+                const modalInstance = bootstrap.Modal.getOrCreateInstance(modalElement);
+                modalInstance.show();
+            } else {
+                console.error('Modal addExistingEquipmentModal not found');
+            }
+        }
+
+        function closeExistingEquipmentModal() {
+            console.log('closeExistingEquipmentModal called');
+            const modalElement = document.getElementById('addExistingEquipmentModal');
+            if (modalElement) {
+                const modalInstance = bootstrap.Modal.getInstance(modalElement);
+                if (modalInstance) {
+                    modalInstance.hide();
+                }
+            }
+            // Limpiar el formulario al cerrar
+            document.getElementById('existingEquipmentForm').reset();
+        }
+
+        function saveExistingEquipment() {
+            console.log('saveExistingEquipment called');
+            
+            // Validar el formulario
+            const form = document.getElementById('existingEquipmentForm');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+            
+            // Validar campos con patrones específicos
+            const description = document.getElementById('existingEquipmentDescription').value.trim();
+            if (description && !/^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/.test(description)) {
+                alert('La descripción solo puede contener letras');
+                return;
+            }
+            
+            const department = document.getElementById('existingEquipmentDepartment').value.trim();
+            if (!/^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/.test(department)) {
+                alert('El departamento solo puede contener letras');
+                return;
+            }
+            
+            const brand = document.getElementById('existingEquipmentBrand').value.trim();
+            if (brand && !/^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/.test(brand)) {
+                alert('La marca solo puede contener letras');
+                return;
+            }
+            
+            // Generar SKU único automáticamente
+            const autoSKU = generateUniqueSKU();
+            
+            // Generar marbete único basado en el serial o SKU
+            const serial = document.getElementById('existingEquipmentSerial').value.trim();
+            const label = serial || autoSKU;
+            
+            // Construir descripción completa con specs y sub_specs
+            const specs = document.getElementById('existingEquipmentSpecs').value.trim();
+            const subSpecs = document.getElementById('existingEquipmentSubSpecs').value.trim();
+            let fullDescription = description;
+            if (specs || subSpecs) {
+                const specsText = [];
+                if (specs) specsText.push(`Especificaciones/EXT: ${specs}`);
+                if (subSpecs) specsText.push(`Sub-Especific: ${subSpecs}`);
+                if (fullDescription) {
+                    fullDescription = `${fullDescription}\n${specsText.join('\n')}`;
+                } else {
+                    fullDescription = specsText.join('\n');
+                }
+            }
+            
+            // Mapear estado del formulario al formato del backend
+            const statusMap = {
+                'operativo': 'active',
+                'criterio_tecnico': 'maintenance',
+                'descarte': 'inactive'
+            };
+            const formStatus = document.getElementById('existingEquipmentStatus').value;
+            const mappedStatus = statusMap[formStatus] || 'active';
+            
+            // Mapear datos del formulario al formato que espera el backend
+            const productData = {
+                sku: autoSKU,
+                name: brand && document.getElementById('existingEquipmentModel').value.trim() 
+                    ? `${brand} ${document.getElementById('existingEquipmentModel').value.trim()}`.trim()
+                    : brand || document.getElementById('existingEquipmentModel').value.trim() || 'Equipo Existente',
+                description: fullDescription || '',
+                brand: brand || '',
+                model: document.getElementById('existingEquipmentModel').value.trim() || '',
+                serial_number: serial || autoSKU,
+                department: department,
+                label: label,
+                barcode: document.getElementById('existingEquipmentNumericAssign').value.trim() || `INV-${autoSKU}`,
+                stock_quantity: parseInt(document.getElementById('existingEquipmentQuantity').value, 10) || 1,
+                price: 0,
+                cost: 0,
+                category_id: 1, // Por defecto
+                supplier_id: 1, // Por defecto
+                type: 'computo', // Por defecto
+                status: mappedStatus
+            };
+            
+            console.log('Datos del equipo existente a guardar:', productData);
+            
+            // Validar campos requeridos
+            if (!productData.serial_number || !productData.label) {
+                alert('Error: No se pudo generar el serial o marbete. Por favor intente nuevamente.');
+                return;
+            }
+            
+            // Enviar datos al servidor
+            fetch('/products', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(productData)
+            })
+            .then(async response => {
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                
+                // Obtener el texto de la respuesta primero para debugging
+                const responseText = await response.text();
+                console.log('Response text:', responseText);
+                
+                if (!response.ok) {
+                    // Intentar parsear como JSON si es posible
+                    let errorMessage = `HTTP error! status: ${response.status}`;
+                    try {
+                        const errorData = JSON.parse(responseText);
+                        errorMessage = errorData.error || errorMessage;
+                    } catch (e) {
+                        // Si no es JSON, usar el texto de la respuesta
+                        if (responseText && responseText.length < 200) {
+                            errorMessage += ': ' + responseText;
+                        }
+                    }
+                    throw new Error(errorMessage);
+                }
+                
+                // Intentar parsear como JSON
+                try {
+                    return JSON.parse(responseText);
+                } catch (e) {
+                    console.error('Error parsing JSON:', e);
+                    throw new Error('El servidor no devolvió JSON válido: ' + responseText.substring(0, 100));
+                }
+            })
+            .then(data => {
+                console.log('Success:', data);
+                if (data.success) {
+                    // Mostrar mensaje de éxito
+                    const successMessage = document.createElement('div');
+                    successMessage.className = 'alert alert-success alert-dismissible fade show position-fixed';
+                    successMessage.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+                    successMessage.innerHTML = `
+                        <strong>¡Éxito!</strong> Equipo existente guardado correctamente.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                    document.body.appendChild(successMessage);
+                    
+                    // Auto-remover después de 5 segundos
+                    setTimeout(() => {
+                        if (successMessage.parentNode) {
+                            successMessage.parentNode.removeChild(successMessage);
+                        }
+                    }, 5000);
+                    
+                    // Cerrar el modal
+                    closeExistingEquipmentModal();
+                    
+                    // Recargar productos
+                    if (window.app && window.app.loadProducts) {
+                        window.app.loadProducts();
+                        if (window.app.loadInventorySummary) {
+                            window.app.loadInventorySummary();
+                        }
+                    }
+                } else {
+                    // Mostrar mensaje de error
+                    const errorMessage = document.createElement('div');
+                    errorMessage.className = 'alert alert-danger alert-dismissible fade show position-fixed';
+                    errorMessage.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+                    errorMessage.innerHTML = `
+                        <strong>Error:</strong> ${data.error || 'Error desconocido'}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                    document.body.appendChild(errorMessage);
+                    
+                    setTimeout(() => {
+                        if (errorMessage.parentNode) {
+                            errorMessage.parentNode.removeChild(errorMessage);
+                        }
+                    }, 8000);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                let errorMessage = error.message;
+                
+                // Mensaje más específico para error 405
+                if (errorMessage.includes('405')) {
+                    errorMessage = 'Error 405: Método no permitido. Esto generalmente ocurre cuando se accede directamente a index.html en lugar de index.php. Por favor, asegúrate de acceder a la aplicación a través de index.php o usa un servidor PHP local.';
+                }
+                
+                // Mostrar mensaje de error más visible
+                const errorAlert = document.createElement('div');
+                errorAlert.className = 'alert alert-danger alert-dismissible fade show position-fixed';
+                errorAlert.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 400px; max-width: 600px;';
+                errorAlert.innerHTML = `
+                    <strong>Error al guardar:</strong><br>
+                    ${errorMessage}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                document.body.appendChild(errorAlert);
+                
+                setTimeout(() => {
+                    if (errorAlert.parentNode) {
+                        errorAlert.parentNode.removeChild(errorAlert);
+                    }
+                }, 10000);
+            });
+        }
+
         // Cerrar modal al hacer clic fuera
         window.onclick = function(event) {
             const addModal = document.getElementById('addProductModal');
             const editModal = document.getElementById('editProductModal');
+            const existingEquipmentModal = document.getElementById('addExistingEquipmentModal');
             
             if (event.target === addModal) {
                 closeModal();
             }
             if (event.target === editModal) {
                 closeEditModal();
+            }
+            if (event.target === existingEquipmentModal) {
+                closeExistingEquipmentModal();
             }
         }
 
@@ -2587,6 +2871,127 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancelar</button>
                     <button type="button" class="btn btn-primary" onclick="updateProduct()">Guardar Cambios</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Agregar Equipo Existente -->
+    <div class="modal fade" id="addExistingEquipmentModal" tabindex="-1" style="display: none;">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-server me-2"></i>
+                        Agregar Equipo Existente
+                    </h5>
+                    <button type="button" class="btn-close" onclick="closeExistingEquipmentModal()"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="existingEquipmentForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="existingEquipmentDepartment" class="form-label">Departamento donde está ubicado *</label>
+                                    <input type="text" class="form-control" id="existingEquipmentDepartment" required 
+                                           pattern="[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+" 
+                                           placeholder="Ej: Telemática"
+                                           title="Solo se permiten letras">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="existingEquipmentQuantity" class="form-label">Cantidad *</label>
+                                    <input type="number" class="form-control" id="existingEquipmentQuantity" required 
+                                           min="1" step="1"
+                                           placeholder="Ej: 5">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="existingEquipmentSpecs" class="form-label">Especificaciones/EXT</label>
+                                    <input type="text" class="form-control" id="existingEquipmentSpecs" 
+                                           pattern="[A-Za-z0-9\s]+"
+                                           placeholder="Ej: EXT-123 o ABC456"
+                                           title="Solo letras y números">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="existingEquipmentSubSpecs" class="form-label">Sub-Especific</label>
+                                    <input type="text" class="form-control" id="existingEquipmentSubSpecs" 
+                                           pattern="[A-Za-z0-9\s]+"
+                                           placeholder="Ej: SUB-001 o XYZ789"
+                                           title="Solo letras y números">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="existingEquipmentNumericAssign" class="form-label">Asig. Numérica</label>
+                                    <input type="text" class="form-control" id="existingEquipmentNumericAssign" 
+                                           placeholder="Ej: 12345">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="existingEquipmentStatus" class="form-label">Estado *</label>
+                                    <select class="form-select" id="existingEquipmentStatus" required>
+                                        <option value="">Seleccionar estado</option>
+                                        <option value="operativo">Operativo</option>
+                                        <option value="criterio_tecnico">Criterio Técnico</option>
+                                        <option value="descarte">Descarte</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="existingEquipmentDescription" class="form-label">Descripción</label>
+                            <textarea class="form-control" id="existingEquipmentDescription" rows="3" 
+                                      placeholder="Descripción del equipo (solo letras)"
+                                      title="Solo se permiten letras"></textarea>
+                            <div class="form-text">Solo se permiten letras</div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="existingEquipmentBrand" class="form-label">Marca</label>
+                                    <input type="text" class="form-control" id="existingEquipmentBrand" 
+                                           pattern="[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+"
+                                           placeholder="Ej: Motorola"
+                                           title="Solo se permiten letras">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="existingEquipmentModel" class="form-label">Modelo</label>
+                                    <input type="text" class="form-control" id="existingEquipmentModel" 
+                                           pattern="[A-Za-z0-9\s\-]+"
+                                           placeholder="Ej: R7 o ABC-123"
+                                           title="Letras y números permitidos">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="existingEquipmentSerial" class="form-label">Serie</label>
+                            <input type="text" class="form-control" id="existingEquipmentSerial" 
+                                   pattern="[A-Za-z0-9\s\-]+"
+                                   placeholder="Ej: SER-12345 o ABC123"
+                                   title="Letras y números permitidos">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeExistingEquipmentModal()">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="saveExistingEquipment()">Guardar</button>
                 </div>
             </div>
         </div>
