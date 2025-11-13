@@ -1785,6 +1785,33 @@
                                     // Copiar estilo completo (muy importante)
                                     if (templateCell.s) {
                                         ws[cellAddress].s = JSON.parse(JSON.stringify(templateCell.s));
+                                        
+                                        // Asegurarse de que tenga bordes si está en la zona de la tabla
+                                        const cellPos = XLSX.utils.decode_cell(cellAddress);
+                                        if (cellPos.r >= dataStartRow) {
+                                            // Está en la zona de la tabla, asegurar bordes
+                                            if (!ws[cellAddress].s.border) {
+                                                ws[cellAddress].s.border = {
+                                                    top: { style: 'thin', color: { rgb: '000000' } },
+                                                    bottom: { style: 'thin', color: { rgb: '000000' } },
+                                                    left: { style: 'thin', color: { rgb: '000000' } },
+                                                    right: { style: 'thin', color: { rgb: '000000' } }
+                                                };
+                                            }
+                                        }
+                                    } else {
+                                        // Si no tiene estilo y está en la zona de la tabla, agregar bordes
+                                        const cellPos = XLSX.utils.decode_cell(cellAddress);
+                                        if (cellPos.r >= dataStartRow) {
+                                            ws[cellAddress].s = {
+                                                border: {
+                                                    top: { style: 'thin', color: { rgb: '000000' } },
+                                                    bottom: { style: 'thin', color: { rgb: '000000' } },
+                                                    left: { style: 'thin', color: { rgb: '000000' } },
+                                                    right: { style: 'thin', color: { rgb: '000000' } }
+                                                }
+                                            };
+                                        }
                                     }
                                 }
                             });
@@ -1822,28 +1849,59 @@
                                     // Buscar el valor correspondiente en nuestros datos
                                     let value = '';
                                     
-                                    // Normalizar el nombre del header (quitar puntos, espacios extra)
-                                    const normalizedHeader = headerName.replace(/\./g, '').trim().toLowerCase();
+                                    // Normalizar el nombre del header (quitar puntos, espacios extra, tildes)
+                                    const normalizedHeader = headerName.replace(/\./g, '').replace(/[áéíóúÁÉÍÓÚ]/g, '').trim().toLowerCase();
                                     
-                                    // Buscar directamente en nuestros datos
-                                    const directMatch = Object.keys(dataRow).find(k => {
-                                        const normalizedKey = k.replace(/\./g, '').trim().toLowerCase();
-                                        return normalizedKey === normalizedHeader || 
-                                               normalizedKey.includes(normalizedHeader) ||
-                                               normalizedHeader.includes(normalizedKey);
-                                    });
+                                    // Mapeo específico para casos conocidos
+                                    const headerMappings = {
+                                        'asig numerica': 'Asig. Numérica',
+                                        'asignumerica': 'Asig. Numérica',
+                                        'asig. numerica': 'Asig. Numérica',
+                                        'asig. numérica': 'Asig. Numérica',
+                                        'especificaciones/ext': 'Especificaciones/EXT',
+                                        'especificaciones/ext.': 'Especificaciones/EXT',
+                                        'sub-especific': 'Sub-Especific',
+                                        'sub-especific.': 'Sub-Especific'
+                                    };
                                     
-                                    if (directMatch) {
-                                        value = dataRow[directMatch];
-                                    } else {
-                                        // Intentar con el mapeo
-                                        const mappedKey = dataKeyMapping[Object.keys(dataKeyMapping).find(k => {
-                                            const normalizedKey = k.replace(/\./g, '').trim().toLowerCase();
-                                            return normalizedKey === normalizedHeader;
-                                        })];
-                                        if (mappedKey) {
-                                            value = dataRow[mappedKey] || '';
+                                    // Buscar en el mapeo primero
+                                    let dataKey = headerMappings[normalizedHeader];
+                                    
+                                    if (!dataKey) {
+                                        // Buscar directamente en nuestros datos
+                                        const directMatch = Object.keys(dataRow).find(k => {
+                                            const normalizedKey = k.replace(/\./g, '').replace(/[áéíóúÁÉÍÓÚ]/g, '').trim().toLowerCase();
+                                            return normalizedKey === normalizedHeader || 
+                                                   normalizedKey.includes(normalizedHeader) ||
+                                                   normalizedHeader.includes(normalizedKey);
+                                        });
+                                        
+                                        if (directMatch) {
+                                            dataKey = directMatch;
+                                        } else {
+                                            // Intentar con el mapeo inverso
+                                            const mappedKey = dataKeyMapping[Object.keys(dataKeyMapping).find(k => {
+                                                const normalizedKey = k.replace(/\./g, '').replace(/[áéíóúÁÉÍÓÚ]/g, '').trim().toLowerCase();
+                                                return normalizedKey === normalizedHeader;
+                                            })];
+                                            if (mappedKey) {
+                                                dataKey = mappedKey;
+                                            }
                                         }
+                                    }
+                                    
+                                    if (dataKey && dataRow[dataKey] !== undefined) {
+                                        value = dataRow[dataKey];
+                                    }
+                                    
+                                    // Log para depurar "Asig. Numerica"
+                                    if (normalizedHeader.includes('asig') || normalizedHeader.includes('numerica')) {
+                                        console.log(`Mapeo para "${headerName}":`, {
+                                            normalizedHeader,
+                                            dataKey,
+                                            value,
+                                            availableKeys: Object.keys(dataRow)
+                                        });
                                     }
                                     
                                     // Si es número, asegurarse de que sea número
@@ -1902,7 +1960,28 @@
                                         // Copiar estilo completo
                                         if (styleCell.s) {
                                             ws[cellAddress].s = JSON.parse(JSON.stringify(styleCell.s));
+                                            
+                                            // Asegurarse de que tenga bordes
+                                            if (!ws[cellAddress].s.border) {
+                                                ws[cellAddress].s.border = {
+                                                    top: { style: 'thin', color: { rgb: '000000' } },
+                                                    bottom: { style: 'thin', color: { rgb: '000000' } },
+                                                    left: { style: 'thin', color: { rgb: '000000' } },
+                                                    right: { style: 'thin', color: { rgb: '000000' } }
+                                                };
+                                            }
+                                        } else {
+                                            // Si no tiene estilo, crear uno con bordes
+                                            ws[cellAddress].s = {
+                                                border: {
+                                                    top: { style: 'thin', color: { rgb: '000000' } },
+                                                    bottom: { style: 'thin', color: { rgb: '000000' } },
+                                                    left: { style: 'thin', color: { rgb: '000000' } },
+                                                    right: { style: 'thin', color: { rgb: '000000' } }
+                                                }
+                                            };
                                         }
+                                        
                                         // Copiar formato de número
                                         if (styleCell.z) {
                                             ws[cellAddress].z = styleCell.z;
@@ -1925,7 +2004,7 @@
                                                 right: { style: 'thin', color: { rgb: '000000' } }
                                             }
                                         };
-                            }
+                                    }
                         });
                     });
                     
