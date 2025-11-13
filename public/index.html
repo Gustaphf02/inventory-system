@@ -1656,545 +1656,46 @@
 
                 async downloadExcel(data, filename) {
                     try {
-                        // Intentar cargar el archivo de formato si existe
-                        let templateWorkbook = null;
-                        let templateSheet = null;
-                        let dataStartRow = 15; // Fila donde empiezan los datos (fila 15 = índice 14)
-                        // Mapeo de columnas del template a nuestras claves de datos
-                        let columnMapping = {
-                            'Cantidad': 'Cantidad',
-                            'Especificaciones/EXT.': 'Especificaciones/EXT',
-                            'Especificaciones/EXT': 'Especificaciones/EXT',
-                            'Sub-Especific.': 'Sub-Especific',
-                            'Sub-Especific': 'Sub-Especific',
-                            'Asig. Numerica': 'Asig. Numérica',
-                            'Asig. Numérica': 'Asig. Numérica',
-                            'Descripción': 'Descripción',
-                            'Marca': 'Marca',
-                            'Modelo': 'Modelo',
-                            'Serie': 'Serie',
-                            'Estado': 'Estado'
-                        };
+                        // Mostrar mensaje de carga
+                        const loadingMessage = document.createElement('div');
+                        loadingMessage.className = 'alert alert-info alert-dismissible fade show position-fixed';
+                        loadingMessage.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+                        loadingMessage.innerHTML = `
+                            <strong>Generando Excel...</strong> Por favor espera.
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        `;
+                        document.body.appendChild(loadingMessage);
                         
-                        // Mapeo inverso: nuestras claves de datos a columnas del template
-                        let dataKeyMapping = {
-                            'Cantidad': 'Cantidad',
-                            'Especificaciones/EXT': 'Especificaciones/EXT.',
-                            'Sub-Especific': 'Sub-Especific.',
-                            'Asig. Numérica': 'Asig. Numerica',
-                            'Descripción': 'Descripción',
-                            'Marca': 'Marca',
-                            'Modelo': 'Modelo',
-                            'Serie': 'Serie',
-                            'Estado': 'Estado'
-                        };
-                        
-                        try {
-                            const response = await fetch('/formato.xlsx');
-                            if (response.ok) {
-                                const arrayBuffer = await response.arrayBuffer();
-                                templateWorkbook = XLSX.read(arrayBuffer, { type: 'array', cellStyles: true });
-                                templateSheet = templateWorkbook.Sheets[templateWorkbook.SheetNames[0]];
-                                
-                                // Buscar la fila donde están los encabezados de datos (buscar "Cantidad")
-                                const range = XLSX.utils.decode_range(templateSheet['!ref'] || 'A1:Z100');
-                                for (let row = 0; row <= range.e.r; row++) {
-                                    for (let col = 0; col <= range.e.c; col++) {
-                                        const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
-                                        const cell = templateSheet[cellAddress];
-                                        if (cell && cell.v && cell.v.toString().trim() === 'Cantidad') {
-                                            dataStartRow = row;
-                                            console.log('Fila de encabezados encontrada en:', dataStartRow);
-                                            break;
-                                        }
-                                    }
-                                    if (dataStartRow !== 15) break;
-                                }
-                                
-                                console.log('Formato cargado desde formato.xlsx');
-                            }
-                        } catch (e) {
-                            console.log('No se encontró formato.xlsx, usando formato por defecto:', e);
-                        }
-                        
-                        // Crear un nuevo workbook
-                        const wb = XLSX.utils.book_new();
-                        let ws;
-                        
-                        if (templateWorkbook && templateSheet) {
-                            // Copiar TODO el template completo usando una estrategia más robusta
-                            // Primero, convertir el template a JSON y luego reconstruirlo
-                            const templateJson = XLSX.utils.sheet_to_json(templateSheet, { 
-                                header: 1, 
-                                defval: '',
-                                raw: false 
-                            });
-                            
-                            // Obtener el rango completo del template
-                            const templateRange = XLSX.utils.decode_range(templateSheet['!ref'] || 'A1:Z100');
-                            
-                            // Crear un nuevo worksheet desde el array de arrays, preservando estructura
-                            ws = XLSX.utils.aoa_to_sheet(templateJson);
-                            
-                            // Ahora copiar TODAS las propiedades y estilos del template original
-                            // Copiar propiedades especiales primero
-                            if (templateSheet['!ref']) {
-                                ws['!ref'] = templateSheet['!ref'];
-                            }
-                            if (templateSheet['!merges']) {
-                                ws['!merges'] = JSON.parse(JSON.stringify(templateSheet['!merges']));
-                            }
-                            if (templateSheet['!cols']) {
-                                ws['!cols'] = JSON.parse(JSON.stringify(templateSheet['!cols']));
-                            }
-                            if (templateSheet['!rows']) {
-                                ws['!rows'] = JSON.parse(JSON.stringify(templateSheet['!rows']));
-                            }
-                            if (templateSheet['!margins']) {
-                                ws['!margins'] = JSON.parse(JSON.stringify(templateSheet['!margins']));
-                            }
-                            if (templateSheet['!protect']) {
-                                ws['!protect'] = JSON.parse(JSON.stringify(templateSheet['!protect']));
-                        }
-                            
-                            // Copiar TODOS los estilos de TODAS las celdas del template
-                            Object.keys(templateSheet).forEach(cellAddress => {
-                                if (!cellAddress.startsWith('!')) {
-                                    const templateCell = templateSheet[cellAddress];
-                                    
-                                    // Asegurarse de que la celda existe en nuestro worksheet
-                                    if (!ws[cellAddress]) {
-                                        // Si no existe, crearla con el valor del template
-                                        ws[cellAddress] = {
-                                            t: templateCell.t || 's',
-                                            v: templateCell.v !== undefined ? templateCell.v : ''
-                                        };
-                                    }
-                                    
-                                    // Copiar TODOS los atributos de la celda
-                                    if (templateCell.t !== undefined) ws[cellAddress].t = templateCell.t;
-                                    if (templateCell.v !== undefined) ws[cellAddress].v = templateCell.v;
-                                    if (templateCell.w !== undefined) ws[cellAddress].w = templateCell.w;
-                                    if (templateCell.f !== undefined) ws[cellAddress].f = templateCell.f;
-                                    if (templateCell.r !== undefined) ws[cellAddress].r = templateCell.r;
-                                    if (templateCell.h !== undefined) ws[cellAddress].h = templateCell.h;
-                                    if (templateCell.c !== undefined) ws[cellAddress].c = templateCell.c;
-                                    if (templateCell.z !== undefined) ws[cellAddress].z = templateCell.z;
-                                    if (templateCell.l !== undefined) ws[cellAddress].l = templateCell.l;
-                                    
-                                    // Copiar estilo completo (muy importante)
-                                    const cellPos = XLSX.utils.decode_cell(cellAddress);
-                                    const isInTableArea = cellPos.r >= dataStartRow;
-                                    
-                                    if (templateCell.s) {
-                                        ws[cellAddress].s = JSON.parse(JSON.stringify(templateCell.s));
-                                        
-                                        // Si está en la zona de la tabla, APLICAR bordes y alineación central SIEMPRE
-                                        if (isInTableArea) {
-                                            // Asegurar bordes
-                                            ws[cellAddress].s.border = {
-                                                top: { style: 'thin', color: { rgb: '000000' } },
-                                                bottom: { style: 'thin', color: { rgb: '000000' } },
-                                                left: { style: 'thin', color: { rgb: '000000' } },
-                                                right: { style: 'thin', color: { rgb: '000000' } }
-                                            };
-                                            
-                                            // Asegurar alineación central
-                                            ws[cellAddress].s.alignment = {
-                                                horizontal: 'center',
-                                                vertical: 'center',
-                                                wrapText: false
-                                            };
-                                        }
-                                    } else if (isInTableArea) {
-                                        // Si no tiene estilo y está en la zona de la tabla, crear uno completo
-                                        ws[cellAddress].s = {
-                                            border: {
-                                                top: { style: 'thin', color: { rgb: '000000' } },
-                                                bottom: { style: 'thin', color: { rgb: '000000' } },
-                                                left: { style: 'thin', color: { rgb: '000000' } },
-                                                right: { style: 'thin', color: { rgb: '000000' } }
-                                            },
-                                            alignment: {
-                                                horizontal: 'center',
-                                                vertical: 'center',
-                                                wrapText: false
-                                            }
-                                        };
-                                    }
-                                }
-                            });
-                    
-                            // No limpiar las celdas, solo las sobrescribiremos con los nuevos datos
-                            // Esto preserva mejor los estilos y formato del template
-                            const range = XLSX.utils.decode_range(templateSheet['!ref'] || 'A1:Z100');
-                            
-                            // Obtener los encabezados de la fila de datos
-                            const headerRow = dataStartRow;
-                            const headerMapping = {};
-                            for (let col = 0; col <= range.e.c; col++) {
-                                const cellAddress = XLSX.utils.encode_cell({ r: headerRow, c: col });
-                                const cell = templateSheet[cellAddress];
-                                if (cell && cell.v) {
-                                    const headerName = cell.v.toString().trim();
-                                    headerMapping[col] = headerName;
-                                }
-                            }
-                            
-                            console.log('Mapeo de columnas:', headerMapping);
-                            console.log('Datos a insertar:', data);
-                            console.log('Fila de inicio de datos:', dataStartRow);
-                            
-                            // Insertar los datos en las filas correctas
-                            data.forEach((dataRow, dataIndex) => {
-                                console.log(`Insertando fila ${dataIndex + 1}:`, dataRow);
-                                const targetRow = dataStartRow + 1 + dataIndex;
-                                
-                                // Mapear cada columna según el header
-                                Object.keys(headerMapping).forEach(colIndex => {
-                                    const headerName = headerMapping[colIndex];
-                                    const cellAddress = XLSX.utils.encode_cell({ r: targetRow, c: parseInt(colIndex) });
-                                    
-                                    // Buscar el valor correspondiente en nuestros datos
-                                    let value = '';
-                                    
-                                    // Normalizar el nombre del header (quitar puntos, espacios extra, tildes)
-                                    const normalizedHeader = headerName.replace(/\./g, '').replace(/[áéíóúÁÉÍÓÚ]/g, '').trim().toLowerCase();
-                                    
-                                    // Mapeo específico para casos conocidos
-                                    const headerMappings = {
-                                        'asig numerica': 'Asig. Numérica',
-                                        'asignumerica': 'Asig. Numérica',
-                                        'asig. numerica': 'Asig. Numérica',
-                                        'asig. numérica': 'Asig. Numérica',
-                                        'especificaciones/ext': 'Especificaciones/EXT',
-                                        'especificaciones/ext.': 'Especificaciones/EXT',
-                                        'sub-especific': 'Sub-Especific',
-                                        'sub-especific.': 'Sub-Especific'
-                                    };
-                                    
-                                    // Buscar en el mapeo primero
-                                    let dataKey = headerMappings[normalizedHeader];
-                                    
-                                    if (!dataKey) {
-                                        // Buscar directamente en nuestros datos
-                                        const directMatch = Object.keys(dataRow).find(k => {
-                                            const normalizedKey = k.replace(/\./g, '').replace(/[áéíóúÁÉÍÓÚ]/g, '').trim().toLowerCase();
-                                            return normalizedKey === normalizedHeader || 
-                                                   normalizedKey.includes(normalizedHeader) ||
-                                                   normalizedHeader.includes(normalizedKey);
-                                        });
-                                        
-                                        if (directMatch) {
-                                            dataKey = directMatch;
-                                    } else {
-                                            // Intentar con el mapeo inverso
-                                            const mappedKey = dataKeyMapping[Object.keys(dataKeyMapping).find(k => {
-                                                const normalizedKey = k.replace(/\./g, '').replace(/[áéíóúÁÉÍÓÚ]/g, '').trim().toLowerCase();
-                                                return normalizedKey === normalizedHeader;
-                                            })];
-                                            if (mappedKey) {
-                                                dataKey = mappedKey;
-                                            }
-                                        }
-                                    }
-                                    
-                                    if (dataKey && dataRow[dataKey] !== undefined) {
-                                        value = dataRow[dataKey];
-                                    }
-                                    
-                                    // Log para depurar "Asig. Numerica"
-                                    if (normalizedHeader.includes('asig') || normalizedHeader.includes('numerica')) {
-                                        console.log(`Mapeo para "${headerName}":`, {
-                                            normalizedHeader,
-                                            dataKey,
-                                            value,
-                                            availableKeys: Object.keys(dataRow)
-                                        });
-                                    }
-                                    
-                                    // Si es número, asegurarse de que sea número
-                                    if (typeof value === 'string' && !isNaN(value) && value !== '') {
-                                        value = parseFloat(value);
-                                    }
-                                    
-                                    // Crear la celda con el valor y copiar el estilo
-                                    // Buscar una celda de ejemplo en esa columna para copiar el estilo
-                                    // Primero intentar con una fila de datos del template (si existe)
-                                    let styleCell = null;
-                                    let foundStyleCell = false;
-                                    
-                                    // Buscar en las filas siguientes a los headers para encontrar una celda con estilo
-                                    for (let checkRow = dataStartRow + 1; checkRow <= Math.min(dataStartRow + 5, range.e.r); checkRow++) {
-                                        const checkCellAddress = XLSX.utils.encode_cell({ r: checkRow, c: parseInt(colIndex) });
-                                        if (templateSheet[checkCellAddress] && templateSheet[checkCellAddress].s) {
-                                            styleCell = templateSheet[checkCellAddress];
-                                            foundStyleCell = true;
-                                            break;
-                                        }
-                                    }
-                                    
-                                    // Si no se encontró, usar el estilo del header
-                                    if (!foundStyleCell) {
-                                        const headerCellAddress = XLSX.utils.encode_cell({ r: dataStartRow, c: parseInt(colIndex) });
-                                        if (templateSheet[headerCellAddress]) {
-                                            styleCell = templateSheet[headerCellAddress];
-                                        }
-                                    }
-                                    
-                                    // Determinar el tipo de celda
-                                    let cellType = 's'; // string por defecto
-                                    if (typeof value === 'number') {
-                                        cellType = 'n';
-                                    } else if (value === '' || value === null || value === undefined) {
-                                        cellType = 's';
-                                        value = '';
-                                    }
-                                    
-                                    // Crear o actualizar la celda
-                                    if (!ws[cellAddress]) {
-                                        ws[cellAddress] = {};
-                                    }
-                                    
-                                    ws[cellAddress].t = cellType;
-                                    ws[cellAddress].v = value;
-                                    
-                                    // Si el valor es un número, también establecer w (formatted text)
-                                    if (cellType === 'n') {
-                                        ws[cellAddress].w = String(value);
-                                    }
-                                    
-                                    // Aplicar estilo con bordes y alineación central SIEMPRE
-                                    // Inicializar el objeto de estilo
-                                    if (!ws[cellAddress].s) {
-                                        ws[cellAddress].s = {};
-                                    }
-                                    
-                                    // Copiar estilo del template si existe
-                                    if (styleCell && styleCell.s) {
-                                        // Copiar todos los atributos del estilo del template
-                                        Object.keys(styleCell.s).forEach(key => {
-                                            if (key !== 'border' && key !== 'alignment') {
-                                                ws[cellAddress].s[key] = JSON.parse(JSON.stringify(styleCell.s[key]));
-                                            }
-                                        });
-                                    }
-                                    
-                                    // APLICAR BORDES SIEMPRE (sobrescribir si existen)
-                                    ws[cellAddress].s.border = {
-                                        top: { style: 'thin', color: { rgb: '000000' } },
-                                        bottom: { style: 'thin', color: { rgb: '000000' } },
-                                        left: { style: 'thin', color: { rgb: '000000' } },
-                                        right: { style: 'thin', color: { rgb: '000000' } }
-                                    };
-                                    
-                                    // APLICAR ALINEACIÓN CENTRAL SIEMPRE
-                                    ws[cellAddress].s.alignment = {
-                                        horizontal: 'center',
-                                        vertical: 'center',
-                                        wrapText: false
-                                    };
-                                    
-                                    // Copiar formato de número si existe
-                                    if (styleCell && styleCell.z) {
-                                        ws[cellAddress].z = styleCell.z;
-                                    }
-                                    // Copiar otros atributos de formato
-                                    if (styleCell) {
-                                        if (styleCell.h !== undefined) {
-                                            ws[cellAddress].h = styleCell.h;
-                                        }
-                                        if (styleCell.c !== undefined) {
-                                            ws[cellAddress].c = styleCell.c;
-                                }
-                            }
-                        });
-                    });
-                    
-                            // Ajustar el rango para incluir nuestros datos
-                            const newMaxRow = dataStartRow + data.length;
-                            const currentRange = XLSX.utils.decode_range(ws['!ref'] || 'A1:Z100');
-                            const finalMaxRow = Math.max(newMaxRow, currentRange.e.r);
-                            
-                            // Si agregamos nuevas filas, asegurarnos de que tengan el formato correcto
-                            if (newMaxRow > currentRange.e.r) {
-                                // Para las nuevas filas, copiar el formato de la última fila de datos del template
-                                for (let newRow = currentRange.e.r + 1; newRow <= newMaxRow; newRow++) {
-                                    for (let col = 0; col <= currentRange.e.c; col++) {
-                                        const newCellAddress = XLSX.utils.encode_cell({ r: newRow, c: col });
-                                        
-                                        // Buscar una celda de ejemplo en esa columna para copiar el estilo
-                                        let exampleCell = null;
-                                        for (let checkRow = dataStartRow + 1; checkRow <= Math.min(dataStartRow + 3, currentRange.e.r); checkRow++) {
-                                            const checkCellAddress = XLSX.utils.encode_cell({ r: checkRow, c: col });
-                                            if (templateSheet[checkCellAddress] && templateSheet[checkCellAddress].s) {
-                                                exampleCell = templateSheet[checkCellAddress];
-                                                break;
-                                            }
-                                        }
-                                        
-                                        // Si no hay ejemplo, usar el header
-                                        if (!exampleCell) {
-                                            const headerCellAddress = XLSX.utils.encode_cell({ r: dataStartRow, c: col });
-                                            exampleCell = templateSheet[headerCellAddress];
-                                        }
-                                        
-                                        // Crear la celda vacía con el estilo
-                                        if (exampleCell) {
-                                            ws[newCellAddress] = {
-                                                t: 's',
-                                                v: '',
-                                                s: {
-                                                    border: {
-                                                        top: { style: 'thin', color: { rgb: '000000' } },
-                                                        bottom: { style: 'thin', color: { rgb: '000000' } },
-                                                        left: { style: 'thin', color: { rgb: '000000' } },
-                                                        right: { style: 'thin', color: { rgb: '000000' } }
-                                                    },
-                                                    alignment: {
-                                                        horizontal: 'center',
-                                                        vertical: 'center',
-                                                        wrapText: false
-                                                    }
-                                                },
-                                                z: exampleCell.z
-                                            };
-                                            
-                                            // Si el ejemplo tiene otros estilos, copiarlos (excepto border y alignment)
-                                            if (exampleCell.s) {
-                                                Object.keys(exampleCell.s).forEach(key => {
-                                                    if (key !== 'border' && key !== 'alignment') {
-                                                        ws[newCellAddress].s[key] = JSON.parse(JSON.stringify(exampleCell.s[key]));
-                                                    }
-                    });
-                                            }
-                                        } else {
-                                            // Si no hay ejemplo, crear estilo básico con bordes y alineación
-                                            ws[newCellAddress] = {
-                                                t: 's',
-                                                v: '',
-                                                s: {
-                                                    border: {
-                                                        top: { style: 'thin', color: { rgb: '000000' } },
-                                                        bottom: { style: 'thin', color: { rgb: '000000' } },
-                                                        left: { style: 'thin', color: { rgb: '000000' } },
-                                                        right: { style: 'thin', color: { rgb: '000000' } }
-                                                    },
-                                                    alignment: {
-                                                        horizontal: 'center',
-                                                        vertical: 'center',
-                                                        wrapText: false
-                                                    }
-                                                }
-                                            };
-                                        }
-                                    }
-                                }
-                            }
-                            
-                            ws['!ref'] = XLSX.utils.encode_range({
-                                s: { r: 0, c: 0 },
-                                e: { r: finalMaxRow, c: currentRange.e.c }
-                            });
-                            
-                            // APLICAR BORDES Y ALINEACIÓN A TODAS LAS CELDAS DE LA TABLA
-                            // Recorrer todas las celdas desde la fila de headers hasta el final
-                            for (let row = dataStartRow; row <= finalMaxRow; row++) {
-                                for (let col = 0; col <= currentRange.e.c; col++) {
-                                    const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
-                                    
-                                    // Asegurarse de que la celda existe
-                                    if (!ws[cellAddress]) {
-                                        ws[cellAddress] = { t: 's', v: '' };
-                                    }
-                                    
-                                    // Inicializar el objeto de estilo si no existe
-                                    if (!ws[cellAddress].s) {
-                                        ws[cellAddress].s = {};
-                                    }
-                                    
-                                    // APLICAR BORDES SIEMPRE (sobrescribir cualquier borde existente)
-                                    ws[cellAddress].s.border = {
-                                        top: { style: 'thin', color: { rgb: '000000' } },
-                                        bottom: { style: 'thin', color: { rgb: '000000' } },
-                                        left: { style: 'thin', color: { rgb: '000000' } },
-                                        right: { style: 'thin', color: { rgb: '000000' } }
-                                    };
-                                    
-                                    // APLICAR ALINEACIÓN CENTRAL SIEMPRE
-                                    ws[cellAddress].s.alignment = {
-                                        horizontal: 'center',
-                                        vertical: 'center',
-                                        wrapText: false
-                                    };
-                                }
-                            }
-                            
-                            // Copiar todas las propiedades del template
-                            if (templateSheet['!cols']) {
-                                ws['!cols'] = JSON.parse(JSON.stringify(templateSheet['!cols']));
-                            }
-                            if (templateSheet['!rows']) {
-                                ws['!rows'] = JSON.parse(JSON.stringify(templateSheet['!rows']));
-                            }
-                            if (templateSheet['!merges']) {
-                                ws['!merges'] = JSON.parse(JSON.stringify(templateSheet['!merges']));
-                            }
-                            
-                    } else {
-                            // Sin template: usar formato por defecto
-                            ws = XLSX.utils.json_to_sheet(data);
-                            
-                            // Ajustar ancho de columnas
-                            const colWidths = [
-                                { wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 15 },
-                                { wch: 15 }, { wch: 15 }, { wch: 10 }, { wch: 20 },
-                                { wch: 15 }, { wch: 18 }, { wch: 30 }, { wch: 15 }
-                            ];
-                            ws['!cols'] = colWidths;
-                        }
-                        
-                        // Agregar la hoja al workbook
-                        const sheetName = templateWorkbook ? templateWorkbook.SheetNames[0] : 'Equipos Existentes';
-                        XLSX.utils.book_append_sheet(wb, ws, sheetName);
-                        
-                        // Copiar propiedades del workbook del template si existen
-                        if (templateWorkbook) {
-                            if (templateWorkbook.Props) {
-                                wb.Props = JSON.parse(JSON.stringify(templateWorkbook.Props));
-                            }
-                            if (templateWorkbook.Custprops) {
-                                wb.Custprops = JSON.parse(JSON.stringify(templateWorkbook.Custprops));
-                            }
-                            if (templateWorkbook.Workbook) {
-                                wb.Workbook = JSON.parse(JSON.stringify(templateWorkbook.Workbook));
-                            }
-                        }
-                        
-                        // Verificar que los estilos se hayan aplicado correctamente
-                        console.log('Verificando estilos aplicados...');
-                        let cellsWithBorders = 0;
-                        let cellsWithAlignment = 0;
-                        Object.keys(ws).forEach(key => {
-                            if (!key.startsWith('!') && ws[key].s) {
-                                if (ws[key].s.border) cellsWithBorders++;
-                                if (ws[key].s.alignment) cellsWithAlignment++;
-                            }
-                        });
-                        console.log(`Celdas con bordes: ${cellsWithBorders}, Celdas con alineación: ${cellsWithAlignment}`);
-                        
-                        // Generar el archivo Excel con estilos y todas las opciones
-                        // IMPORTANTE: cellStyles debe estar en true para preservar estilos
-                        const excelBuffer = XLSX.write(wb, { 
-                            bookType: 'xlsx', 
-                            type: 'array',
-                            cellStyles: true,
-                            bookSST: false,
-                            compression: true
+                        // Enviar datos al servidor para generar el Excel
+                        const response = await fetch('/export_excel.php', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                data: data,
+                                filename: filename
+                            })
                         });
                         
-                        // Crear blob y descargar
-                        const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                        // Remover mensaje de carga
+                        if (loadingMessage.parentNode) {
+                            loadingMessage.parentNode.removeChild(loadingMessage);
+                        }
+                        
+                        // Verificar el tipo de contenido de la respuesta
+                        const contentType = response.headers.get('content-type');
+                        
+                        if (!response.ok || (contentType && contentType.includes('application/json'))) {
+                            // Es un error, leer como JSON
+                            const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
+                            throw new Error(errorData.error || `Error HTTP: ${response.status}`);
+                        }
+                        
+                        // Obtener el blob del archivo Excel
+                        const blob = await response.blob();
+                        
+                        // Crear URL y descargar
                         const url = window.URL.createObjectURL(blob);
                         const link = document.createElement('a');
                         link.href = url;
@@ -2222,7 +1723,30 @@
                         
                     } catch (error) {
                         console.error('Error al exportar a Excel:', error);
-                        alert('Error al exportar a Excel: ' + error.message);
+                        
+                        // Remover mensaje de carga si existe
+                        const loadingMessages = document.querySelectorAll('.alert-info');
+                        loadingMessages.forEach(msg => {
+                            if (msg.parentNode) {
+                                msg.parentNode.removeChild(msg);
+                            }
+                        });
+                        
+                        // Mostrar mensaje de error
+                        const errorMessage = document.createElement('div');
+                        errorMessage.className = 'alert alert-danger alert-dismissible fade show position-fixed';
+                        errorMessage.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+                        errorMessage.innerHTML = `
+                            <strong>Error:</strong> ${error.message || 'Error al exportar a Excel'}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        `;
+                        document.body.appendChild(errorMessage);
+                        
+                        setTimeout(() => {
+                            if (errorMessage.parentNode) {
+                                errorMessage.parentNode.removeChild(errorMessage);
+                            }
+                        }, 8000);
                     }
                 },
 
