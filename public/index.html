@@ -2034,29 +2034,59 @@
                 
                 // Obtener el texto de la respuesta primero para debugging
                 const responseText = await response.text();
+                console.log('Response text length:', responseText.length);
                 console.log('Response text:', responseText);
+                
+                // Verificar si la respuesta está vacía
+                if (!responseText || responseText.trim() === '') {
+                    throw new Error(`El servidor devolvió una respuesta vacía (status: ${response.status}). Verifica la conexión con la base de datos y la configuración del servidor.`);
+                }
                 
                 if (!response.ok) {
                     // Intentar parsear como JSON si es posible
                     let errorMessage = `HTTP error! status: ${response.status}`;
                     try {
-                        const errorData = JSON.parse(responseText);
-                        errorMessage = errorData.error || errorMessage;
+                        if (responseText.trim().startsWith('{') || responseText.trim().startsWith('[')) {
+                            const errorData = JSON.parse(responseText);
+                            errorMessage = errorData.error || errorMessage;
+                        } else {
+                            // Si no es JSON, verificar si es HTML
+                            if (responseText.includes('<!DOCTYPE') || responseText.includes('<html')) {
+                                errorMessage += ': El servidor devolvió HTML en lugar de JSON. Verifica que estés accediendo a través de index.php';
+                            } else if (responseText.length < 200) {
+                                errorMessage += ': ' + responseText;
+                            }
+                        }
                     } catch (e) {
                         // Si no es JSON, usar el texto de la respuesta
-                        if (responseText && responseText.length < 200) {
+                        if (responseText.includes('<!DOCTYPE') || responseText.includes('<html')) {
+                            errorMessage += ': El servidor devolvió HTML en lugar de JSON. Verifica que estés accediendo a través de index.php';
+                        } else if (responseText && responseText.length < 200) {
                             errorMessage += ': ' + responseText;
+                        } else {
+                            errorMessage += ': Respuesta no válida del servidor';
                         }
                     }
                     throw new Error(errorMessage);
                 }
                 
+                // Verificar que la respuesta sea JSON válido antes de parsear
+                const trimmedText = responseText.trim();
+                if (!trimmedText.startsWith('{') && !trimmedText.startsWith('[')) {
+                    if (trimmedText.includes('<!DOCTYPE') || trimmedText.includes('<html')) {
+                        throw new Error('El servidor devolvió HTML en lugar de JSON. Verifica que estés accediendo a través de index.php y que el servidor esté configurado correctamente.');
+                    }
+                    throw new Error('El servidor no devolvió JSON válido. Respuesta: ' + trimmedText.substring(0, 200));
+                }
+                
                 // Intentar parsear como JSON
                 try {
-                    return JSON.parse(responseText);
+                    const parsedData = JSON.parse(responseText);
+                    return parsedData;
                 } catch (e) {
                     console.error('Error parsing JSON:', e);
-                    throw new Error('El servidor no devolvió JSON válido: ' + responseText.substring(0, 100));
+                    console.error('Response text that failed to parse:', responseText.substring(0, 500));
+                    throw new Error('Error al parsear la respuesta JSON del servidor. Verifica que el servidor esté funcionando correctamente.');
                 }
             })
             .then(data => {

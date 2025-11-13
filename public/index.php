@@ -313,10 +313,25 @@ if (session_status() === PHP_SESSION_NONE) {
                     ];
                     
                     // Crear producto usando DatabaseManager
-                    $newProduct = $db->createProduct($productData);
+                    $newProductId = $db->createProduct($productData);
+                    
+                    if (!$newProductId) {
+                        error_log("Products POST: Error al crear producto - createProduct devolvió null o false");
+                        echo json_encode(['success' => false, 'error' => 'Error al crear el producto en la base de datos']);
+                        break;
+                    }
+                    
+                    // Obtener el producto completo recién creado
+                    $newProduct = $db->getProductById($newProductId);
+                    
+                    if (!$newProduct) {
+                        error_log("Products POST: Error al recuperar producto creado con ID: " . $newProductId);
+                        echo json_encode(['success' => false, 'error' => 'Producto creado pero no se pudo recuperar']);
+                        break;
+                    }
                     
                     safeLog('INFO', 'PRODUCT', 'CREATE', "Producto creado: {$newProduct['sku']} - {$newProduct['name']}");
-                    error_log("Products POST: Producto creado exitosamente con ID: " . ($newProduct['id'] ?? 'N/A'));
+                    error_log("Products POST: Producto creado exitosamente con ID: " . $newProductId);
                     
             echo json_encode([
                 'success' => true,
