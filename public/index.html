@@ -1203,8 +1203,8 @@
                             this.recentProducts = data.data.slice(0, 10);
                             // También actualizar filteredInventory
                             this.filteredInventory = data.data;
-                            // Actualizar equipos existentes (todos los productos por ahora)
-                            this.existingEquipment = data.data;
+                            // Actualizar equipos existentes (solo los que tienen type === 'existing_equipment')
+                            this.existingEquipment = data.data.filter(product => product.type === 'existing_equipment');
                         }
                     } catch (error) {
                         console.error('Error loading products:', error);
@@ -1927,7 +1927,7 @@
                 cost: 0,
                 category_id: 1, // Por defecto
                 supplier_id: 1, // Por defecto
-                type: 'computo', // Por defecto
+                type: 'existing_equipment', // Identificador para equipos existentes
                 status: mappedStatus
             };
             
