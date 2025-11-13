@@ -1,7 +1,7 @@
 # Dockerfile para Render con PostgreSQL
 FROM php:8.2-apache-bookworm
 
-# Instalar extensiones PHP necesarias
+# Instalar extensiones PHP necesarias (incluyendo las requeridas por PhpSpreadsheet)
 RUN apt-get update && apt-get upgrade -y && apt-get install -y \
     libpq-dev \
     libfreetype6-dev \
@@ -10,8 +10,9 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y \
     libzip-dev \
     libxml2-dev \
     libcurl4-openssl-dev \
+    libonig-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install pdo pdo_pgsql pgsql gd zip xml curl \
+    && docker-php-ext-install pdo pdo_pgsql pgsql gd zip xml curl mbstring iconv \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -23,7 +24,7 @@ COPY . /var/www/html/
 
 # Instalar dependencias
 WORKDIR /var/www/html
-RUN composer install --no-dev --optimize-autoloader --ignore-platform-reqs --ignore-platform-req=ext-gd
+RUN composer install --no-dev --optimize-autoloader
 
 # Configurar Apache para usar el directorio public
 RUN a2enmod rewrite
