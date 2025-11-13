@@ -1672,6 +1672,7 @@
                             headers: {
                                 'Content-Type': 'application/json',
                             },
+                            credentials: 'include', // Incluir cookies de sesión
                             body: JSON.stringify({
                                 data: data,
                                 filename: filename

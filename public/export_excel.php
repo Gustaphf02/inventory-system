@@ -12,7 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 // Verificar autenticación
-if (!isset($_SESSION['user_id'])) {
+if (!isset($_SESSION['user']) || empty($_SESSION['user'])) {
     http_response_code(401);
     header('Content-Type: application/json');
     echo json_encode(['success' => false, 'error' => 'No autenticado']);
