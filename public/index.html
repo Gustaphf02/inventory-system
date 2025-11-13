@@ -300,12 +300,6 @@
                                     Reportes
                                 </a>
                             </li>
-                            <li class="nav-item">
-                                <a class="nav-link" :class="{active: currentView === 'sports-calendar'}" @click="setView('sports-calendar')">
-                                    <i class="fas fa-calendar-alt me-2"></i>
-                                    Calendario Deportivo
-                                </a>
-                            </li>
                             <!-- Navegación a páginas PHP reales en Render (visibles según rol) -->
                             <li class="nav-item" v-if="['admin','manager'].includes(user.role)">
                                 <a class="nav-link" href="#" @click.prevent="navigateToPHP('config.php')">
@@ -800,7 +794,72 @@
                                 </button>
                             </div>
                             <div class="card-body">
-                                <!-- Contenido del formulario para equipos existentes -->
+                                <!-- Tabla de Equipos Existentes -->
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>SKU</th>
+                                                <th>Nombre</th>
+                                                <th>Marca</th>
+                                                <th>Modelo</th>
+                                                <th>Serie</th>
+                                                <th>Departamento</th>
+                                                <th>Cantidad</th>
+                                                <th>Especificaciones/EXT</th>
+                                                <th>Sub-Especific</th>
+                                                <th>Asig. Numérica</th>
+                                                <th>Descripción</th>
+                                                <th>Estado</th>
+                                                <th>Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr v-for="product in existingEquipment" :key="product.id">
+                                                <td><code>{{ product.sku }}</code></td>
+                                                <td><strong>{{ product.name || 'Sin nombre' }}</strong></td>
+                                                <td>{{ product.brand || 'Sin marca' }}</td>
+                                                <td>{{ product.model || 'Sin modelo' }}</td>
+                                                <td><small>{{ product.serial_number || 'Sin serie' }}</small></td>
+                                                <td>
+                                                    <span class="badge bg-warning text-dark">
+                                                        {{ product.department || 'Sin asignar' }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-info">
+                                                        {{ product.stock_quantity || 0 }}
+                                                    </span>
+                                                </td>
+                                                <td><small>{{ extractSpecs(product.description) }}</small></td>
+                                                <td><small>{{ extractSubSpecs(product.description) }}</small></td>
+                                                <td><code>{{ product.barcode || 'Sin asignar' }}</code></td>
+                                                <td><small>{{ extractDescription(product.description) }}</small></td>
+                                                <td>
+                                                    <span class="badge" :class="getEquipmentStatusBadgeClass(product.status)">
+                                                        {{ getEquipmentStatusText(product.status) }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm">
+                                                        <button class="btn btn-outline-primary" @click="editProduct(product.id)" title="Editar">
+                                                            <i class="fas fa-edit"></i>
+                                                        </button>
+                                                        <button class="btn btn-outline-danger" @click="deleteProduct(product.id)" title="Eliminar">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            <tr v-if="existingEquipment.length === 0">
+                                                <td colspan="13" class="text-center text-muted py-4">
+                                                    <i class="fas fa-inbox fa-2x mb-2"></i><br>
+                                                    No hay equipos existentes registrados. Haz clic en "Agregar Producto" para comenzar.
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -985,187 +1044,6 @@
                         </div>
                     </div>
 
-                    <!-- Sports Calendar View -->
-                    <div v-if="currentView === 'sports-calendar'">
-                        <div class="card">
-                            <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
-                                <div class="d-flex align-items-center">
-                                    <button class="btn btn-outline-secondary me-3" @click="setView('dashboard')">
-                                        <i class="fas fa-arrow-left me-1"></i>
-                                        Volver al Dashboard
-                                    </button>
-                                    <h5 class="card-title mb-0">
-                                        <i class="fas fa-calendar-alt me-2"></i>
-                                        Calendario Deportivo
-                                    </h5>
-                                </div>
-                            </div>
-                            <div class="card-body p-0">
-                                <!-- Card with blue line and tabs design -->
-                                <div class="card" style="border-radius: 0 0 10px 10px; border: none; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                                    <!-- Blue line at top -->
-                                    <div style="height: 4px; background: linear-gradient(90deg, #007bff, #0056b3); border-radius: 10px 10px 0 0;"></div>
-                                    
-                                    <!-- Tabs inside card -->
-                                    <div class="card-body p-0">
-                                        <ul class="nav nav-tabs border-0 px-3 pt-3" role="tablist" style="border-bottom: 1px solid #dee2e6 !important;">
-                                            <li class="nav-item" role="presentation">
-                                                <button class="nav-link border-0" 
-                                                        :class="{'active text-primary border-bottom border-primary border-2': sportsTab === 'calendar', 'text-secondary': sportsTab !== 'calendar'}"
-                                                        @click="sportsTab = 'calendar'"
-                                                        style="background: transparent;">
-                                                    Calendario
-                                                </button>
-                                            </li>
-                                            <li class="nav-item" role="presentation">
-                                                <button class="nav-link border-0" 
-                                                        :class="{'active text-primary border-bottom border-primary border-2': sportsTab === 'classification', 'text-secondary': sportsTab !== 'classification'}"
-                                                        @click="sportsTab = 'classification'"
-                                                        style="background: transparent;">
-                                                    Clasificación
-                                                </button>
-                                            </li>
-                                        </ul>
-                                        
-                                        <!-- Content area -->
-                                        <div class="p-4">
-                                            <!-- Calendar Tab -->
-                                            <div v-if="sportsTab === 'calendar'" class="tab-content">
-                                    <!-- Date Selection -->
-                                    <div class="row mb-4">
-                                        <div class="col-md-6">
-                                            <div class="d-flex align-items-center gap-3">
-                                                <label class="form-label mb-0">Fecha:</label>
-                                                <input type="date" class="form-control" v-model="selectedDate" style="width: auto;">
-                                                <button class="btn btn-primary" @click="updateTable">
-                                                    <i class="fas fa-sync me-1"></i>
-                                                    ACTUALIZAR TABLA
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Matchday Buttons -->
-                                    <div class="mb-4">
-                                        <div class="btn-group" role="group">
-                                            <button 
-                                                v-for="(matchday, index) in matchdays" 
-                                                :key="index"
-                                                class="btn btn-outline-primary" 
-                                                :class="{active: currentMatchday === index + 1}"
-                                                @click="currentMatchday = index + 1; loadMatchesForMatchday(index + 1)">
-                                                Fecha {{ index + 1 }}
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <!-- Matches Table -->
-                                    <div v-if="currentMatches.length > 0">
-                                        <div class="table-responsive">
-                                            <table class="table table-bordered">
-                                                <thead>
-                                                    <tr>
-                                                        <th>Equipo Local</th>
-                                                        <th>Resultado</th>
-                                                        <th>Equipo Visitante</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    <tr v-for="match in currentMatches" :key="match.id">
-                                                        <td class="text-center">
-                                                            <div class="d-flex align-items-center justify-content-center">
-                                                                <span class="me-2">{{ match.homeTeam }}</span>
-                                                                <i class="fas fa-circle" style="color: #007bff;"></i>
-                                                            </div>
-                                                        </td>
-                                                        <td class="text-center">
-                                                            <div class="d-flex align-items-center justify-content-center gap-2">
-                                                                <input 
-                                                                    type="number" 
-                                                                    class="form-control text-center" 
-                                                                    style="width: 60px;"
-                                                                    v-model="match.homeScore"
-                                                                    @change="updateMatchResult(match)"
-                                                                    min="0">
-                                                                <span>VS</span>
-                                                                <input 
-                                                                    type="number" 
-                                                                    class="form-control text-center" 
-                                                                    style="width: 60px;"
-                                                                    v-model="match.awayScore"
-                                                                    @change="updateMatchResult(match)"
-                                                                    min="0">
-                                                            </div>
-                                                        </td>
-                                                        <td class="text-center">
-                                                            <div class="d-flex align-items-center justify-content-center">
-                                                                <i class="fas fa-circle me-2" style="color: #dc3545;"></i>
-                                                                <span>{{ match.awayTeam }}</span>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                    <div v-else class="alert alert-info">
-                                        <i class="fas fa-info-circle me-2"></i>
-                                        No hay partidos programados para esta fecha.
-                                    </div>
-                                            </div>
-
-                                            <!-- Classification Tab -->
-                                            <div v-if="sportsTab === 'classification'" class="tab-content">
-                                                <div v-if="matchdays && matchdays.length > 0">
-                                                    <!-- Elimination Directa Table -->
-                                                    <h5 class="mb-3"><strong>Eliminación Directa</strong></h5>
-                                                    <div class="table-responsive">
-                                                        <table class="table table-bordered table-hover">
-                                                            <thead class="table-light">
-                                                                <tr>
-                                                                    <th>Pos</th>
-                                                                    <th>Equipo</th>
-                                                                    <th>PJ</th>
-                                                                    <th>PG</th>
-                                                                    <th>PE</th>
-                                                                    <th>PP</th>
-                                                                    <th>GF</th>
-                                                                    <th>GC</th>
-                                                                    <th>DG</th>
-                                                                    <th>Pts</th>
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody>
-                                                                <tr v-for="(team, index) in eliminationTable" :key="team.name">
-                                                                    <td><strong>{{ index + 1 }}</strong></td>
-                                                                    <td>{{ team.name }}</td>
-                                                                    <td>{{ team.played || 0 }}</td>
-                                                                    <td>{{ team.wins || 0 }}</td>
-                                                                    <td>{{ team.draws || 0 }}</td>
-                                                                    <td>{{ team.losses || 0 }}</td>
-                                                                    <td>{{ team.goalsFor || 0 }}</td>
-                                                                    <td>{{ team.goalsAgainst || 0 }}</td>
-                                                                    <td :class="{'text-success': (team.goalDiff || 0) > 0, 'text-danger': (team.goalDiff || 0) < 0}">
-                                                                        {{ (team.goalDiff || 0) > 0 ? '+' : '' }}{{ team.goalDiff || 0 }}
-                                                                    </td>
-                                                                    <td><strong>{{ team.points || 0 }}</strong></td>
-                                                                </tr>
-                                                            </tbody>
-                                                        </table>
-                                                    </div>
-                                                </div>
-                                                <div v-else>
-                                                    <h5 class="mb-2"><strong>Eliminación Directa</strong></h5>
-                                                    <p class="text-muted mb-0">El formato se mostrará cuando se genere el calendario</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- Loading Overlay -->
                     <div v-if="loading" class="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style="background-color: rgba(0,0,0,0.5); z-index: 9999;">
                         <div class="text-center text-white">
@@ -1211,14 +1089,7 @@
                     showEditProductModal: false,
                     editingProduct: null,
                     _mounted: false, // Flag para prevenir múltiples mountings
-                    // Sports Calendar
-                    sportsTab: 'calendar',
-                    matchdays: [],
-                    currentMatchday: 1,
-                    currentMatches: [],
-                    selectedDate: new Date().toISOString().split('T')[0],
-                    teams: ['Chelsea', 'Arsenal', 'Manchester City', 'Manchester United', 'Newcastle', 'Everton', 'Crystal Palace', 'Aston Villa'],
-                    eliminationTable: []
+                    existingEquipment: [] // Equipos existentes
                 }
             },
             async mounted() {
@@ -1284,6 +1155,8 @@
                     this.currentView = view;
                     if (view === 'products') {
                         this.loadProducts();
+                    } else if (view === 'existing-equipment') {
+                        this.loadProducts(); // Cargar productos para actualizar equipos existentes
                     }
                 },
                 setProductFilter(filter) {
@@ -1330,6 +1203,8 @@
                             this.recentProducts = data.data.slice(0, 10);
                             // También actualizar filteredInventory
                             this.filteredInventory = data.data;
+                            // Actualizar equipos existentes (todos los productos por ahora)
+                            this.existingEquipment = data.data;
                         }
                     } catch (error) {
                         console.error('Error loading products:', error);
@@ -1642,6 +1517,50 @@
                 formatNumber(number) {
                     const num = parseFloat(number) || 0;
                     return new Intl.NumberFormat('es-MX').format(num);
+                },
+
+                // Métodos para extraer datos de equipos existentes
+                extractSpecs(description) {
+                    if (!description) return '';
+                    const match = description.match(/Especificaciones\/EXT:\s*(.+)/);
+                    return match ? match[1].split('\n')[0].trim() : '';
+                },
+
+                extractSubSpecs(description) {
+                    if (!description) return '';
+                    const match = description.match(/Sub-Especific:\s*(.+)/);
+                    return match ? match[1].split('\n')[0].trim() : '';
+                },
+
+                extractDescription(description) {
+                    if (!description) return '';
+                    // Obtener solo la descripción principal (antes de Especificaciones/EXT)
+                    const lines = description.split('\n');
+                    const mainDesc = lines[0];
+                    // Si la primera línea contiene "Especificaciones" o "Sub-Especific", no hay descripción principal
+                    if (mainDesc.includes('Especificaciones') || mainDesc.includes('Sub-Especific')) {
+                        return '';
+                    }
+                    return mainDesc.trim();
+                },
+
+                getEquipmentStatusBadgeClass(status) {
+                    if (status === 'active' || status === 'operativo') return 'bg-success';
+                    if (status === 'maintenance' || status === 'criterio_tecnico') return 'bg-warning text-dark';
+                    if (status === 'inactive' || status === 'descarte') return 'bg-secondary';
+                    return 'bg-secondary';
+                },
+
+                getEquipmentStatusText(status) {
+                    const statusMap = {
+                        'active': 'Operativo',
+                        'operativo': 'Operativo',
+                        'maintenance': 'Criterio Técnico',
+                        'criterio_tecnico': 'Criterio Técnico',
+                        'inactive': 'Descarte',
+                        'descarte': 'Descarte'
+                    };
+                    return statusMap[status] || status || 'Desconocido';
                 },
 
                 viewProduct(product) {
