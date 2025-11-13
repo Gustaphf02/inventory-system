@@ -1722,47 +1722,76 @@
                         let ws;
                         
                         if (templateWorkbook && templateSheet) {
-                            // Copiar TODO el template completo (incluyendo logos, encabezados, estructura)
-                            // Crear una copia profunda del worksheet manualmente
-                            ws = {};
+                            // Copiar TODO el template completo usando una estrategia más robusta
+                            // Primero, convertir el template a JSON y luego reconstruirlo
+                            const templateJson = XLSX.utils.sheet_to_json(templateSheet, { 
+                                header: 1, 
+                                defval: '',
+                                raw: false 
+                            });
                             
-                            // Copiar todas las celdas del template
-                            Object.keys(templateSheet).forEach(key => {
-                                if (key.startsWith('!')) {
-                                    // Copiar propiedades especiales
-                                    if (key === '!ref' || key === '!merges' || key === '!cols' || key === '!rows') {
-                                        ws[key] = JSON.parse(JSON.stringify(templateSheet[key]));
-                                    } else {
-                                        ws[key] = templateSheet[key];
+                            // Obtener el rango completo del template
+                            const templateRange = XLSX.utils.decode_range(templateSheet['!ref'] || 'A1:Z100');
+                            
+                            // Crear un nuevo worksheet desde el array de arrays, preservando estructura
+                            ws = XLSX.utils.aoa_to_sheet(templateJson);
+                            
+                            // Ahora copiar TODAS las propiedades y estilos del template original
+                            // Copiar propiedades especiales primero
+                            if (templateSheet['!ref']) {
+                                ws['!ref'] = templateSheet['!ref'];
+                            }
+                            if (templateSheet['!merges']) {
+                                ws['!merges'] = JSON.parse(JSON.stringify(templateSheet['!merges']));
+                            }
+                            if (templateSheet['!cols']) {
+                                ws['!cols'] = JSON.parse(JSON.stringify(templateSheet['!cols']));
+                            }
+                            if (templateSheet['!rows']) {
+                                ws['!rows'] = JSON.parse(JSON.stringify(templateSheet['!rows']));
+                            }
+                            if (templateSheet['!margins']) {
+                                ws['!margins'] = JSON.parse(JSON.stringify(templateSheet['!margins']));
+                            }
+                            if (templateSheet['!protect']) {
+                                ws['!protect'] = JSON.parse(JSON.stringify(templateSheet['!protect']));
+                            }
+                            
+                            // Copiar TODOS los estilos de TODAS las celdas del template
+                            Object.keys(templateSheet).forEach(cellAddress => {
+                                if (!cellAddress.startsWith('!')) {
+                                    const templateCell = templateSheet[cellAddress];
+                                    
+                                    // Asegurarse de que la celda existe en nuestro worksheet
+                                    if (!ws[cellAddress]) {
+                                        // Si no existe, crearla con el valor del template
+                                        ws[cellAddress] = {
+                                            t: templateCell.t || 's',
+                                            v: templateCell.v !== undefined ? templateCell.v : ''
+                                        };
                                     }
-                                } else {
-                                    // Copiar celdas con todos sus atributos
-                                    const cell = templateSheet[key];
-                                    ws[key] = {
-                                        t: cell.t,
-                                        v: cell.v,
-                                        w: cell.w,
-                                        f: cell.f,
-                                        r: cell.r,
-                                        h: cell.h,
-                                        c: cell.c,
-                                        z: cell.z,
-                                        l: cell.l,
-                                        s: cell.s ? JSON.parse(JSON.stringify(cell.s)) : undefined
-                                    };
+                                    
+                                    // Copiar TODOS los atributos de la celda
+                                    if (templateCell.t !== undefined) ws[cellAddress].t = templateCell.t;
+                                    if (templateCell.v !== undefined) ws[cellAddress].v = templateCell.v;
+                                    if (templateCell.w !== undefined) ws[cellAddress].w = templateCell.w;
+                                    if (templateCell.f !== undefined) ws[cellAddress].f = templateCell.f;
+                                    if (templateCell.r !== undefined) ws[cellAddress].r = templateCell.r;
+                                    if (templateCell.h !== undefined) ws[cellAddress].h = templateCell.h;
+                                    if (templateCell.c !== undefined) ws[cellAddress].c = templateCell.c;
+                                    if (templateCell.z !== undefined) ws[cellAddress].z = templateCell.z;
+                                    if (templateCell.l !== undefined) ws[cellAddress].l = templateCell.l;
+                                    
+                                    // Copiar estilo completo (muy importante)
+                                    if (templateCell.s) {
+                                        ws[cellAddress].s = JSON.parse(JSON.stringify(templateCell.s));
+                                    }
                                 }
                             });
                             
-                            // Limpiar las celdas de datos existentes (desde dataStartRow + 1 en adelante)
+                            // No limpiar las celdas, solo las sobrescribiremos con los nuevos datos
+                            // Esto preserva mejor los estilos y formato del template
                             const range = XLSX.utils.decode_range(templateSheet['!ref'] || 'A1:Z100');
-                            for (let row = dataStartRow + 1; row <= range.e.r; row++) {
-                                for (let col = 0; col <= range.e.c; col++) {
-                                    const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
-                                    if (ws[cellAddress]) {
-                                        delete ws[cellAddress];
-                                    }
-                                }
-                            }
                             
                             // Obtener los encabezados de la fila de datos
                             const headerRow = dataStartRow;
@@ -1824,45 +1853,126 @@
                                     
                                     // Crear la celda con el valor y copiar el estilo
                                     // Buscar una celda de ejemplo en esa columna para copiar el estilo
+                                    // Primero intentar con una fila de datos del template (si existe)
                                     let styleCell = null;
-                                    // Intentar obtener estilo de la primera fila de datos del template (si existe)
-                                    const exampleRow = dataStartRow + 1;
-                                    const styleCellAddress = XLSX.utils.encode_cell({ r: exampleRow, c: parseInt(colIndex) });
-                                    if (templateSheet[styleCellAddress]) {
-                                        styleCell = templateSheet[styleCellAddress];
-                                    } else {
-                                        // Si no hay, usar el estilo del header
-                                        const headerCellAddress = XLSX.utils.encode_cell({ r: dataStartRow, c: parseInt(colIndex) });
-                                        styleCell = templateSheet[headerCellAddress];
+                                    let foundStyleCell = false;
+                                    
+                                    // Buscar en las filas siguientes a los headers para encontrar una celda con estilo
+                                    for (let checkRow = dataStartRow + 1; checkRow <= Math.min(dataStartRow + 5, range.e.r); checkRow++) {
+                                        const checkCellAddress = XLSX.utils.encode_cell({ r: checkRow, c: parseInt(colIndex) });
+                                        if (templateSheet[checkCellAddress] && templateSheet[checkCellAddress].s) {
+                                            styleCell = templateSheet[checkCellAddress];
+                                            foundStyleCell = true;
+                                            break;
+                                        }
                                     }
                                     
-                                    // Crear la celda
-                                    ws[cellAddress] = {
-                                        t: typeof value === 'number' ? 'n' : (value === '' ? 's' : 's'),
-                                        v: value === '' ? '' : value
-                                    };
+                                    // Si no se encontró, usar el estilo del header
+                                    if (!foundStyleCell) {
+                                        const headerCellAddress = XLSX.utils.encode_cell({ r: dataStartRow, c: parseInt(colIndex) });
+                                        if (templateSheet[headerCellAddress]) {
+                                            styleCell = templateSheet[headerCellAddress];
+                                        }
+                                    }
                                     
-                                    // Copiar estilo completo si existe
+                                    // Determinar el tipo de celda
+                                    let cellType = 's'; // string por defecto
+                                    if (typeof value === 'number') {
+                                        cellType = 'n';
+                                    } else if (value === '' || value === null || value === undefined) {
+                                        cellType = 's';
+                                        value = '';
+                                    }
+                                    
+                                    // Crear o actualizar la celda
+                                    if (!ws[cellAddress]) {
+                                        ws[cellAddress] = {};
+                                    }
+                                    
+                                    ws[cellAddress].t = cellType;
+                                    ws[cellAddress].v = value;
+                                    
+                                    // Si el valor es un número, también establecer w (formatted text)
+                                    if (cellType === 'n') {
+                                        ws[cellAddress].w = String(value);
+                                    }
+                                    
+                                    // Copiar TODOS los atributos de estilo si existe
                                     if (styleCell) {
+                                        // Copiar estilo completo
                                         if (styleCell.s) {
                                             ws[cellAddress].s = JSON.parse(JSON.stringify(styleCell.s));
                                         }
+                                        // Copiar formato de número
                                         if (styleCell.z) {
                                             ws[cellAddress].z = styleCell.z;
                                         }
-                                        if (styleCell.t) {
-                                            ws[cellAddress].t = styleCell.t;
+                                        // Copiar otros atributos de formato
+                                        if (styleCell.h !== undefined) {
+                                            ws[cellAddress].h = styleCell.h;
                                         }
-                                    }
-                                });
-                            });
-                            
+                                        if (styleCell.c !== undefined) {
+                                            ws[cellAddress].c = styleCell.c;
+                                        }
+                                    } else {
+                                        // Si no hay celda de estilo, crear un estilo básico con bordes
+                                        // Esto asegura que las celdas tengan el formato correcto
+                                        ws[cellAddress].s = {
+                                            border: {
+                                                top: { style: 'thin', color: { rgb: '000000' } },
+                                                bottom: { style: 'thin', color: { rgb: '000000' } },
+                                                left: { style: 'thin', color: { rgb: '000000' } },
+                                                right: { style: 'thin', color: { rgb: '000000' } }
+                                            }
+                                        };
+                            }
+                        });
+                    });
+                    
                             // Ajustar el rango para incluir nuestros datos
                             const newMaxRow = dataStartRow + data.length;
                             const currentRange = XLSX.utils.decode_range(ws['!ref'] || 'A1:Z100');
+                            const finalMaxRow = Math.max(newMaxRow, currentRange.e.r);
+                            
+                            // Si agregamos nuevas filas, asegurarnos de que tengan el formato correcto
+                            if (newMaxRow > currentRange.e.r) {
+                                // Para las nuevas filas, copiar el formato de la última fila de datos del template
+                                for (let newRow = currentRange.e.r + 1; newRow <= newMaxRow; newRow++) {
+                                    for (let col = 0; col <= currentRange.e.c; col++) {
+                                        const newCellAddress = XLSX.utils.encode_cell({ r: newRow, c: col });
+                                        
+                                        // Buscar una celda de ejemplo en esa columna para copiar el estilo
+                                        let exampleCell = null;
+                                        for (let checkRow = dataStartRow + 1; checkRow <= Math.min(dataStartRow + 3, currentRange.e.r); checkRow++) {
+                                            const checkCellAddress = XLSX.utils.encode_cell({ r: checkRow, c: col });
+                                            if (templateSheet[checkCellAddress] && templateSheet[checkCellAddress].s) {
+                                                exampleCell = templateSheet[checkCellAddress];
+                                                break;
+                                            }
+                                        }
+                                        
+                                        // Si no hay ejemplo, usar el header
+                                        if (!exampleCell) {
+                                            const headerCellAddress = XLSX.utils.encode_cell({ r: dataStartRow, c: col });
+                                            exampleCell = templateSheet[headerCellAddress];
+                                        }
+                                        
+                                        // Crear la celda vacía con el estilo
+                                        if (exampleCell) {
+                                            ws[newCellAddress] = {
+                                                t: 's',
+                                                v: '',
+                                                s: exampleCell.s ? JSON.parse(JSON.stringify(exampleCell.s)) : undefined,
+                                                z: exampleCell.z
+                                            };
+                                        }
+                                    }
+                                }
+                            }
+                            
                             ws['!ref'] = XLSX.utils.encode_range({
                                 s: { r: 0, c: 0 },
-                                e: { r: Math.max(newMaxRow, currentRange.e.r), c: currentRange.e.c }
+                                e: { r: finalMaxRow, c: currentRange.e.c }
                             });
                             
                             // Copiar todas las propiedades del template
@@ -1890,13 +2000,29 @@
                         }
                         
                         // Agregar la hoja al workbook
-                        XLSX.utils.book_append_sheet(wb, ws, templateWorkbook ? templateWorkbook.SheetNames[0] : 'Equipos Existentes');
+                        const sheetName = templateWorkbook ? templateWorkbook.SheetNames[0] : 'Equipos Existentes';
+                        XLSX.utils.book_append_sheet(wb, ws, sheetName);
                         
-                        // Generar el archivo Excel con estilos
+                        // Copiar propiedades del workbook del template si existen
+                        if (templateWorkbook) {
+                            if (templateWorkbook.Props) {
+                                wb.Props = JSON.parse(JSON.stringify(templateWorkbook.Props));
+                            }
+                            if (templateWorkbook.Custprops) {
+                                wb.Custprops = JSON.parse(JSON.stringify(templateWorkbook.Custprops));
+                            }
+                            if (templateWorkbook.Workbook) {
+                                wb.Workbook = JSON.parse(JSON.stringify(templateWorkbook.Workbook));
+                            }
+                        }
+                        
+                        // Generar el archivo Excel con estilos y todas las opciones
                         const excelBuffer = XLSX.write(wb, { 
                             bookType: 'xlsx', 
                             type: 'array',
-                            cellStyles: true 
+                            cellStyles: true,
+                            bookSST: false,
+                            compression: true
                         });
                         
                         // Crear blob y descargar
@@ -2655,25 +2781,25 @@
                 return;
             }
 
-            console.log('Producto no encontrado en memoria, cargando desde servidor...');
-            fetch('/products')
-                .then(response => response.json())
-                .then(data => {
+                console.log('Producto no encontrado en memoria, cargando desde servidor...');
+                fetch('/products')
+                    .then(response => response.json())
+                    .then(data => {
                     if (data.success && Array.isArray(data.data)) {
                         const foundProduct = data.data.find(p => p.id == productOrId);
-                        if (foundProduct) {
+                            if (foundProduct) {
                             openEditModalWithProduct(foundProduct);
+                            } else {
+                                alert('Producto no encontrado');
+                            }
                         } else {
-                            alert('Producto no encontrado');
+                            alert('Error al cargar productos');
                         }
-                    } else {
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
                         alert('Error al cargar productos');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Error al cargar productos');
-                });
+                    });
         }
 
         function ensureSelectValue(selectId, value) {
@@ -2681,7 +2807,7 @@
             if (!select) {
                 return;
             }
-
+            
             if (value === null || value === undefined || value === '') {
                 select.value = '';
                 return;
@@ -2698,7 +2824,7 @@
 
         function fillEditForm(product) {
             currentEditProductId = product.id;
-
+            
             const assignValue = (id, value) => {
                 const element = document.getElementById(id);
                 if (element) {
