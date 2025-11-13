@@ -1,4 +1,21 @@
 <?php
+// Configurar headers CORS para permitir cookies
+$origin = $_SERVER['HTTP_ORIGIN'] ?? $_SERVER['HTTP_HOST'] ?? '*';
+if ($origin !== '*') {
+    header('Access-Control-Allow-Origin: ' . $origin);
+    header('Access-Control-Allow-Credentials: true');
+} else {
+    header('Access-Control-Allow-Origin: *');
+}
+header('Access-Control-Allow-Methods: POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization');
+
+// Manejar preflight requests
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit;
+}
+
 session_start();
 require_once __DIR__ . '/.auth.php';
 require_once __DIR__ . '/DatabaseManager.php';
@@ -11,11 +28,39 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// Verificar autenticación
-if (!isset($_SESSION['user']) || empty($_SESSION['user'])) {
+// Verificar autenticación - usar el mismo patrón que index.php
+$db = DatabaseManager::getInstance();
+$authenticated = false;
+
+// Verificar primero en $_SESSION
+if (isset($_SESSION['user']) && !empty($_SESSION['user'])) {
+    $authenticated = true;
+} else {
+    // Si no hay en $_SESSION, buscar en PostgreSQL
+    $sessionId = session_id();
+    $user = $db->getSession($sessionId);
+    if ($user) {
+        // Guardar en $_SESSION para próxima vez
+        $_SESSION['user'] = $user;
+        $authenticated = true;
+    }
+}
+
+if (!$authenticated) {
     http_response_code(401);
     header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'error' => 'No autenticado']);
+    $sessionId = session_id();
+    $hasSession = isset($_SESSION['user']);
+    $sessionData = $hasSession ? 'presente' : 'ausente';
+    echo json_encode([
+        'success' => false, 
+        'error' => 'No autenticado',
+        'debug' => [
+            'session_id' => $sessionId ? substr($sessionId, 0, 10) . '...' : 'no generado',
+            'session_user' => $sessionData,
+            'session_status' => session_status() === PHP_SESSION_ACTIVE ? 'activa' : 'inactiva'
+        ]
+    ]);
     exit;
 }
 
