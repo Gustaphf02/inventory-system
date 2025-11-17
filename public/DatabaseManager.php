@@ -125,7 +125,12 @@ class DatabaseManager {
             BEGIN
                 IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
                               WHERE table_name = 'products' AND column_name = 'photo_url') THEN
-                    ALTER TABLE products ADD COLUMN photo_url VARCHAR(500);
+                    ALTER TABLE products ADD COLUMN photo_url TEXT;
+                ELSIF EXISTS (SELECT 1 FROM information_schema.columns 
+                             WHERE table_name = 'products' AND column_name = 'photo_url' 
+                             AND data_type = 'character varying' AND character_maximum_length < 10000) THEN
+                    -- Si existe pero es VARCHAR pequeño, cambiarlo a TEXT para soportar base64
+                    ALTER TABLE products ALTER COLUMN photo_url TYPE TEXT;
                 END IF;
             END
             \$\$;

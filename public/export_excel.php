@@ -195,34 +195,75 @@ try {
         // Insertar foto si existe y hay columna de foto
         if ($photoCol && isset($rowData['photo_url']) && !empty($rowData['photo_url'])) {
             $photoUrl = $rowData['photo_url'];
-            // Si es una URL relativa, convertir a ruta absoluta
-            if (strpos($photoUrl, '/') === 0) {
-                $photoPath = __DIR__ . $photoUrl;
-            } else {
-                $photoPath = __DIR__ . '/' . $photoUrl;
-            }
             
-            if (file_exists($photoPath)) {
+            // Verificar si es una imagen base64 (data URI)
+            if (strpos($photoUrl, 'data:image') === 0) {
                 try {
-                    $drawing = new \PhpOffice\PhpSpreadsheet\Worksheet\Drawing();
-                    $drawing->setPath($photoPath);
-                    $drawing->setCoordinates($photoCol . $currentRow);
-                    $drawing->setWidth(100); // Ancho de la imagen en píxeles
-                    $drawing->setHeight(100); // Alto de la imagen en píxeles
-                    $drawing->setOffsetX(5);
-                    $drawing->setOffsetY(5);
-                    $drawing->setWorksheet($worksheet);
+                    // Extraer los datos base64
+                    list($header, $data) = explode(',', $photoUrl, 2);
+                    $imageData = base64_decode($data);
                     
-                    // Ajustar altura de la fila para que quepa la imagen
-                    $worksheet->getRowDimension($currentRow)->setRowHeight(80);
+                    if ($imageData !== false) {
+                        // Crear un archivo temporal
+                        $tempFile = tempnam(sys_get_temp_dir(), 'excel_photo_');
+                        file_put_contents($tempFile, $imageData);
+                        
+                        $drawing = new \PhpOffice\PhpSpreadsheet\Worksheet\Drawing();
+                        $drawing->setPath($tempFile);
+                        $drawing->setCoordinates($photoCol . $currentRow);
+                        $drawing->setWidth(100);
+                        $drawing->setHeight(100);
+                        $drawing->setOffsetX(5);
+                        $drawing->setOffsetY(5);
+                        $drawing->setWorksheet($worksheet);
+                        
+                        // Ajustar altura de la fila
+                        $worksheet->getRowDimension($currentRow)->setRowHeight(80);
+                        
+                        // Limpiar archivo temporal después de un momento
+                        register_shutdown_function(function() use ($tempFile) {
+                            if (file_exists($tempFile)) {
+                                @unlink($tempFile);
+                            }
+                        });
+                    } else {
+                        $worksheet->setCellValue($photoCol . $currentRow, 'Error al decodificar imagen');
+                    }
                 } catch (Exception $e) {
-                    // Si hay error al insertar la imagen, solo poner la URL como texto
-                    $worksheet->setCellValue($photoCol . $currentRow, $photoUrl);
-                    error_log("Error al insertar imagen en Excel: " . $e->getMessage());
+                    error_log("Error al insertar imagen base64 en Excel: " . $e->getMessage());
+                    $worksheet->setCellValue($photoCol . $currentRow, 'Error al procesar imagen');
                 }
             } else {
-                // Si el archivo no existe, poner la URL como texto
-                $worksheet->setCellValue($photoCol . $currentRow, $photoUrl);
+                // Es una URL de archivo normal
+                // Si es una URL relativa, convertir a ruta absoluta
+                if (strpos($photoUrl, '/') === 0) {
+                    $photoPath = __DIR__ . $photoUrl;
+                } else {
+                    $photoPath = __DIR__ . '/' . $photoUrl;
+                }
+                
+                if (file_exists($photoPath)) {
+                    try {
+                        $drawing = new \PhpOffice\PhpSpreadsheet\Worksheet\Drawing();
+                        $drawing->setPath($photoPath);
+                        $drawing->setCoordinates($photoCol . $currentRow);
+                        $drawing->setWidth(100); // Ancho de la imagen en píxeles
+                        $drawing->setHeight(100); // Alto de la imagen en píxeles
+                        $drawing->setOffsetX(5);
+                        $drawing->setOffsetY(5);
+                        $drawing->setWorksheet($worksheet);
+                        
+                        // Ajustar altura de la fila para que quepa la imagen
+                        $worksheet->getRowDimension($currentRow)->setRowHeight(80);
+                    } catch (Exception $e) {
+                        // Si hay error al insertar la imagen, solo poner la URL como texto
+                        $worksheet->setCellValue($photoCol . $currentRow, $photoUrl);
+                        error_log("Error al insertar imagen en Excel: " . $e->getMessage());
+                    }
+                } else {
+                    // Si el archivo no existe, poner la URL como texto
+                    $worksheet->setCellValue($photoCol . $currentRow, $photoUrl);
+                }
             }
         } elseif ($photoCol) {
             // Si hay columna de foto pero no hay foto, dejar vacío

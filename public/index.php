@@ -800,14 +800,12 @@ if (session_status() === PHP_SESSION_NONE) {
             }
             
             // Verificar que el directorio sea escribible
-            if (!is_writable($photosDir)) {
-                error_log("Error: El directorio no es escribible: $photosDir");
-                http_response_code(500);
-                echo json_encode([
-                    'success' => false, 
-                    'error' => 'El directorio de fotos no tiene permisos de escritura. Contacte al administrador.'
-                ]);
-                exit;
+            // Si no es escribible, guardaremos la imagen como base64 en la base de datos
+            $useFileSystem = is_writable($photosDir);
+            
+            if (!$useFileSystem) {
+                error_log("Warning: El directorio no es escribible, usando almacenamiento en base de datos: $photosDir");
+                // Continuar para guardar como base64
             }
             
             // Generar nombre único para el archivo
@@ -833,50 +831,62 @@ if (session_status() === PHP_SESSION_NONE) {
                 exit;
             }
             
-            // Mover el archivo
-            if (move_uploaded_file($file['tmp_name'], $filepath)) {
-                // Verificar que el archivo se guardó correctamente
-                if (!file_exists($filepath)) {
-                    error_log("Error: El archivo no se guardó correctamente: $filepath");
+            // Intentar guardar en sistema de archivos primero
+            if ($useFileSystem) {
+                if (move_uploaded_file($file['tmp_name'], $filepath)) {
+                    // Verificar que el archivo se guardó correctamente
+                    if (!file_exists($filepath)) {
+                        error_log("Error: El archivo no se guardó correctamente: $filepath");
+                        // Intentar guardar como base64 como respaldo
+                        $useFileSystem = false;
+                    } else {
+                        // Generar URL relativa
+                        $photoUrl = '/uploads/photos/' . $filename;
+                        
+                        safeLog('INFO', 'PRODUCT', 'PHOTO_UPLOAD', "Foto subida: $filename");
+                        echo json_encode([
+                            'success' => true,
+                            'photo_url' => $photoUrl,
+                            'message' => 'Foto subida exitosamente',
+                            'storage' => 'filesystem'
+                        ]);
+                        exit;
+                    }
+                } else {
+                    // Si falla, intentar guardar como base64
+                    error_log("Warning: No se pudo guardar en sistema de archivos, usando base64");
+                    $useFileSystem = false;
+                }
+            }
+            
+            // Si no se puede usar sistema de archivos, guardar como base64 en la base de datos
+            if (!$useFileSystem) {
+                // Leer el contenido del archivo
+                $imageData = file_get_contents($file['tmp_name']);
+                if ($imageData === false) {
                     http_response_code(500);
                     echo json_encode([
                         'success' => false, 
-                        'error' => 'El archivo se movió pero no se encontró en el destino.'
+                        'error' => 'No se pudo leer el contenido de la imagen.'
                     ]);
                     exit;
                 }
                 
-                // Generar URL relativa
-                $photoUrl = '/uploads/photos/' . $filename;
+                // Convertir a base64
+                $base64Image = base64_encode($imageData);
+                $dataUri = 'data:' . $mimeType . ';base64,' . $base64Image;
                 
-                safeLog('INFO', 'PRODUCT', 'PHOTO_UPLOAD', "Foto subida: $filename");
+                // Guardar en la base de datos (usaremos un formato especial para identificar que es base64)
+                // En lugar de guardar la URL, guardaremos un identificador que indique que está en base64
+                // Por ahora, guardaremos la data URI completa (aunque es larga, funciona)
+                $photoUrl = $dataUri;
+                
+                safeLog('INFO', 'PRODUCT', 'PHOTO_UPLOAD', "Foto subida como base64 (sistema de archivos no disponible)");
                 echo json_encode([
                     'success' => true,
                     'photo_url' => $photoUrl,
-                    'message' => 'Foto subida exitosamente'
-                ]);
-                exit;
-            } else {
-                // Obtener el último error de PHP
-                $error = error_get_last();
-                $errorMsg = 'Error al guardar la imagen';
-                if ($error) {
-                    $errorMsg .= ': ' . $error['message'];
-                    error_log("Error al mover archivo: " . $error['message']);
-                }
-                error_log("Error al mover archivo. tmp_name: " . $file['tmp_name'] . ", destino: $filepath");
-                error_log("Permisos del directorio: " . substr(sprintf('%o', fileperms($photosDir)), -4));
-                
-                http_response_code(500);
-                echo json_encode([
-                    'success' => false, 
-                    'error' => $errorMsg,
-                    'debug' => [
-                        'tmp_name' => $file['tmp_name'],
-                        'destination' => $filepath,
-                        'directory_exists' => is_dir($photosDir),
-                        'directory_writable' => is_writable($photosDir)
-                    ]
+                    'message' => 'Foto subida exitosamente (almacenada en base de datos)',
+                    'storage' => 'database'
                 ]);
                 exit;
             }
