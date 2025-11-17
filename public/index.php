@@ -780,14 +780,22 @@ if (session_status() === PHP_SESSION_NONE) {
             
             // Crear directorio photos si no existe
             if (!is_dir($photosDir)) {
-                if (!mkdir($photosDir, 0755, true)) {
-                    error_log("Error: No se pudo crear el directorio photos: $photosDir");
-                    http_response_code(500);
-                    echo json_encode([
-                        'success' => false, 
-                        'error' => 'Error al crear directorio de fotos. Verifique permisos del servidor.'
-                    ]);
-                    exit;
+                if (!@mkdir($photosDir, 0755, true)) {
+                    // Intentar con permisos más permisivos si falla
+                    if (!@mkdir($photosDir, 0777, true)) {
+                        error_log("Error: No se pudo crear el directorio photos: $photosDir");
+                        http_response_code(500);
+                        echo json_encode([
+                            'success' => false, 
+                            'error' => 'Error al crear directorio de fotos. Verifique permisos del servidor.',
+                            'debug' => [
+                                'directory' => $photosDir,
+                                'parent_exists' => is_dir($uploadsDir),
+                                'parent_writable' => is_writable($uploadsDir)
+                            ]
+                        ]);
+                        exit;
+                    }
                 }
             }
             

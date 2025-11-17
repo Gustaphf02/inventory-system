@@ -26,10 +26,12 @@ if [ -f "composer.json" ]; then
 fi
 
 # Crear directorio de uploads si no existe
-mkdir -p public/uploads
+mkdir -p public/uploads/photos
 
 # Configurar permisos básicos
 chmod 755 public/
+chmod 755 public/uploads/
+chmod 755 public/uploads/photos/
 chmod 644 public/*.php
 
 echo "✅ Preparación completada"
