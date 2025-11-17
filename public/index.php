@@ -761,51 +761,36 @@ if (session_status() === PHP_SESSION_NONE) {
                 exit;
             }
             
-            // Crear directorio de fotos si no existe
+            // Intentar usar sistema de archivos primero, pero si falla, usar base64 automáticamente
             $photosDir = __DIR__ . '/uploads/photos';
-            
-            // Crear directorio uploads si no existe
             $uploadsDir = __DIR__ . '/uploads';
-            if (!is_dir($uploadsDir)) {
-                if (!mkdir($uploadsDir, 0755, true)) {
-                    error_log("Error: No se pudo crear el directorio uploads: $uploadsDir");
-                    http_response_code(500);
-                    echo json_encode([
-                        'success' => false, 
-                        'error' => 'Error al crear directorio de uploads. Verifique permisos del servidor.'
-                    ]);
-                    exit;
-                }
-            }
+            $useFileSystem = false;
             
-            // Crear directorio photos si no existe
-            if (!is_dir($photosDir)) {
-                if (!@mkdir($photosDir, 0755, true)) {
-                    // Intentar con permisos más permisivos si falla
-                    if (!@mkdir($photosDir, 0777, true)) {
-                        error_log("Error: No se pudo crear el directorio photos: $photosDir");
-                        http_response_code(500);
-                        echo json_encode([
-                            'success' => false, 
-                            'error' => 'Error al crear directorio de fotos. Verifique permisos del servidor.',
-                            'debug' => [
-                                'directory' => $photosDir,
-                                'parent_exists' => is_dir($uploadsDir),
-                                'parent_writable' => is_writable($uploadsDir)
-                            ]
-                        ]);
-                        exit;
+            // Verificar si podemos usar sistema de archivos
+            if (is_dir($uploadsDir) && is_writable($uploadsDir)) {
+                // El directorio uploads existe y es escribible
+                if (is_dir($photosDir) && is_writable($photosDir)) {
+                    $useFileSystem = true;
+                } elseif (!is_dir($photosDir)) {
+                    // Intentar crear el directorio photos
+                    if (@mkdir($photosDir, 0755, true) && is_writable($photosDir)) {
+                        $useFileSystem = true;
+                    }
+                }
+            } elseif (!is_dir($uploadsDir)) {
+                // Intentar crear el directorio uploads
+                if (@mkdir($uploadsDir, 0755, true) && is_writable($uploadsDir)) {
+                    // Ahora intentar crear photos
+                    if (@mkdir($photosDir, 0755, true) && is_writable($photosDir)) {
+                        $useFileSystem = true;
                     }
                 }
             }
             
-            // Verificar que el directorio sea escribible
-            // Si no es escribible, guardaremos la imagen como base64 en la base de datos
-            $useFileSystem = is_writable($photosDir);
-            
+            // Si no podemos usar sistema de archivos, usar base64 directamente
             if (!$useFileSystem) {
-                error_log("Warning: El directorio no es escribible, usando almacenamiento en base de datos: $photosDir");
-                // Continuar para guardar como base64
+                error_log("Info: Usando almacenamiento base64 (sistema de archivos no disponible o sin permisos)");
+                // Continuar directamente a guardar como base64
             }
             
             // Generar nombre único para el archivo
