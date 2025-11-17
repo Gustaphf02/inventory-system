@@ -763,17 +763,81 @@ if (session_status() === PHP_SESSION_NONE) {
             
             // Crear directorio de fotos si no existe
             $photosDir = __DIR__ . '/uploads/photos';
+            
+            // Crear directorio uploads si no existe
+            $uploadsDir = __DIR__ . '/uploads';
+            if (!is_dir($uploadsDir)) {
+                if (!mkdir($uploadsDir, 0755, true)) {
+                    error_log("Error: No se pudo crear el directorio uploads: $uploadsDir");
+                    http_response_code(500);
+                    echo json_encode([
+                        'success' => false, 
+                        'error' => 'Error al crear directorio de uploads. Verifique permisos del servidor.'
+                    ]);
+                    exit;
+                }
+            }
+            
+            // Crear directorio photos si no existe
             if (!is_dir($photosDir)) {
-                mkdir($photosDir, 0755, true);
+                if (!mkdir($photosDir, 0755, true)) {
+                    error_log("Error: No se pudo crear el directorio photos: $photosDir");
+                    http_response_code(500);
+                    echo json_encode([
+                        'success' => false, 
+                        'error' => 'Error al crear directorio de fotos. Verifique permisos del servidor.'
+                    ]);
+                    exit;
+                }
+            }
+            
+            // Verificar que el directorio sea escribible
+            if (!is_writable($photosDir)) {
+                error_log("Error: El directorio no es escribible: $photosDir");
+                http_response_code(500);
+                echo json_encode([
+                    'success' => false, 
+                    'error' => 'El directorio de fotos no tiene permisos de escritura. Contacte al administrador.'
+                ]);
+                exit;
             }
             
             // Generar nombre único para el archivo
             $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
+            if (empty($extension)) {
+                // Si no hay extensión, intentar detectarla del tipo MIME
+                $extension = 'jpg'; // Por defecto
+                if (strpos($mimeType, 'png') !== false) $extension = 'png';
+                elseif (strpos($mimeType, 'gif') !== false) $extension = 'gif';
+                elseif (strpos($mimeType, 'webp') !== false) $extension = 'webp';
+            }
             $filename = 'product_' . time() . '_' . uniqid() . '.' . $extension;
             $filepath = $photosDir . '/' . $filename;
             
+            // Verificar que el archivo temporal existe
+            if (!file_exists($file['tmp_name'])) {
+                error_log("Error: Archivo temporal no existe: " . $file['tmp_name']);
+                http_response_code(500);
+                echo json_encode([
+                    'success' => false, 
+                    'error' => 'El archivo temporal no se encontró. Intente nuevamente.'
+                ]);
+                exit;
+            }
+            
             // Mover el archivo
             if (move_uploaded_file($file['tmp_name'], $filepath)) {
+                // Verificar que el archivo se guardó correctamente
+                if (!file_exists($filepath)) {
+                    error_log("Error: El archivo no se guardó correctamente: $filepath");
+                    http_response_code(500);
+                    echo json_encode([
+                        'success' => false, 
+                        'error' => 'El archivo se movió pero no se encontró en el destino.'
+                    ]);
+                    exit;
+                }
+                
                 // Generar URL relativa
                 $photoUrl = '/uploads/photos/' . $filename;
                 
@@ -785,8 +849,27 @@ if (session_status() === PHP_SESSION_NONE) {
                 ]);
                 exit;
             } else {
+                // Obtener el último error de PHP
+                $error = error_get_last();
+                $errorMsg = 'Error al guardar la imagen';
+                if ($error) {
+                    $errorMsg .= ': ' . $error['message'];
+                    error_log("Error al mover archivo: " . $error['message']);
+                }
+                error_log("Error al mover archivo. tmp_name: " . $file['tmp_name'] . ", destino: $filepath");
+                error_log("Permisos del directorio: " . substr(sprintf('%o', fileperms($photosDir)), -4));
+                
                 http_response_code(500);
-                echo json_encode(['success' => false, 'error' => 'Error al guardar la imagen']);
+                echo json_encode([
+                    'success' => false, 
+                    'error' => $errorMsg,
+                    'debug' => [
+                        'tmp_name' => $file['tmp_name'],
+                        'destination' => $filepath,
+                        'directory_exists' => is_dir($photosDir),
+                        'directory_writable' => is_writable($photosDir)
+                    ]
+                ]);
                 exit;
             }
             
