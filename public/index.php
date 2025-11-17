@@ -309,7 +309,8 @@ if (session_status() === PHP_SESSION_NONE) {
                         'label' => $input['label'] ?? '',
                         'barcode' => $input['barcode'] ?? '',
                         'expiration_date' => $input['expiration_date'] ?? null,
-                        'status' => $input['status'] ?? 'active'
+                        'status' => $input['status'] ?? 'active',
+                        'photo_url' => $input['photo_url'] ?? null
                     ];
                     
                     // Crear producto usando DatabaseManager
@@ -393,7 +394,8 @@ if (session_status() === PHP_SESSION_NONE) {
                         'label' => $input['label'] ?? '',
                         'barcode' => $input['barcode'] ?? '',
                         'expiration_date' => $input['expiration_date'] ?? null,
-                        'status' => $input['status'] ?? 'active'
+                        'status' => $input['status'] ?? 'active',
+                        'photo_url' => $input['photo_url'] ?? null
                     ];
                     
                     // Actualizar producto usando DatabaseManager
@@ -698,6 +700,90 @@ if (session_status() === PHP_SESSION_NONE) {
                 'connection_status' => $status,
                 'timestamp' => date('Y-m-d H:i:s')
             ]);
+            break;
+            
+        case 'upload-photo':
+            // Endpoint para subir fotos de productos
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                http_response_code(405);
+                echo json_encode(['success' => false, 'error' => 'Método no permitido']);
+                break;
+            }
+            
+            // Verificar autenticación
+            $authenticated = false;
+            if (isset($_SESSION['user']) && !empty($_SESSION['user'])) {
+                $authenticated = true;
+            } else {
+                $sessionId = session_id();
+                $user = $db->getSession($sessionId);
+                if ($user) {
+                    $_SESSION['user'] = $user;
+                    $authenticated = true;
+                }
+            }
+            
+            if (!$authenticated) {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'error' => 'No autenticado']);
+                break;
+            }
+            
+            // Verificar que se haya enviado una imagen
+            if (!isset($_FILES['photo']) || $_FILES['photo']['error'] !== UPLOAD_ERR_OK) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'No se recibió ninguna imagen o hubo un error en la subida']);
+                break;
+            }
+            
+            $file = $_FILES['photo'];
+            
+            // Validar tipo de archivo
+            $allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $mimeType = finfo_file($finfo, $file['tmp_name']);
+            finfo_close($finfo);
+            
+            if (!in_array($mimeType, $allowedTypes)) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'Tipo de archivo no permitido. Solo se permiten imágenes (JPEG, PNG, GIF, WEBP)']);
+                break;
+            }
+            
+            // Validar tamaño (máximo 5MB)
+            $maxSize = 5 * 1024 * 1024; // 5MB
+            if ($file['size'] > $maxSize) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'El archivo es demasiado grande. Máximo 5MB']);
+                break;
+            }
+            
+            // Crear directorio de fotos si no existe
+            $photosDir = __DIR__ . '/uploads/photos';
+            if (!is_dir($photosDir)) {
+                mkdir($photosDir, 0755, true);
+            }
+            
+            // Generar nombre único para el archivo
+            $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
+            $filename = 'product_' . time() . '_' . uniqid() . '.' . $extension;
+            $filepath = $photosDir . '/' . $filename;
+            
+            // Mover el archivo
+            if (move_uploaded_file($file['tmp_name'], $filepath)) {
+                // Generar URL relativa
+                $photoUrl = '/uploads/photos/' . $filename;
+                
+                safeLog('INFO', 'PRODUCT', 'PHOTO_UPLOAD', "Foto subida: $filename");
+                echo json_encode([
+                    'success' => true,
+                    'photo_url' => $photoUrl,
+                    'message' => 'Foto subida exitosamente'
+                ]);
+            } else {
+                http_response_code(500);
+                echo json_encode(['success' => false, 'error' => 'Error al guardar la imagen']);
+            }
             break;
             
         default:

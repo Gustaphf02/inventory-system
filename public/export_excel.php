@@ -1,5 +1,8 @@
 <?php
 // Configurar headers CORS para permitir cookies
+header('Access-Control-Allow-Headers: Content-Type, Authorization');
+
+// Manejar preflight requests
 $origin = $_SERVER['HTTP_ORIGIN'] ?? $_SERVER['HTTP_HOST'] ?? '*';
 if ($origin !== '*') {
     header('Access-Control-Allow-Origin: ' . $origin);
@@ -8,9 +11,7 @@ if ($origin !== '*') {
     header('Access-Control-Allow-Origin: *');
 }
 header('Access-Control-Allow-Methods: POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
-// Manejar preflight requests
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit;
@@ -142,12 +143,27 @@ try {
         'Estado' => 'Estado'
     ];
     
+    // Buscar columna de foto
+    $photoCol = null;
+    foreach ($headers as $col => $headerName) {
+        $normalizedHeader = strtolower(str_replace(['.', ' ', 'á', 'é', 'í', 'ó', 'ú'], ['', '', 'a', 'e', 'i', 'o', 'u'], $headerName));
+        if (strpos($normalizedHeader, 'foto') !== false || strpos($normalizedHeader, 'imagen') !== false || strpos($normalizedHeader, 'photo') !== false) {
+            $photoCol = $col;
+            break;
+        }
+    }
+    
     // Insertar los datos
     $currentRow = $dataStartRow + 1;
     foreach ($data as $rowData) {
         foreach ($headers as $col => $headerName) {
             // Normalizar el nombre del header (quitar puntos, espacios, tildes)
             $normalizedHeader = strtolower(str_replace(['.', ' ', 'á', 'é', 'í', 'ó', 'ú'], ['', '', 'a', 'e', 'i', 'o', 'u'], $headerName));
+            
+            // Si es la columna de foto, manejar de forma especial
+            if ($col === $photoCol) {
+                continue; // Se manejará después del loop
+            }
             
             // Buscar el valor correspondiente
             $value = '';
@@ -175,6 +191,44 @@ try {
             $cell = $worksheet->getCell($col . $currentRow);
             $cell->setValue($value);
         }
+        
+        // Insertar foto si existe y hay columna de foto
+        if ($photoCol && isset($rowData['photo_url']) && !empty($rowData['photo_url'])) {
+            $photoUrl = $rowData['photo_url'];
+            // Si es una URL relativa, convertir a ruta absoluta
+            if (strpos($photoUrl, '/') === 0) {
+                $photoPath = __DIR__ . $photoUrl;
+            } else {
+                $photoPath = __DIR__ . '/' . $photoUrl;
+            }
+            
+            if (file_exists($photoPath)) {
+                try {
+                    $drawing = new \PhpOffice\PhpSpreadsheet\Worksheet\Drawing();
+                    $drawing->setPath($photoPath);
+                    $drawing->setCoordinates($photoCol . $currentRow);
+                    $drawing->setWidth(100); // Ancho de la imagen en píxeles
+                    $drawing->setHeight(100); // Alto de la imagen en píxeles
+                    $drawing->setOffsetX(5);
+                    $drawing->setOffsetY(5);
+                    $drawing->setWorksheet($worksheet);
+                    
+                    // Ajustar altura de la fila para que quepa la imagen
+                    $worksheet->getRowDimension($currentRow)->setRowHeight(80);
+                } catch (Exception $e) {
+                    // Si hay error al insertar la imagen, solo poner la URL como texto
+                    $worksheet->setCellValue($photoCol . $currentRow, $photoUrl);
+                    error_log("Error al insertar imagen en Excel: " . $e->getMessage());
+                }
+            } else {
+                // Si el archivo no existe, poner la URL como texto
+                $worksheet->setCellValue($photoCol . $currentRow, $photoUrl);
+            }
+        } elseif ($photoCol) {
+            // Si hay columna de foto pero no hay foto, dejar vacío
+            $worksheet->setCellValue($photoCol . $currentRow, '');
+        }
+        
         $currentRow++;
     }
     

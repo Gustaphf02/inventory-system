@@ -1647,7 +1647,8 @@
                         'Sub-Especific': this.extractSubSpecs(product.description) || '',
                         'Asig. Numérica': product.barcode || 'Sin asignar',
                         'Descripción': this.extractDescription(product.description) || '',
-                        'Estado': this.getEquipmentStatusText(product.status)
+                        'Estado': this.getEquipmentStatusText(product.status),
+                        'photo_url': product.photo_url || '' // Incluir URL de la foto
                     }));
                     
                     // Llamar a la función de exportación (se implementará después)
@@ -1925,6 +1926,8 @@
                     modalInstance.hide();
                 }
             }
+            // Limpiar foto preview
+            clearExistingEquipmentPhotoPreview();
             // Limpiar el formulario al cerrar
             document.getElementById('existingEquipmentForm').reset();
         }
@@ -1989,6 +1992,10 @@
             const formStatus = document.getElementById('existingEquipmentStatus').value;
             const mappedStatus = statusMap[formStatus] || 'active';
             
+            // Obtener photo_url si se subió una foto
+            const photoInput = document.getElementById('existingEquipmentPhoto');
+            const photoUrl = photoInput && photoInput.dataset.uploadedPhotoUrl ? photoInput.dataset.uploadedPhotoUrl : null;
+            
             // Mapear datos del formulario al formato que espera el backend
             const productData = {
                 sku: autoSKU,
@@ -2008,7 +2015,8 @@
                 category_id: 1, // Por defecto
                 supplier_id: 1, // Por defecto
                 type: 'existing_equipment', // Identificador para equipos existentes
-                status: mappedStatus
+                status: mappedStatus,
+                photo_url: photoUrl // Incluir URL de la foto si existe
             };
             
             console.log('Datos del equipo existente a guardar:', productData);
@@ -2541,6 +2549,31 @@
             ensureSelectValue('editProductSupplier', product.supplier_id ?? '1');
             ensureSelectValue('editProductType', product.type || 'computo');
             ensureSelectValue('editProductDepartment', product.department || '');
+            
+            // Manejar foto del producto
+            const photoInput = document.getElementById('editProductPhoto');
+            const photoPreview = document.getElementById('editProductPhotoPreview');
+            const photoPreviewImg = document.getElementById('editProductPhotoPreviewImg');
+            const photoCurrent = document.getElementById('editProductPhotoCurrent');
+            const photoCurrentImg = document.getElementById('editProductPhotoCurrentImg');
+            
+            // Limpiar previews anteriores
+            if (photoInput) photoInput.value = '';
+            if (photoPreview) photoPreview.style.display = 'none';
+            if (photoCurrent) photoCurrent.style.display = 'none';
+            
+            // Mostrar foto actual si existe
+            if (product.photo_url) {
+                if (photoCurrent && photoCurrentImg) {
+                    photoCurrentImg.src = product.photo_url;
+                    photoCurrent.style.display = 'block';
+                }
+            }
+            
+            // Guardar photo_url actual para no perderla si no se sube nueva foto
+            if (photoInput) {
+                photoInput.dataset.currentPhotoUrl = product.photo_url || '';
+            }
         }
 
         function closeEditModal() {
@@ -2551,6 +2584,182 @@
                 modalInstance.hide();
             }
             currentEditProductId = null;
+            
+            // Limpiar foto preview
+            clearPhotoPreview();
+        }
+        
+        // Funciones para manejar fotos
+        function capturePhoto() {
+            const photoInput = document.getElementById('editProductPhoto');
+            if (photoInput) {
+                photoInput.click();
+            }
+        }
+        
+        function clearPhotoPreview() {
+            const photoInput = document.getElementById('editProductPhoto');
+            const photoPreview = document.getElementById('editProductPhotoPreview');
+            if (photoInput) {
+                photoInput.value = '';
+                photoInput.dataset.uploadedPhotoUrl = '';
+            }
+            if (photoPreview) {
+                photoPreview.style.display = 'none';
+            }
+        }
+        
+        // Event listener para cuando se seleccione un archivo
+        document.addEventListener('DOMContentLoaded', function() {
+            // Para el formulario de edición
+            const photoInput = document.getElementById('editProductPhoto');
+            if (photoInput) {
+                photoInput.addEventListener('change', function(e) {
+                    const file = e.target.files[0];
+                    if (file) {
+                        // Mostrar preview
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            const photoPreview = document.getElementById('editProductPhotoPreview');
+                            const photoPreviewImg = document.getElementById('editProductPhotoPreviewImg');
+                            if (photoPreview && photoPreviewImg) {
+                                photoPreviewImg.src = e.target.result;
+                                photoPreview.style.display = 'block';
+                            }
+                            
+                            // Subir la foto automáticamente
+                            uploadPhoto(file);
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+            }
+            
+            // Para el formulario de agregar equipo existente
+            const existingPhotoInput = document.getElementById('existingEquipmentPhoto');
+            if (existingPhotoInput) {
+                existingPhotoInput.addEventListener('change', function(e) {
+                    const file = e.target.files[0];
+                    if (file) {
+                        // Mostrar preview
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            const photoPreview = document.getElementById('existingEquipmentPhotoPreview');
+                            const photoPreviewImg = document.getElementById('existingEquipmentPhotoPreviewImg');
+                            if (photoPreview && photoPreviewImg) {
+                                photoPreviewImg.src = e.target.result;
+                                photoPreview.style.display = 'block';
+                            }
+                            
+                            // Subir la foto automáticamente
+                            uploadExistingEquipmentPhoto(file);
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+            }
+        });
+        
+        function uploadPhoto(file) {
+            const formData = new FormData();
+            formData.append('photo', file);
+            
+            // Mostrar indicador de carga
+            const photoInput = document.getElementById('editProductPhoto');
+            if (photoInput) {
+                photoInput.disabled = true;
+            }
+            
+            fetch('/upload-photo', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Guardar la URL de la foto subida
+                    if (photoInput) {
+                        photoInput.dataset.uploadedPhotoUrl = data.photo_url;
+                        photoInput.disabled = false;
+                    }
+                    console.log('Foto subida exitosamente:', data.photo_url);
+                } else {
+                    alert('Error al subir la foto: ' + (data.error || 'Error desconocido'));
+                    if (photoInput) {
+                        photoInput.disabled = false;
+                        clearPhotoPreview();
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error al subir foto:', error);
+                alert('Error al subir la foto: ' + error.message);
+                if (photoInput) {
+                    photoInput.disabled = false;
+                    clearPhotoPreview();
+                }
+            });
+        }
+        
+        // Funciones para el formulario de agregar equipo existente
+        function captureExistingEquipmentPhoto() {
+            const photoInput = document.getElementById('existingEquipmentPhoto');
+            if (photoInput) {
+                photoInput.click();
+            }
+        }
+        
+        function clearExistingEquipmentPhotoPreview() {
+            const photoInput = document.getElementById('existingEquipmentPhoto');
+            const photoPreview = document.getElementById('existingEquipmentPhotoPreview');
+            if (photoInput) {
+                photoInput.value = '';
+                photoInput.dataset.uploadedPhotoUrl = '';
+            }
+            if (photoPreview) {
+                photoPreview.style.display = 'none';
+            }
+        }
+        
+        function uploadExistingEquipmentPhoto(file) {
+            const formData = new FormData();
+            formData.append('photo', file);
+            
+            // Mostrar indicador de carga
+            const photoInput = document.getElementById('existingEquipmentPhoto');
+            if (photoInput) {
+                photoInput.disabled = true;
+            }
+            
+            fetch('/upload-photo', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Guardar la URL de la foto subida
+                    if (photoInput) {
+                        photoInput.dataset.uploadedPhotoUrl = data.photo_url;
+                        photoInput.disabled = false;
+                    }
+                    console.log('Foto subida exitosamente:', data.photo_url);
+                } else {
+                    alert('Error al subir la foto: ' + (data.error || 'Error desconocido'));
+                    if (photoInput) {
+                        photoInput.disabled = false;
+                        clearExistingEquipmentPhotoPreview();
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error al subir foto:', error);
+                alert('Error al subir la foto: ' + error.message);
+                if (photoInput) {
+                    photoInput.disabled = false;
+                    clearExistingEquipmentPhotoPreview();
+                }
+            });
         }
 
         function updateProduct() {
@@ -2584,6 +2793,14 @@
                 barcode: getTrimmedValue('editProductBarcode'),
                 status: getTrimmedValue('editProductStatus') || 'active'
             };
+            
+            // Obtener photo_url (de la foto subida o la actual)
+            const photoInput = document.getElementById('editProductPhoto');
+            if (photoInput && photoInput.dataset.uploadedPhotoUrl) {
+                productData.photo_url = photoInput.dataset.uploadedPhotoUrl;
+            } else if (photoInput && photoInput.dataset.currentPhotoUrl) {
+                productData.photo_url = photoInput.dataset.currentPhotoUrl;
+            }
             
             console.log('Frontend updateProduct: Datos a enviar:', productData);
             console.log('Frontend updateProduct: Tipo seleccionado:', productData.type);
@@ -2895,6 +3112,29 @@
                                 </div>
                             </div>
                         </div>
+                        
+                        <div class="mb-3">
+                            <label for="editProductPhoto" class="form-label">Foto del Equipo</label>
+                            <div class="d-flex flex-column gap-2">
+                                <div class="d-flex gap-2">
+                                    <input type="file" class="form-control" id="editProductPhoto" accept="image/*" capture="environment">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="capturePhoto()">
+                                        <i class="fas fa-camera"></i> Tomar Foto
+                                    </button>
+                                </div>
+                                <div id="editProductPhotoPreview" class="mt-2" style="display: none;">
+                                    <img id="editProductPhotoPreviewImg" src="" alt="Vista previa" class="img-thumbnail" style="max-width: 200px; max-height: 200px;">
+                                    <button type="button" class="btn btn-sm btn-danger ms-2" onclick="clearPhotoPreview()">
+                                        <i class="fas fa-times"></i> Eliminar
+                                    </button>
+                                </div>
+                                <div id="editProductPhotoCurrent" class="mt-2" style="display: none;">
+                                    <p class="text-muted small">Foto actual:</p>
+                                    <img id="editProductPhotoCurrentImg" src="" alt="Foto actual" class="img-thumbnail" style="max-width: 200px; max-height: 200px;">
+                                </div>
+                            </div>
+                            <div class="form-text">Puedes tomar una foto con la cámara o seleccionar un archivo de imagen</div>
+                        </div>
                     </form>
                 </div>
                 <div class="modal-footer">
@@ -3015,6 +3255,25 @@
                                    pattern="[A-Za-z0-9\s\-]+"
                                    placeholder="Ej: SER-12345 o ABC123"
                                    title="Letras y números permitidos">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="existingEquipmentPhoto" class="form-label">Foto del Equipo</label>
+                            <div class="d-flex flex-column gap-2">
+                                <div class="d-flex gap-2">
+                                    <input type="file" class="form-control" id="existingEquipmentPhoto" accept="image/*" capture="environment">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="captureExistingEquipmentPhoto()">
+                                        <i class="fas fa-camera"></i> Tomar Foto
+                                    </button>
+                                </div>
+                                <div id="existingEquipmentPhotoPreview" class="mt-2" style="display: none;">
+                                    <img id="existingEquipmentPhotoPreviewImg" src="" alt="Vista previa" class="img-thumbnail" style="max-width: 200px; max-height: 200px;">
+                                    <button type="button" class="btn btn-sm btn-danger ms-2" onclick="clearExistingEquipmentPhotoPreview()">
+                                        <i class="fas fa-times"></i> Eliminar
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="form-text">Puedes tomar una foto con la cámara o seleccionar un archivo de imagen</div>
                         </div>
                     </form>
                 </div>

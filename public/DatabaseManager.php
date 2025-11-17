@@ -119,6 +119,16 @@ class DatabaseManager {
                 END IF;
             END
             \$\$;
+            
+            -- Agregar columna photo_url si no existe (para tablas existentes)
+            DO \$\$
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                              WHERE table_name = 'products' AND column_name = 'photo_url') THEN
+                    ALTER TABLE products ADD COLUMN photo_url VARCHAR(500);
+                END IF;
+            END
+            \$\$;
 
             CREATE TABLE IF NOT EXISTS categories (
                 id SERIAL PRIMARY KEY,
@@ -191,7 +201,7 @@ class DatabaseManager {
     public function createProduct($data) {
         try {
             if ($this->usePostgreSQL) {
-                $sql = "INSERT INTO products (sku, name, description, brand, model, price, cost, stock_quantity, min_stock_level, max_stock_level, category_id, supplier_id, type, serial_number, department, label, barcode, expiration_date, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                $sql = "INSERT INTO products (sku, name, description, brand, model, price, cost, stock_quantity, min_stock_level, max_stock_level, category_id, supplier_id, type, serial_number, department, label, barcode, expiration_date, status, photo_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 
                 error_log("DatabaseManager createProduct: Ejecutando INSERT con datos: " . json_encode($data));
                 $stmt = $this->pdo->prepare($sql);
@@ -214,7 +224,8 @@ class DatabaseManager {
                     $data['label'] ?? '',
                     $data['barcode'] ?? '',
                     $data['expiration_date'] ?? null,
-                    $data['status'] ?? 'active'
+                    $data['status'] ?? 'active',
+                    $data['photo_url'] ?? null
                 ]);
 
                 $newId = $this->pdo->lastInsertId();
@@ -233,7 +244,7 @@ class DatabaseManager {
         error_log("DatabaseManager updateProduct: Actualizando producto ID $id con datos: " . json_encode($data));
         try {
             if ($this->usePostgreSQL) {
-                $sql = "UPDATE products SET name = ?, description = ?, brand = ?, model = ?, price = ?, cost = ?, stock_quantity = ?, min_stock_level = ?, max_stock_level = ?, category_id = ?, supplier_id = ?, type = ?, serial_number = ?, department = ?, label = ?, barcode = ?, expiration_date = ?, status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?";
+                $sql = "UPDATE products SET name = ?, description = ?, brand = ?, model = ?, price = ?, cost = ?, stock_quantity = ?, min_stock_level = ?, max_stock_level = ?, category_id = ?, supplier_id = ?, type = ?, serial_number = ?, department = ?, label = ?, barcode = ?, expiration_date = ?, status = ?, photo_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?";
                 
                 error_log("DatabaseManager updateProduct: SQL: " . $sql);
                 $stmt = $this->pdo->prepare($sql);
@@ -256,6 +267,7 @@ class DatabaseManager {
                     $data['barcode'] ?? '',
                     $data['expiration_date'] ?? null,
                     $data['status'] ?? 'active',
+                    $data['photo_url'] ?? null,
                     $id
                 ]);
 
