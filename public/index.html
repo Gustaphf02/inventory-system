@@ -2703,9 +2703,185 @@
         
         // Funciones para el formulario de agregar equipo existente
         function captureExistingEquipmentPhoto() {
-            const photoInput = document.getElementById('existingEquipmentPhoto');
-            if (photoInput) {
-                photoInput.click();
+            // Verificar si el navegador soporta la API de cámara
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                // Intentar acceder a la cámara
+                navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        facingMode: 'environment' // Cámara trasera en móviles
+                    } 
+                })
+                .then(function(stream) {
+                    // Crear modal para mostrar la cámara
+                    showCameraModal(stream, 'existingEquipment');
+                })
+                .catch(function(error) {
+                    console.error('Error al acceder a la cámara:', error);
+                    // Si falla, usar el método tradicional (selector de archivos)
+                    const photoInput = document.getElementById('existingEquipmentPhoto');
+                    if (photoInput) {
+                        photoInput.click();
+                    }
+                });
+            } else {
+                // Si no hay soporte, usar el método tradicional
+                const photoInput = document.getElementById('existingEquipmentPhoto');
+                if (photoInput) {
+                    photoInput.click();
+                }
+            }
+        }
+        
+        function capturePhoto() {
+            // Verificar si el navegador soporta la API de cámara
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                // Intentar acceder a la cámara
+                navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        facingMode: 'environment' // Cámara trasera en móviles
+                    } 
+                })
+                .then(function(stream) {
+                    // Crear modal para mostrar la cámara
+                    showCameraModal(stream, 'editProduct');
+                })
+                .catch(function(error) {
+                    console.error('Error al acceder a la cámara:', error);
+                    // Si falla, usar el método tradicional (selector de archivos)
+                    const photoInput = document.getElementById('editProductPhoto');
+                    if (photoInput) {
+                        photoInput.click();
+                    }
+                });
+            } else {
+                // Si no hay soporte, usar el método tradicional
+                const photoInput = document.getElementById('editProductPhoto');
+                if (photoInput) {
+                    photoInput.click();
+                }
+            }
+        }
+        
+        function showCameraModal(stream, formType) {
+            // Crear modal para la cámara
+            const cameraModal = document.createElement('div');
+            cameraModal.className = 'modal fade';
+            cameraModal.id = 'cameraModal';
+            cameraModal.innerHTML = `
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Tomar Foto</h5>
+                            <button type="button" class="btn-close" onclick="closeCameraModal()"></button>
+                        </div>
+                        <div class="modal-body text-center">
+                            <video id="cameraVideo" autoplay playsinline style="width: 100%; max-width: 500px; border-radius: 8px;"></video>
+                            <canvas id="cameraCanvas" style="display: none;"></canvas>
+                        </div>
+                        <div class="modal-footer justify-content-center">
+                            <button type="button" class="btn btn-secondary" onclick="closeCameraModal()">Cancelar</button>
+                            <button type="button" class="btn btn-primary" onclick="takePicture('${formType}')">
+                                <i class="fas fa-camera"></i> Capturar Foto
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(cameraModal);
+            
+            const modal = new bootstrap.Modal(cameraModal);
+            modal.show();
+            
+            // Mostrar el stream de video
+            const video = document.getElementById('cameraVideo');
+            video.srcObject = stream;
+            
+            // Guardar el stream para poder detenerlo después
+            cameraModal.dataset.stream = JSON.stringify({});
+            window.currentCameraStream = stream;
+            
+            // Limpiar cuando se cierre el modal
+            cameraModal.addEventListener('hidden.bs.modal', function() {
+                if (window.currentCameraStream) {
+                    window.currentCameraStream.getTracks().forEach(track => track.stop());
+                    window.currentCameraStream = null;
+                }
+                document.body.removeChild(cameraModal);
+            });
+        }
+        
+        function takePicture(formType) {
+            const video = document.getElementById('cameraVideo');
+            const canvas = document.getElementById('cameraCanvas');
+            const context = canvas.getContext('2d');
+            
+            // Ajustar el canvas al tamaño del video
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            // Capturar el frame actual
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Convertir a blob
+            canvas.toBlob(function(blob) {
+                // Detener la cámara
+                if (window.currentCameraStream) {
+                    window.currentCameraStream.getTracks().forEach(track => track.stop());
+                    window.currentCameraStream = null;
+                }
+                
+                // Cerrar el modal
+                const cameraModal = document.getElementById('cameraModal');
+                const modal = bootstrap.Modal.getInstance(cameraModal);
+                modal.hide();
+                
+                // Crear un archivo desde el blob
+                const file = new File([blob], 'camera-photo-' + Date.now() + '.jpg', { type: 'image/jpeg' });
+                
+                // Procesar según el tipo de formulario
+                if (formType === 'existingEquipment') {
+                    processCameraPhoto(file, 'existingEquipment');
+                } else {
+                    processCameraPhoto(file, 'editProduct');
+                }
+            }, 'image/jpeg', 0.9);
+        }
+        
+        function processCameraPhoto(file, formType) {
+            // Mostrar preview
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const photoPreview = document.getElementById(formType === 'existingEquipment' ? 'existingEquipmentPhotoPreview' : 'editProductPhotoPreview');
+                const photoPreviewImg = document.getElementById(formType === 'existingEquipment' ? 'existingEquipmentPhotoPreviewImg' : 'editProductPhotoPreviewImg');
+                if (photoPreview && photoPreviewImg) {
+                    photoPreviewImg.src = e.target.result;
+                    photoPreview.style.display = 'block';
+                }
+                
+                // Subir la foto automáticamente
+                if (formType === 'existingEquipment') {
+                    uploadExistingEquipmentPhoto(file);
+                } else {
+                    uploadPhoto(file);
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        function closeCameraModal() {
+            // Detener la cámara
+            if (window.currentCameraStream) {
+                window.currentCameraStream.getTracks().forEach(track => track.stop());
+                window.currentCameraStream = null;
+            }
+            
+            // Cerrar el modal
+            const cameraModal = document.getElementById('cameraModal');
+            if (cameraModal) {
+                const modal = bootstrap.Modal.getInstance(cameraModal);
+                if (modal) {
+                    modal.hide();
+                }
             }
         }
         
