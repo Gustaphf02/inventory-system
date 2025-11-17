@@ -144,7 +144,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // Si es una petición API, manejar como JSON
-    if (strpos($path, '/api/') === 0 || in_array($path, ['/auth/me', '/products', '/categories', '/suppliers', '/departments', '/locations', '/inventory/summary', '/reports/dashboard/stats', '/reports/inventory/summary', '/reports/inventory/low-stock', '/health', '/test'])) {
+    if (strpos($path, '/api/') === 0 || in_array($path, ['/auth/me', '/products', '/categories', '/suppliers', '/departments', '/locations', '/inventory/summary', '/reports/dashboard/stats', '/reports/inventory/summary', '/reports/inventory/low-stock', '/health', '/test', '/upload-photo'])) {
         // Debug: Log de la ruta detectada
         error_log("API Route detected: $path, Method: " . $_SERVER['REQUEST_METHOD']);
         
@@ -704,10 +704,13 @@ if (session_status() === PHP_SESSION_NONE) {
             
         case 'upload-photo':
             // Endpoint para subir fotos de productos
+            // Asegurar que se devuelva JSON
+            header('Content-Type: application/json');
+            
             if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
                 http_response_code(405);
                 echo json_encode(['success' => false, 'error' => 'Método no permitido']);
-                break;
+                exit;
             }
             
             // Verificar autenticación
@@ -726,14 +729,14 @@ if (session_status() === PHP_SESSION_NONE) {
             if (!$authenticated) {
                 http_response_code(401);
                 echo json_encode(['success' => false, 'error' => 'No autenticado']);
-                break;
+                exit;
             }
             
             // Verificar que se haya enviado una imagen
             if (!isset($_FILES['photo']) || $_FILES['photo']['error'] !== UPLOAD_ERR_OK) {
                 http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'No se recibió ninguna imagen o hubo un error en la subida']);
-                break;
+                exit;
             }
             
             $file = $_FILES['photo'];
@@ -747,7 +750,7 @@ if (session_status() === PHP_SESSION_NONE) {
             if (!in_array($mimeType, $allowedTypes)) {
                 http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'Tipo de archivo no permitido. Solo se permiten imágenes (JPEG, PNG, GIF, WEBP)']);
-                break;
+                exit;
             }
             
             // Validar tamaño (máximo 5MB)
@@ -755,7 +758,7 @@ if (session_status() === PHP_SESSION_NONE) {
             if ($file['size'] > $maxSize) {
                 http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'El archivo es demasiado grande. Máximo 5MB']);
-                break;
+                exit;
             }
             
             // Crear directorio de fotos si no existe
@@ -780,11 +783,12 @@ if (session_status() === PHP_SESSION_NONE) {
                     'photo_url' => $photoUrl,
                     'message' => 'Foto subida exitosamente'
                 ]);
+                exit;
             } else {
                 http_response_code(500);
                 echo json_encode(['success' => false, 'error' => 'Error al guardar la imagen']);
+                exit;
             }
-            break;
             
         default:
             http_response_code(404);
