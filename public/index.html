@@ -1930,6 +1930,81 @@
             clearExistingEquipmentPhotoPreview();
             // Limpiar el formulario al cerrar
             document.getElementById('existingEquipmentForm').reset();
+            // Resetear opciones del select de departamento
+            const departmentSelect = document.getElementById('existingEquipmentDepartment');
+            if (departmentSelect) {
+                departmentSelect.innerHTML = '<option value="">Primero selecciona el tipo de ubicación</option>';
+            }
+        }
+        
+        function updateDepartmentOptions() {
+            const locationType = document.getElementById('existingEquipmentLocationType').value;
+            const departmentSelect = document.getElementById('existingEquipmentDepartment');
+            
+            if (!departmentSelect) return;
+            
+            // Limpiar opciones actuales
+            departmentSelect.innerHTML = '';
+            
+            if (!locationType) {
+                departmentSelect.innerHTML = '<option value="">Primero selecciona el tipo de ubicación</option>';
+                return;
+            }
+            
+            // Agregar opción por defecto
+            const defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.textContent = 'Seleccionar ' + (locationType === 'departamento' ? 'departamento' : 'sitio');
+            departmentSelect.appendChild(defaultOption);
+            
+            if (locationType === 'departamento') {
+                // Lista de Departamentos
+                const departments = [
+                    'TELEMATICA',
+                    'S-1',
+                    'S-3',
+                    'DOA',
+                    'CAI',
+                    'ARMERIA CENTRAL',
+                    'ARMERIA PALACIO',
+                    'TRANSPORTE'
+                ];
+                
+                departments.forEach(dept => {
+                    const option = document.createElement('option');
+                    option.value = dept;
+                    option.textContent = dept;
+                    departmentSelect.appendChild(option);
+                });
+            } else if (locationType === 'sitio') {
+                // Lista de Sitios
+                const sites = [
+                    'Cerro Ancón',
+                    'Edificio Pradera',
+                    'Cerro Oscuro',
+                    'Palacio',
+                    'Cerro Galera',
+                    'Cerro Santa Rita',
+                    'Cerro Jefe',
+                    'Cerro Buenos Aires Chepo',
+                    'Aguas Frías',
+                    'Cerro Mena',
+                    'Cerro La Silla',
+                    'Cerro Taboga',
+                    'Cerro Canajagua',
+                    'Cerro Peña',
+                    'Cerro Boca Viento',
+                    'Cerro Zancudo',
+                    'Meseta de Chorcha'
+                ];
+                
+                sites.forEach(site => {
+                    const option = document.createElement('option');
+                    option.value = site;
+                    option.textContent = site;
+                    departmentSelect.appendChild(option);
+                });
+            }
         }
 
         function saveExistingEquipment() {
@@ -1949,9 +2024,15 @@
                 return;
             }
             
+            const locationType = document.getElementById('existingEquipmentLocationType').value;
+            if (!locationType) {
+                alert('Por favor selecciona el tipo de ubicación (Departamento o Sitio)');
+                return;
+            }
+            
             const department = document.getElementById('existingEquipmentDepartment').value.trim();
-            if (!/^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/.test(department)) {
-                alert('El departamento solo puede contener letras');
+            if (!department) {
+                alert('Por favor selecciona un ' + (locationType === 'departamento' ? 'departamento' : 'sitio'));
                 return;
             }
             
@@ -3337,11 +3418,20 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="existingEquipmentDepartment" class="form-label">Departamento donde está ubicado *</label>
-                                    <input type="text" class="form-control" id="existingEquipmentDepartment" required 
-                                           pattern="[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+" 
-                                           placeholder="Ej: Telemática"
-                                           title="Solo se permiten letras">
+                                    <label for="existingEquipmentLocationType" class="form-label">Tipo de Ubicación *</label>
+                                    <select class="form-select" id="existingEquipmentLocationType" required onchange="updateDepartmentOptions()">
+                                        <option value="">Seleccionar tipo</option>
+                                        <option value="departamento">Departamento</option>
+                                        <option value="sitio">Sitio</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="existingEquipmentDepartment" class="form-label">Departamento/Sitio donde está ubicado *</label>
+                                    <select class="form-select" id="existingEquipmentDepartment" required>
+                                        <option value="">Primero selecciona el tipo de ubicación</option>
+                                    </select>
                                 </div>
                             </div>
                             <div class="col-md-6">
