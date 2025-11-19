@@ -2134,9 +2134,15 @@
                                         existingSeriesBySite.set(sitio, new Set());
                                     }
                                     
-                                    // Agregar PLACA al Set del sitio correspondiente
+                                    // Agregar PLACA al Set del sitio correspondiente (ignorar "S/P")
                                     if (p.barcode && p.barcode.trim() !== '') {
-                                        existingBarcodesBySite.get(sitio).add(p.barcode.toString().trim().toUpperCase());
+                                        const barcodeUpper = p.barcode.toString().trim().toUpperCase();
+                                        // Ignorar "S/P", "SIN PLACA", "SIN PLAC"
+                                        if (barcodeUpper !== 'S/P' && 
+                                            barcodeUpper !== 'SIN PLACA' && 
+                                            barcodeUpper !== 'SIN PLAC') {
+                                            existingBarcodesBySite.get(sitio).add(barcodeUpper);
+                                        }
                                     }
                                     
                                     // Agregar SERIE al Set del sitio correspondiente
@@ -2158,13 +2164,26 @@
                                     if (!row || row.length === 0) continue;
                                     
                                     // Mapear columnas según el formato del Excel
-                                    const placa = placaIndex >= 0 ? String(row[placaIndex] || '').trim() : '';
+                                    let placa = placaIndex >= 0 ? String(row[placaIndex] || '').trim() : '';
                                     const equipo = equipoIndex >= 0 ? String(row[equipoIndex] || '').trim() : '';
                                     const marca = marcaIndex >= 0 ? String(row[marcaIndex] || '').trim() : '';
                                     const modelo = modeloIndex >= 0 ? String(row[modeloIndex] || '').trim() : '';
-                                    const serie = serieIndex >= 0 ? String(row[serieIndex] || '').trim() : '';
+                                    let serie = serieIndex >= 0 ? String(row[serieIndex] || '').trim() : '';
                                     const lugar = lugarIndex >= 0 ? String(row[lugarIndex] || '').trim() : '';
                                     const estado = estadoIndex >= 0 ? String(row[estadoIndex] || '').trim() : '';
+                                    
+                                    // Normalizar "S/P" (Sin Placa) a vacío, similar a "S/S" para series
+                                    if (placa && (placa.toUpperCase() === 'S/P' || 
+                                                  placa.toUpperCase() === 'SIN PLACA' || 
+                                                  placa.toUpperCase() === 'SIN PLAC')) {
+                                        placa = '';
+                                    }
+                                    
+                                    // Normalizar "S/S" (Sin Serie) a vacío (ya estaba implementado pero lo refuerzo)
+                                    if (serie && (serie.toUpperCase() === 'S/S' || 
+                                                  serie.toUpperCase() === 'SIN SERIE')) {
+                                        serie = '';
+                                    }
                                     
                                     // Validar que tenga al menos PLACA o EQUIPO
                                     if (!placa && !equipo) {
@@ -2266,8 +2285,11 @@
                                     const barcodesInSite = existingBarcodesBySite.get(sitioUpper) || new Set();
                                     const seriesInSite = existingSeriesBySite.get(sitioUpper) || new Set();
                                     
-                                    // 1. Si tiene PLACA, verificar si existe esa PLACA en el MISMO sitio
-                                    if (placa && placa.trim() !== '') {
+                                    // 1. Si tiene PLACA (y no es "S/P"), verificar si existe esa PLACA en el MISMO sitio
+                                    if (placa && placa.trim() !== '' && 
+                                        placa.toUpperCase() !== 'S/P' && 
+                                        placa.toUpperCase() !== 'SIN PLACA' && 
+                                        placa.toUpperCase() !== 'SIN PLAC') {
                                         const placaUpper = placa.toUpperCase();
                                         if (barcodesInSite.has(placaUpper)) {
                                             isDuplicate = true;
@@ -2324,8 +2346,9 @@
                                     
                                     console.log('Lugar:', lugar, '-> Sitio detectado:', sitio);
                                     
-                                    // Si la PLACA está vacía, generar una temporal pero no verificar duplicados
-                                    const barcodeToUse = placa || `INV-${autoSKU}`;
+                                    // Si la PLACA está vacía o es "S/P", usar vacío (no generar temporal)
+                                    // Esto permite múltiples productos sin PLACA en el mismo sitio
+                                    const barcodeToUse = (placa && placa.trim() !== '') ? placa : '';
                                     
                                     const productData = {
                                         sku: autoSKU,
@@ -2359,8 +2382,11 @@
                                         existingSeriesBySite.set(sitioUpper, new Set());
                                     }
                                     
-                                    // Agregar PLACA al Set del sitio correspondiente
-                                    if (placa && placa.trim() !== '') {
+                                    // Agregar PLACA al Set del sitio correspondiente (ignorar "S/P")
+                                    if (placa && placa.trim() !== '' && 
+                                        placa.toUpperCase() !== 'S/P' && 
+                                        placa.toUpperCase() !== 'SIN PLACA' && 
+                                        placa.toUpperCase() !== 'SIN PLAC') {
                                         existingBarcodesBySite.get(sitioUpper).add(placa.toUpperCase());
                                     }
                                     
