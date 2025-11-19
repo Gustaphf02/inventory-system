@@ -1921,19 +1921,25 @@
                         
                         const productId = this.selectedSites[index];
                         
-                        fetch(`/api/products/${productId}`, {
+                        fetch('/api/products', {
                             method: 'DELETE',
                             headers: {
                                 'Content-Type': 'application/json',
-                            }
+                            },
+                            body: JSON.stringify({ id: productId })
                         })
-                        .then(response => response.json())
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error(`HTTP error! status: ${response.status}`);
+                            }
+                            return response.json();
+                        })
                         .then(data => {
                             if (data.success) {
                                 deleted++;
                             } else {
                                 failed++;
-                                errors.push(`ID ${productId}: ${data.message || 'Error desconocido'}`);
+                                errors.push(`ID ${productId}: ${data.error || data.message || 'Error desconocido'}`);
                             }
                             // Continuar con el siguiente
                             deleteNext(index + 1);
@@ -2014,7 +2020,7 @@
                                 
                                 // Procesar filas (empezar después de la fila de headers)
                                 const productsToImport = [];
-                                let successCount = 0;
+                                let skippedCount = 0; // Productos saltados por no encontrar sitio
                                 let errorCount = 0;
                                 
                                 for (let i = headerRowIndex + 1; i < jsonData.length; i++) {
@@ -2050,7 +2056,7 @@
                                     };
                                     const mappedStatus = estado ? (statusMap[estado.toLowerCase()] || 'active') : 'active';
                                     
-                                    // Extraer sitio del lugar si es posible (ej: "CAMPANA - CERRO MENA" -> sitio sería "Cerro Mena")
+                                    // Extraer sitio del lugar - DEBE encontrar uno de los 17 sitios válidos
                                     let sitio = '';
                                     const sitiosList = [
                                         'Cerro Ancón', 'Edificio Pradera', 'Cerro Oscuro', 'Palacio',
@@ -2060,14 +2066,25 @@
                                         'Meseta de Chorcha'
                                     ];
                                     
+                                    // Función para normalizar texto (sin acentos, mayúsculas, espacios)
+                                    const normalize = (text) => {
+                                        return text.toUpperCase()
+                                            .replace(/Á/g, 'A').replace(/É/g, 'E').replace(/Í/g, 'I')
+                                            .replace(/Ó/g, 'O').replace(/Ú/g, 'U').replace(/Ñ/g, 'N')
+                                            .replace(/\s+/g, ' ').trim();
+                                    };
+                                    
                                     if (lugar) {
                                         const lugarUpper = lugar.toUpperCase().trim();
+                                        const lugarNormalized = normalize(lugar);
                                         
                                         // Primero: buscar coincidencias exactas del nombre completo del sitio
                                         for (const sitioItem of sitiosList) {
                                             const sitioUpper = sitioItem.toUpperCase();
+                                            const sitioNormalized = normalize(sitioItem);
+                                            
                                             // Buscar si el lugar contiene el nombre completo del sitio
-                                            if (lugarUpper.includes(sitioUpper)) {
+                                            if (lugarUpper.includes(sitioUpper) || lugarNormalized.includes(sitioNormalized)) {
                                                 sitio = sitioItem;
                                                 break;
                                             }
@@ -2075,19 +2092,21 @@
                                         
                                         // Segundo: si no se encontró, buscar por el nombre después de "CERRO"
                                         // Ejemplo: "CAMPANA - CERRO MENA" -> buscar "MENA" y encontrar "Cerro Mena"
+                                        // Ejemplo: "CERRO ANCON" -> buscar "ANCON" y encontrar "Cerro Ancón"
                                         if (!sitio) {
                                             // Buscar patrón "CERRO [NOMBRE]" en el lugar
-                                            const match = lugarUpper.match(/CERRO\s+([A-ZÁÉÍÓÚÑ]+)/);
+                                            const match = lugarUpper.match(/CERRO\s+([A-ZÁÉÍÓÚÑ\s]+?)(?:\s|$|-|,)/);
                                             if (match) {
-                                                const cerroName = match[1].trim(); // "MENA", "ANCÓN", etc.
+                                                const cerroName = normalize(match[1].trim()); // "MENA", "ANCON", etc.
                                                 
                                                 // Buscar el sitio que contenga este nombre
                                                 for (const sitioItem of sitiosList) {
                                                     if (sitioItem.startsWith('Cerro ')) {
-                                                        const nombreSitio = sitioItem.substring(6).toUpperCase(); // "MENA", "ANCÓN", etc.
-                                                        // Comparar sin acentos y espacios
-                                                        if (nombreSitio.replace(/[ÁÉÍÓÚ]/g, '').includes(cerroName.replace(/[ÁÉÍÓÚ]/g, '')) ||
-                                                            cerroName.replace(/[ÁÉÍÓÚ]/g, '').includes(nombreSitio.replace(/[ÁÉÍÓÚ]/g, ''))) {
+                                                        const nombreSitio = normalize(sitioItem.substring(6)); // "MENA", "ANCON", etc.
+                                                        // Comparar nombres normalizados
+                                                        if (nombreSitio === cerroName || 
+                                                            nombreSitio.includes(cerroName) || 
+                                                            cerroName.includes(nombreSitio)) {
                                                             sitio = sitioItem;
                                                             break;
                                                         }
@@ -2100,8 +2119,8 @@
                                         if (!sitio) {
                                             for (const sitioItem of sitiosList) {
                                                 if (!sitioItem.startsWith('Cerro ')) {
-                                                    const sitioUpper = sitioItem.toUpperCase();
-                                                    if (lugarUpper.includes(sitioUpper)) {
+                                                    const sitioNormalized = normalize(sitioItem);
+                                                    if (lugarNormalized.includes(sitioNormalized)) {
                                                         sitio = sitioItem;
                                                         break;
                                                     }
@@ -2110,9 +2129,11 @@
                                         }
                                     }
                                     
-                                    // Si no hay sitio, usar un valor por defecto
+                                    // Si NO se encontró el sitio, NO agregar el producto
                                     if (!sitio) {
-                                        sitio = 'Cerro Mena'; // Valor por defecto
+                                        skippedCount++;
+                                        console.log('Sitio no encontrado para lugar:', lugar, '- Producto NO agregado');
+                                        continue; // Saltar este producto
                                     }
                                     
                                     console.log('Lugar:', lugar, '-> Sitio detectado:', sitio);
@@ -2142,12 +2163,19 @@
                                 }
                                 
                                 if (productsToImport.length === 0) {
-                                    alert('No se encontraron datos válidos para importar');
+                                    const message = skippedCount > 0 
+                                        ? `No se encontraron datos válidos para importar.\n\nProductos saltados: ${skippedCount} (sitio no encontrado en los 17 sitios válidos)`
+                                        : 'No se encontraron datos válidos para importar';
+                                    alert(message);
                                     return;
                                 }
                                 
                                 // Confirmar importación
-                                const confirmMessage = `Se importarán ${productsToImport.length} registros. ¿Desea continuar?`;
+                                let confirmMessage = `Se importarán ${productsToImport.length} registros.`;
+                                if (skippedCount > 0) {
+                                    confirmMessage += `\n\nProductos saltados: ${skippedCount} (sitio no encontrado en los 17 sitios válidos)`;
+                                }
+                                confirmMessage += '\n\n¿Desea continuar?';
                                 if (!confirm(confirmMessage)) {
                                     return;
                                 }
@@ -2160,7 +2188,14 @@
                                 const importNext = (index) => {
                                     if (index >= productsToImport.length) {
                                         // Mostrar resumen
-                                        alert(`Importación completada:\n- Importados: ${imported}\n- Fallidos: ${failed}${errors.length > 0 ? '\n\nErrores:\n' + errors.slice(0, 5).join('\n') : ''}`);
+                                        let message = `Importación completada:\n- Importados: ${imported}\n- Fallidos: ${failed}`;
+                                        if (skippedCount > 0) {
+                                            message += `\n- Saltados: ${skippedCount} (sitio no encontrado en los 17 sitios válidos)`;
+                                        }
+                                        if (errors.length > 0) {
+                                            message += `\n\nErrores:\n${errors.slice(0, 5).join('\n')}`;
+                                        }
+                                        alert(message);
                                         // Recargar productos
                                         if (window.app && window.app.loadProducts) {
                                             window.app.loadProducts();
