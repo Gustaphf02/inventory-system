@@ -953,6 +953,12 @@
                                             Exportar a Excel
                                         </button>
                                     </div>
+                                    <div class="col-md-2 d-flex align-items-end" v-if="selectedSites.length > 0">
+                                        <button class="btn btn-danger w-100" @click="deleteSelectedSites">
+                                            <i class="fas fa-trash me-2"></i>
+                                            Eliminar ({{ selectedSites.length }})
+                                        </button>
+                                    </div>
                                 </div>
                                 
                                 <!-- Tabla de Sitios -->
@@ -960,6 +966,9 @@
                                     <table class="table table-hover">
                                         <thead>
                                             <tr>
+                                                <th style="width: 40px;">
+                                                    <input type="checkbox" @change="toggleSelectAllSites" :checked="selectedSites.length === filteredSites.length && filteredSites.length > 0">
+                                                </th>
                                                 <th>SKU</th>
                                                 <th>Nombre</th>
                                                 <th>Marca</th>
@@ -977,6 +986,9 @@
                                         </thead>
                                         <tbody>
                                             <tr v-for="product in filteredSites" :key="product.id">
+                                                <td>
+                                                    <input type="checkbox" :value="product.id" v-model="selectedSites">
+                                                </td>
                                                 <td><code>{{ product.sku }}</code></td>
                                                 <td><strong>{{ product.name || 'Sin nombre' }}</strong></td>
                                                 <td>{{ product.brand || 'Sin marca' }}</td>
@@ -1013,7 +1025,7 @@
                                                 </td>
                                             </tr>
                                             <tr v-if="filteredSites.length === 0">
-                                                <td colspan="13" class="text-center text-muted py-4">
+                                                <td colspan="14" class="text-center text-muted py-4">
                                                     <i class="fas fa-inbox fa-2x mb-2"></i><br>
                                                     <span v-if="sites.length === 0">
                                                         No hay sitios registrados. Haz clic en "Agregar Sitio" para comenzar.
@@ -1267,7 +1279,8 @@
                     sitesFilters: {
                         department: '',
                         numericAssign: ''
-                    }
+                    },
+                    selectedSites: [] // Sitios seleccionados para eliminar
                 }
             },
             async mounted() {
@@ -1824,6 +1837,11 @@
                     }
                     
                     this.filteredSites = filtered;
+                    
+                    // Limpiar selección de sitios que ya no están visibles
+                    this.selectedSites = this.selectedSites.filter(id => 
+                        filtered.some(p => p.id === id)
+                    );
                 },
 
                 exportSitesToExcel() {
@@ -1855,6 +1873,81 @@
                     
                     // Llamar a la función de exportación
                     this.downloadExcel(excelData, 'Sitios');
+                },
+
+                toggleSelectAllSites(event) {
+                    if (event.target.checked) {
+                        // Seleccionar todos los sitios filtrados
+                        this.selectedSites = this.filteredSites.map(p => p.id);
+                    } else {
+                        // Deseleccionar todos
+                        this.selectedSites = [];
+                    }
+                },
+
+                deleteSelectedSites() {
+                    if (this.selectedSites.length === 0) {
+                        alert('No hay sitios seleccionados para eliminar');
+                        return;
+                    }
+                    
+                    const count = this.selectedSites.length;
+                    const confirmMessage = count === 1 
+                        ? `¿Estás seguro de eliminar ${count} sitio?`
+                        : `¿Estás seguro de eliminar ${count} sitios?`;
+                    
+                    if (!confirm(confirmMessage)) {
+                        return;
+                    }
+                    
+                    // Eliminar uno por uno
+                    let deleted = 0;
+                    let failed = 0;
+                    const errors = [];
+                    
+                    const deleteNext = (index) => {
+                        if (index >= this.selectedSites.length) {
+                            // Mostrar resumen
+                            const message = `Eliminación completada:\n- Eliminados: ${deleted}\n- Fallidos: ${failed}${errors.length > 0 ? '\n\nErrores:\n' + errors.slice(0, 5).join('\n') : ''}`;
+                            alert(message);
+                            
+                            // Limpiar selección
+                            this.selectedSites = [];
+                            
+                            // Recargar productos
+                            this.loadProducts();
+                            return;
+                        }
+                        
+                        const productId = this.selectedSites[index];
+                        
+                        fetch(`/api/products/${productId}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            }
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                deleted++;
+                            } else {
+                                failed++;
+                                errors.push(`ID ${productId}: ${data.message || 'Error desconocido'}`);
+                            }
+                            // Continuar con el siguiente
+                            deleteNext(index + 1);
+                        })
+                        .catch(error => {
+                            failed++;
+                            errors.push(`ID ${productId}: ${error.message}`);
+                            // Continuar con el siguiente
+                            deleteNext(index + 1);
+                        });
+                    };
+                    
+                    // Iniciar eliminación
+                    deleteNext(0);
                 },
 
                 importSitesFromExcel() {
