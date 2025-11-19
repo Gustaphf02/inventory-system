@@ -1956,17 +1956,17 @@
                     deleteNext(0);
                 },
 
-                importSitesFromExcel() {
+                async importSitesFromExcel() {
                     // Crear input de archivo
                     const input = document.createElement('input');
                     input.type = 'file';
                     input.accept = '.xlsx,.xls';
-                    input.onchange = (e) => {
+                    input.onchange = async (e) => {
                         const file = e.target.files[0];
                         if (!file) return;
                         
                         const reader = new FileReader();
-                        reader.onload = (event) => {
+                        reader.onload = async (event) => {
                             try {
                                 const data = new Uint8Array(event.target.result);
                                 const workbook = XLSX.read(data, { type: 'array' });
@@ -2018,10 +2018,31 @@
                                 const lugarIndex = headers.findIndex(h => h.includes('LUGAR'));
                                 const estadoIndex = headers.findIndex(h => h.includes('ESTADO'));
                                 
+                                // Cargar productos existentes para verificar duplicados
+                                let existingProducts = [];
+                                try {
+                                    const response = await fetch('/api/products');
+                                    const data = await response.json();
+                                    if (data.success && data.data) {
+                                        existingProducts = data.data;
+                                    }
+                                } catch (error) {
+                                    console.error('Error al cargar productos existentes:', error);
+                                }
+                                
+                                // Crear mapa de barcodes existentes para verificación rápida
+                                const existingBarcodes = new Set();
+                                existingProducts.forEach(p => {
+                                    if (p.barcode) {
+                                        existingBarcodes.add(p.barcode.toString().trim().toUpperCase());
+                                    }
+                                });
+                                
                                 // Procesar filas (empezar después de la fila de headers)
                                 const productsToImport = [];
+                                const failedProducts = []; // Productos que fallaron con detalles
                                 let skippedCount = 0; // Productos saltados por no encontrar sitio
-                                let errorCount = 0;
+                                let duplicateCount = 0; // Productos duplicados
                                 
                                 for (let i = headerRowIndex + 1; i < jsonData.length; i++) {
                                     const row = jsonData[i];
@@ -2038,8 +2059,26 @@
                                     
                                     // Validar que tenga al menos PLACA o EQUIPO
                                     if (!placa && !equipo) {
-                                        errorCount++;
+                                        failedProducts.push({
+                                            placa: placa || 'N/A',
+                                            equipo: equipo || 'N/A',
+                                            razon: 'Falta PLACA y EQUIPO'
+                                        });
                                         continue;
+                                    }
+                                    
+                                    // Verificar duplicados por PLACA (barcode)
+                                    if (placa) {
+                                        const placaUpper = placa.toUpperCase();
+                                        if (existingBarcodes.has(placaUpper)) {
+                                            duplicateCount++;
+                                            failedProducts.push({
+                                                placa: placa,
+                                                equipo: equipo || 'N/A',
+                                                razon: 'PLACA ya existe en la base de datos (duplicado)'
+                                            });
+                                            continue; // Saltar este producto
+                                        }
                                     }
                                     
                                     // Generar SKU único
@@ -2132,11 +2171,20 @@
                                     // Si NO se encontró el sitio, NO agregar el producto
                                     if (!sitio) {
                                         skippedCount++;
+                                        failedProducts.push({
+                                            placa: placa || 'N/A',
+                                            equipo: equipo || 'N/A',
+                                            lugar: lugar || 'N/A',
+                                            razon: `Sitio no encontrado en los 17 sitios válidos. Lugar: "${lugar}"`
+                                        });
                                         console.log('Sitio no encontrado para lugar:', lugar, '- Producto NO agregado');
                                         continue; // Saltar este producto
                                     }
                                     
                                     console.log('Lugar:', lugar, '-> Sitio detectado:', sitio);
+                                    
+                                    // Si la PLACA está vacía, generar una temporal pero no verificar duplicados
+                                    const barcodeToUse = placa || `INV-${autoSKU}`;
                                     
                                     const productData = {
                                         sku: autoSKU,
@@ -2148,7 +2196,7 @@
                                         department: sitio,
                                         lugar: lugar || null,
                                         label: serie || autoSKU,
-                                        barcode: placa || `INV-${autoSKU}`,
+                                        barcode: barcodeToUse,
                                         stock_quantity: 1,
                                         price: 0,
                                         cost: 0,
@@ -2160,20 +2208,33 @@
                                     };
                                     
                                     productsToImport.push(productData);
+                                    
+                                    // Agregar a la lista de barcodes para evitar duplicados en el mismo archivo
+                                    if (placa) {
+                                        existingBarcodes.add(placa.toUpperCase());
+                                    }
                                 }
                                 
                                 if (productsToImport.length === 0) {
-                                    const message = skippedCount > 0 
-                                        ? `No se encontraron datos válidos para importar.\n\nProductos saltados: ${skippedCount} (sitio no encontrado en los 17 sitios válidos)`
-                                        : 'No se encontraron datos válidos para importar';
+                                    let message = 'No se encontraron datos válidos para importar.';
+                                    if (failedProducts.length > 0 || skippedCount > 0 || duplicateCount > 0) {
+                                        message += `\n\nResumen:\n`;
+                                        if (duplicateCount > 0) message += `- Duplicados: ${duplicateCount}\n`;
+                                        if (skippedCount > 0) message += `- Sitio no encontrado: ${skippedCount}\n`;
+                                        if (failedProducts.length > duplicateCount + skippedCount) {
+                                            message += `- Otros errores: ${failedProducts.length - duplicateCount - skippedCount}\n`;
+                                        }
+                                    }
                                     alert(message);
                                     return;
                                 }
                                 
                                 // Confirmar importación
                                 let confirmMessage = `Se importarán ${productsToImport.length} registros.`;
-                                if (skippedCount > 0) {
-                                    confirmMessage += `\n\nProductos saltados: ${skippedCount} (sitio no encontrado en los 17 sitios válidos)`;
+                                if (duplicateCount > 0 || skippedCount > 0) {
+                                    confirmMessage += `\n\nProductos que NO se importarán:`;
+                                    if (duplicateCount > 0) confirmMessage += `\n- Duplicados: ${duplicateCount} (PLACA ya existe)`;
+                                    if (skippedCount > 0) confirmMessage += `\n- Sitio no encontrado: ${skippedCount}`;
                                 }
                                 confirmMessage += '\n\n¿Desea continuar?';
                                 if (!confirm(confirmMessage)) {
@@ -2183,18 +2244,62 @@
                                 // Importar productos uno por uno
                                 let imported = 0;
                                 let failed = 0;
-                                const errors = [];
+                                const importErrors = []; // Errores durante la importación
                                 
                                 const importNext = (index) => {
                                     if (index >= productsToImport.length) {
-                                        // Mostrar resumen
-                                        let message = `Importación completada:\n- Importados: ${imported}\n- Fallidos: ${failed}`;
-                                        if (skippedCount > 0) {
-                                            message += `\n- Saltados: ${skippedCount} (sitio no encontrado en los 17 sitios válidos)`;
+                                        // Mostrar resumen detallado
+                                        let message = `Importación completada:\n\n✅ Importados: ${imported}\n❌ Fallidos: ${failed}`;
+                                        
+                                        // Agregar resumen de productos que no se importaron
+                                        if (duplicateCount > 0 || skippedCount > 0 || failedProducts.length > 0) {
+                                            message += `\n\n📋 Productos NO importados:`;
+                                            if (duplicateCount > 0) {
+                                                message += `\n\n🔄 Duplicados (${duplicateCount}):`;
+                                                const duplicates = failedProducts.filter(p => p.razon.includes('duplicado'));
+                                                duplicates.slice(0, 10).forEach(p => {
+                                                    message += `\n  • PLACA: ${p.placa} | EQUIPO: ${p.equipo}`;
+                                                });
+                                                if (duplicates.length > 10) {
+                                                    message += `\n  ... y ${duplicates.length - 10} más`;
+                                                }
+                                            }
+                                            if (skippedCount > 0) {
+                                                message += `\n\n📍 Sitio no encontrado (${skippedCount}):`;
+                                                const sitioErrors = failedProducts.filter(p => p.razon.includes('Sitio no encontrado'));
+                                                sitioErrors.slice(0, 10).forEach(p => {
+                                                    message += `\n  • PLACA: ${p.placa} | EQUIPO: ${p.equipo} | Lugar: ${p.lugar}`;
+                                                });
+                                                if (sitioErrors.length > 10) {
+                                                    message += `\n  ... y ${sitioErrors.length - 10} más`;
+                                                }
+                                            }
+                                            // Otros errores
+                                            const otrosErrores = failedProducts.filter(p => 
+                                                !p.razon.includes('duplicado') && !p.razon.includes('Sitio no encontrado')
+                                            );
+                                            if (otrosErrores.length > 0) {
+                                                message += `\n\n⚠️ Otros errores (${otrosErrores.length}):`;
+                                                otrosErrores.slice(0, 10).forEach(p => {
+                                                    message += `\n  • PLACA: ${p.placa} | EQUIPO: ${p.equipo} | Razón: ${p.razon}`;
+                                                });
+                                                if (otrosErrores.length > 10) {
+                                                    message += `\n  ... y ${otrosErrores.length - 10} más`;
+                                                }
+                                            }
                                         }
-                                        if (errors.length > 0) {
-                                            message += `\n\nErrores:\n${errors.slice(0, 5).join('\n')}`;
+                                        
+                                        // Errores durante la importación
+                                        if (importErrors.length > 0) {
+                                            message += `\n\n❌ Errores durante importación (${importErrors.length}):`;
+                                            importErrors.slice(0, 10).forEach(err => {
+                                                message += `\n  • ${err}`;
+                                            });
+                                            if (importErrors.length > 10) {
+                                                message += `\n  ... y ${importErrors.length - 10} más`;
+                                            }
                                         }
+                                        
                                         alert(message);
                                         // Recargar productos
                                         if (window.app && window.app.loadProducts) {
@@ -2218,14 +2323,14 @@
                                             imported++;
                                         } else {
                                             failed++;
-                                            errors.push(`SKU ${product.sku}: ${data.message || 'Error desconocido'}`);
+                                            importErrors.push(`PLACA: ${product.barcode} | EQUIPO: ${product.name} | Error: ${data.message || data.error || 'Error desconocido'}`);
                                         }
                                         // Continuar con el siguiente
                                         importNext(index + 1);
                                     })
                                     .catch(error => {
                                         failed++;
-                                        errors.push(`SKU ${product.sku}: ${error.message}`);
+                                        importErrors.push(`PLACA: ${product.barcode} | EQUIPO: ${product.name} | Error: ${error.message}`);
                                         // Continuar con el siguiente
                                         importNext(index + 1);
                                     });
