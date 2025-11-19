@@ -1888,8 +1888,31 @@
                                     return;
                                 }
                                 
-                                // Primera fila son los headers
-                                const headers = jsonData[0].map(h => String(h || '').trim().toUpperCase());
+                                // Buscar automáticamente la fila de headers (puede haber títulos antes)
+                                let headerRowIndex = -1;
+                                let headers = [];
+                                
+                                for (let i = 0; i < Math.min(10, jsonData.length); i++) {
+                                    const row = jsonData[i];
+                                    if (!row || row.length === 0) continue;
+                                    
+                                    const rowHeaders = row.map(h => String(h || '').trim().toUpperCase());
+                                    const hasPlaca = rowHeaders.some(h => h.includes('PLACA'));
+                                    const hasEquipo = rowHeaders.some(h => h.includes('EQUIPO'));
+                                    const hasMarca = rowHeaders.some(h => h.includes('MARCA'));
+                                    
+                                    // Si encontramos al menos 2 de las columnas clave, esta es la fila de headers
+                                    if ((hasPlaca && hasEquipo) || (hasPlaca && hasMarca) || (hasEquipo && hasMarca)) {
+                                        headerRowIndex = i;
+                                        headers = rowHeaders;
+                                        break;
+                                    }
+                                }
+                                
+                                if (headerRowIndex === -1) {
+                                    alert('No se encontraron los headers del Excel. Asegúrese de que el archivo contenga las columnas: PLACA, EQUIPO, MARCA');
+                                    return;
+                                }
                                 
                                 // Buscar índices de columnas
                                 const placaIndex = headers.findIndex(h => h.includes('PLACA'));
@@ -1900,17 +1923,12 @@
                                 const lugarIndex = headers.findIndex(h => h.includes('LUGAR'));
                                 const estadoIndex = headers.findIndex(h => h.includes('ESTADO'));
                                 
-                                if (placaIndex === -1 && equipoIndex === -1 && marcaIndex === -1) {
-                                    alert('El formato del Excel no es válido. Debe contener al menos las columnas: PLACA, EQUIPO, MARCA');
-                                    return;
-                                }
-                                
-                                // Procesar filas (empezar desde la fila 2, índice 1)
+                                // Procesar filas (empezar después de la fila de headers)
                                 const productsToImport = [];
                                 let successCount = 0;
                                 let errorCount = 0;
                                 
-                                for (let i = 1; i < jsonData.length; i++) {
+                                for (let i = headerRowIndex + 1; i < jsonData.length; i++) {
                                     const row = jsonData[i];
                                     if (!row || row.length === 0) continue;
                                     
