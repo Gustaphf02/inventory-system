@@ -40,6 +40,14 @@
             display: block !important;
         }
         
+        #addSiteModal {
+            z-index: 1055;
+        }
+        
+        #addSiteModal.show {
+            display: block !important;
+        }
+        
         .sidebar {
             min-height: 100vh;
             background: linear-gradient(135deg, #2c2c2c 0%, #1a1a1a 100%);
@@ -254,6 +262,12 @@
                                 <a class="nav-link" :class="{active: currentView === 'inventory'}" @click="setView('inventory')">
                                     <i class="fas fa-warehouse me-2"></i>
                                     Inventario
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" :class="{active: currentView === 'sites'}" @click="setView('sites')">
+                                    <i class="fas fa-map-marker-alt me-2"></i>
+                                    Sitios
                                 </a>
                             </li>
                             <li class="nav-item dropdown">
@@ -895,6 +909,131 @@
                         </div>
                     </div>
 
+                    <!-- Sites View -->
+                    <div v-if="currentView === 'sites'">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
+                                <h5 class="card-title mb-0">
+                                    <i class="fas fa-map-marker-alt me-2"></i>
+                                    Sitios
+                                </h5>
+                                <button class="btn btn-primary mt-2 mt-md-0" onclick="openModalForSite()">
+                                    <i class="fas fa-plus me-1"></i>
+                                    Agregar Sitio
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <!-- Filtros y Exportar -->
+                                <div class="row mb-3">
+                                    <div class="col-md-4">
+                                        <label for="filterSiteDepartment" class="form-label">Filtrar por Sitio</label>
+                                        <select class="form-select" id="filterSiteDepartment" v-model="sitesFilters.department" @change="filterSites">
+                                            <option value="">Todos los sitios</option>
+                                            <option v-for="dept in uniqueSitesDepartments" :key="dept" :value="dept">
+                                                {{ dept }}
+                                            </option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="filterSiteNumericAssign" class="form-label">Filtrar por Asig. Numérica</label>
+                                        <input type="text" class="form-control" id="filterSiteNumericAssign" 
+                                               v-model="sitesFilters.numericAssign" 
+                                               @input="filterSites"
+                                               placeholder="Buscar por Asig. Numérica...">
+                                    </div>
+                                    <div class="col-md-2 d-flex align-items-end">
+                                        <button class="btn btn-info w-100" @click="importSitesFromExcel" title="Importar desde Excel">
+                                            <i class="fas fa-file-upload me-2"></i>
+                                            Importar Excel
+                                        </button>
+                                    </div>
+                                    <div class="col-md-2 d-flex align-items-end">
+                                        <button class="btn btn-success w-100" @click="exportSitesToExcel">
+                                            <i class="fas fa-file-excel me-2"></i>
+                                            Exportar a Excel
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Tabla de Sitios -->
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>SKU</th>
+                                                <th>Nombre</th>
+                                                <th>Marca</th>
+                                                <th>Modelo</th>
+                                                <th>Serie</th>
+                                                <th>Sitio</th>
+                                                <th>Lugar</th>
+                                                <th>Cantidad</th>
+                                                <th>Especificaciones/EXT</th>
+                                                <th>Sub-Especific</th>
+                                                <th>Asig. Numérica</th>
+                                                <th>Descripción</th>
+                                                <th>Estado</th>
+                                                <th>Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr v-for="product in filteredSites" :key="product.id">
+                                                <td><code>{{ product.sku }}</code></td>
+                                                <td><strong>{{ product.name || 'Sin nombre' }}</strong></td>
+                                                <td>{{ product.brand || 'Sin marca' }}</td>
+                                                <td>{{ product.model || 'Sin modelo' }}</td>
+                                                <td><small>{{ product.serial_number || 'Sin serie' }}</small></td>
+                                                <td>
+                                                    <span class="badge bg-warning text-dark">
+                                                        {{ product.department || 'Sin asignar' }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <small>{{ product.lugar || 'Sin lugar' }}</small>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-info">
+                                                        {{ product.stock_quantity || 0 }}
+                                                    </span>
+                                                </td>
+                                                <td><small>{{ extractSpecs(product.description) }}</small></td>
+                                                <td><small>{{ extractSubSpecs(product.description) }}</small></td>
+                                                <td><code>{{ product.barcode || 'Sin asignar' }}</code></td>
+                                                <td><small>{{ extractDescription(product.description) }}</small></td>
+                                                <td>
+                                                    <span class="badge" :class="getEquipmentStatusBadgeClass(product.status)">
+                                                        {{ getEquipmentStatusText(product.status) }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm">
+                                                        <button class="btn btn-outline-primary" @click="editProduct(product.id)" title="Editar">
+                                                            <i class="fas fa-edit"></i>
+                                                        </button>
+                                                        <button class="btn btn-outline-danger" @click="deleteProduct(product.id)" title="Eliminar">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            <tr v-if="filteredSites.length === 0">
+                                                <td colspan="14" class="text-center text-muted py-4">
+                                                    <i class="fas fa-inbox fa-2x mb-2"></i><br>
+                                                    <span v-if="sites.length === 0">
+                                                        No hay sitios registrados. Haz clic en "Agregar Sitio" para comenzar.
+                                                    </span>
+                                                    <span v-else>
+                                                        No se encontraron sitios con los filtros aplicados.
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Categories View -->
                     <div v-if="currentView === 'categories'">
                         <div class="card">
@@ -1126,6 +1265,12 @@
                     existingEquipmentFilters: {
                         department: '',
                         numericAssign: ''
+                    },
+                    sites: [], // Sitios
+                    filteredSites: [], // Sitios filtrados
+                    sitesFilters: {
+                        department: '',
+                        numericAssign: ''
                     }
                 }
             },
@@ -1194,6 +1339,8 @@
                         this.loadProducts();
                     } else if (view === 'existing-equipment') {
                         this.loadProducts(); // Cargar productos para actualizar equipos existentes
+                    } else if (view === 'sites') {
+                        this.loadProducts(); // Cargar productos para actualizar sitios
                     }
                 },
                 setProductFilter(filter) {
@@ -1208,6 +1355,7 @@
                         'dashboard': 'Dashboard',
                         'products': 'Productos',
                         'existing-equipment': 'Equipos existentes',
+                        'sites': 'Sitios',
                         'categories': 'Categorías',
                         'suppliers': 'Proveedores',
                         'reports': 'Reportes',
@@ -1244,6 +1392,10 @@
                             this.existingEquipment = data.data.filter(product => product.type === 'existing_equipment');
                             // Inicializar equipos filtrados
                             this.filterExistingEquipment();
+                            // Actualizar sitios (solo los que tienen type === 'sitio')
+                            this.sites = data.data.filter(product => product.type === 'sitio');
+                            // Inicializar sitios filtrados
+                            this.filterSites();
                         }
                     } catch (error) {
                         console.error('Error loading products:', error);
@@ -1655,6 +1807,275 @@
                     this.downloadExcel(excelData, 'Equipos_Existentes');
                 },
 
+                filterSites() {
+                    let filtered = [...this.sites];
+                    
+                    // Filtrar por departamento/sitio
+                    if (this.sitesFilters.department) {
+                        filtered = filtered.filter(product => 
+                            product.department && 
+                            product.department.toLowerCase() === this.sitesFilters.department.toLowerCase()
+                        );
+                    }
+                    
+                    // Filtrar por Asig. Numérica (barcode)
+                    if (this.sitesFilters.numericAssign) {
+                        const searchTerm = this.sitesFilters.numericAssign.toLowerCase();
+                        filtered = filtered.filter(product => 
+                            product.barcode && 
+                            product.barcode.toLowerCase().includes(searchTerm)
+                        );
+                    }
+                    
+                    this.filteredSites = filtered;
+                },
+
+                exportSitesToExcel() {
+                    // Los datos a exportar son los que están filtrados
+                    const dataToExport = this.filteredSites;
+                    
+                    if (dataToExport.length === 0) {
+                        alert('No hay datos para exportar con los filtros aplicados.');
+                        return;
+                    }
+                    
+                    // Preparar los datos para Excel
+                    const excelData = dataToExport.map(product => ({
+                        'SKU': product.sku || '',
+                        'Nombre': product.name || '',
+                        'Marca': product.brand || '',
+                        'Modelo': product.model || '',
+                        'Serie': product.serial_number || '',
+                        'Sitio': product.department || 'Sin asignar',
+                        'Lugar': product.lugar || '',
+                        'Cantidad': product.stock_quantity || 0,
+                        'Especificaciones/EXT': this.extractSpecs(product.description) || '',
+                        'Sub-Especific': this.extractSubSpecs(product.description) || '',
+                        'Asig. Numérica': product.barcode || 'Sin asignar',
+                        'Descripción': this.extractDescription(product.description) || '',
+                        'Estado': this.getEquipmentStatusText(product.status),
+                        'photo_url': product.photo_url || '' // Incluir URL de la foto
+                    }));
+                    
+                    // Llamar a la función de exportación
+                    this.downloadExcel(excelData, 'Sitios');
+                },
+
+                importSitesFromExcel() {
+                    // Crear input de archivo
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = '.xlsx,.xls';
+                    input.onchange = (e) => {
+                        const file = e.target.files[0];
+                        if (!file) return;
+                        
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                            try {
+                                const data = new Uint8Array(event.target.result);
+                                const workbook = XLSX.read(data, { type: 'array' });
+                                
+                                // Obtener la primera hoja
+                                const firstSheetName = workbook.SheetNames[0];
+                                const worksheet = workbook.Sheets[firstSheetName];
+                                
+                                // Convertir a JSON
+                                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                                
+                                if (jsonData.length < 2) {
+                                    alert('El archivo Excel está vacío o no tiene datos');
+                                    return;
+                                }
+                                
+                                // Primera fila son los headers
+                                const headers = jsonData[0].map(h => String(h || '').trim().toUpperCase());
+                                
+                                // Buscar índices de columnas
+                                const placaIndex = headers.findIndex(h => h.includes('PLACA'));
+                                const equipoIndex = headers.findIndex(h => h.includes('EQUIPO'));
+                                const marcaIndex = headers.findIndex(h => h.includes('MARCA'));
+                                const modeloIndex = headers.findIndex(h => h.includes('MODELO'));
+                                const serieIndex = headers.findIndex(h => h.includes('SERIE'));
+                                const lugarIndex = headers.findIndex(h => h.includes('LUGAR'));
+                                const estadoIndex = headers.findIndex(h => h.includes('ESTADO'));
+                                
+                                if (placaIndex === -1 && equipoIndex === -1 && marcaIndex === -1) {
+                                    alert('El formato del Excel no es válido. Debe contener al menos las columnas: PLACA, EQUIPO, MARCA');
+                                    return;
+                                }
+                                
+                                // Procesar filas (empezar desde la fila 2, índice 1)
+                                const productsToImport = [];
+                                let successCount = 0;
+                                let errorCount = 0;
+                                
+                                for (let i = 1; i < jsonData.length; i++) {
+                                    const row = jsonData[i];
+                                    if (!row || row.length === 0) continue;
+                                    
+                                    // Mapear columnas según el formato del Excel
+                                    const placa = placaIndex >= 0 ? String(row[placaIndex] || '').trim() : '';
+                                    const equipo = equipoIndex >= 0 ? String(row[equipoIndex] || '').trim() : '';
+                                    const marca = marcaIndex >= 0 ? String(row[marcaIndex] || '').trim() : '';
+                                    const modelo = modeloIndex >= 0 ? String(row[modeloIndex] || '').trim() : '';
+                                    const serie = serieIndex >= 0 ? String(row[serieIndex] || '').trim() : '';
+                                    const lugar = lugarIndex >= 0 ? String(row[lugarIndex] || '').trim() : '';
+                                    const estado = estadoIndex >= 0 ? String(row[estadoIndex] || '').trim() : '';
+                                    
+                                    // Validar que tenga al menos PLACA o EQUIPO
+                                    if (!placa && !equipo) {
+                                        errorCount++;
+                                        continue;
+                                    }
+                                    
+                                    // Generar SKU único
+                                    const autoSKU = generateUniqueSKU();
+                                    
+                                    // Mapear estado
+                                    const statusMap = {
+                                        'operativo': 'active',
+                                        'criterio_tecnico': 'maintenance',
+                                        'descarte': 'inactive',
+                                        'active': 'active',
+                                        'maintenance': 'maintenance',
+                                        'inactive': 'inactive'
+                                    };
+                                    const mappedStatus = estado ? (statusMap[estado.toLowerCase()] || 'active') : 'active';
+                                    
+                                    // Extraer sitio del lugar si es posible (ej: "CAMPANA - CERRO MENA" -> sitio sería "Cerro Mena")
+                                    let sitio = '';
+                                    const sitiosList = [
+                                        'Cerro Ancón', 'Edificio Pradera', 'Cerro Oscuro', 'Palacio',
+                                        'Cerro Galera', 'Cerro Santa Rita', 'Cerro Jefe', 'Cerro Buenos Aires Chepo',
+                                        'Aguas Frías', 'Cerro Mena', 'Cerro La Silla', 'Cerro Taboga',
+                                        'Cerro Canajagua', 'Cerro Peña', 'Cerro Boca Viento', 'Cerro Zancudo',
+                                        'Meseta de Chorcha'
+                                    ];
+                                    
+                                    if (lugar) {
+                                        // Buscar si el lugar contiene alguno de los sitios
+                                        const lugarUpper = lugar.toUpperCase();
+                                        for (const sitioItem of sitiosList) {
+                                            if (lugarUpper.includes(sitioItem.toUpperCase())) {
+                                                sitio = sitioItem;
+                                                break;
+                                            }
+                                        }
+                                        // Si no se encontró, intentar extraer "CERRO X" del formato "CAMPANA - CERRO MENA"
+                                        if (!sitio) {
+                                            const match = lugar.match(/CERRO\s+([A-ZÁÉÍÓÚÑ\s]+)/i);
+                                            if (match) {
+                                                const cerroName = match[1].trim();
+                                                // Buscar coincidencia parcial
+                                                for (const sitioItem of sitiosList) {
+                                                    if (sitioItem.toUpperCase().includes(cerroName.toUpperCase()) || 
+                                                        cerroName.toUpperCase().includes(sitioItem.toUpperCase().replace('CERRO ', ''))) {
+                                                        sitio = sitioItem;
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    
+                                    // Si no hay sitio, usar un valor por defecto
+                                    if (!sitio) {
+                                        sitio = 'Cerro Mena'; // Valor por defecto
+                                    }
+                                    
+                                    const productData = {
+                                        sku: autoSKU,
+                                        name: equipo || marca || 'Equipo Importado',
+                                        description: equipo || '',
+                                        brand: marca || '',
+                                        model: modelo || '',
+                                        serial_number: serie || autoSKU,
+                                        department: sitio,
+                                        lugar: lugar || null,
+                                        label: serie || autoSKU,
+                                        barcode: placa || `INV-${autoSKU}`,
+                                        stock_quantity: 1,
+                                        price: 0,
+                                        cost: 0,
+                                        category_id: 1,
+                                        supplier_id: 1,
+                                        type: 'sitio',
+                                        status: mappedStatus,
+                                        photo_url: null
+                                    };
+                                    
+                                    productsToImport.push(productData);
+                                }
+                                
+                                if (productsToImport.length === 0) {
+                                    alert('No se encontraron datos válidos para importar');
+                                    return;
+                                }
+                                
+                                // Confirmar importación
+                                const confirmMessage = `Se importarán ${productsToImport.length} registros. ¿Desea continuar?`;
+                                if (!confirm(confirmMessage)) {
+                                    return;
+                                }
+                                
+                                // Importar productos uno por uno
+                                let imported = 0;
+                                let failed = 0;
+                                const errors = [];
+                                
+                                const importNext = (index) => {
+                                    if (index >= productsToImport.length) {
+                                        // Mostrar resumen
+                                        alert(`Importación completada:\n- Importados: ${imported}\n- Fallidos: ${failed}${errors.length > 0 ? '\n\nErrores:\n' + errors.slice(0, 5).join('\n') : ''}`);
+                                        // Recargar productos
+                                        if (window.app && window.app.loadProducts) {
+                                            window.app.loadProducts();
+                                        }
+                                        return;
+                                    }
+                                    
+                                    const product = productsToImport[index];
+                                    
+                                    fetch('/api/products', {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                        },
+                                        body: JSON.stringify(product)
+                                    })
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        if (data.success) {
+                                            imported++;
+                                        } else {
+                                            failed++;
+                                            errors.push(`SKU ${product.sku}: ${data.message || 'Error desconocido'}`);
+                                        }
+                                        // Continuar con el siguiente
+                                        importNext(index + 1);
+                                    })
+                                    .catch(error => {
+                                        failed++;
+                                        errors.push(`SKU ${product.sku}: ${error.message}`);
+                                        // Continuar con el siguiente
+                                        importNext(index + 1);
+                                    });
+                                };
+                                
+                                // Iniciar importación
+                                importNext(0);
+                                
+                            } catch (error) {
+                                console.error('Error al leer Excel:', error);
+                                alert('Error al leer el archivo Excel: ' + error.message);
+                            }
+                        };
+                        reader.readAsArrayBuffer(file);
+                    };
+                    input.click();
+                },
+
                 async downloadExcel(data, filename) {
                     try {
                         // Mostrar mensaje de carga
@@ -1808,6 +2229,12 @@
             computed: {
                 uniqueDepartments() {
                     const departments = this.existingEquipment
+                        .map(product => product.department)
+                        .filter(dept => dept && dept.trim() !== '');
+                    return [...new Set(departments)].sort();
+                },
+                uniqueSitesDepartments() {
+                    const departments = this.sites
                         .map(product => product.department)
                         .filter(dept => dept && dept.trim() !== '');
                     return [...new Set(departments)].sort();
@@ -3019,6 +3446,360 @@
             });
         }
 
+        function openModalForSite() {
+            console.log('openModalForSite called');
+            
+            // Limpiar el formulario
+            document.getElementById('siteForm').reset();
+            
+            // Abrir el modal usando Bootstrap
+            const modalElement = document.getElementById('addSiteModal');
+            if (modalElement) {
+                const modalInstance = bootstrap.Modal.getOrCreateInstance(modalElement);
+                modalInstance.show();
+            } else {
+                console.error('Modal addSiteModal not found');
+            }
+        }
+
+        function closeSiteModal() {
+            console.log('closeSiteModal called');
+            const modalElement = document.getElementById('addSiteModal');
+            if (modalElement) {
+                const modalInstance = bootstrap.Modal.getInstance(modalElement);
+                if (modalInstance) {
+                    modalInstance.hide();
+                }
+            }
+            // Limpiar foto preview
+            clearSitePhotoPreview();
+            // Limpiar el formulario al cerrar
+            document.getElementById('siteForm').reset();
+        }
+
+        function saveSite() {
+            console.log('saveSite called');
+            
+            // Validar el formulario
+            const form = document.getElementById('siteForm');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+            
+            // Validar campos con patrones específicos
+            const description = document.getElementById('siteDescription').value.trim();
+            if (description && !/^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/.test(description)) {
+                alert('La descripción solo puede contener letras');
+                return;
+            }
+            
+            const siteLocation = document.getElementById('siteLocation').value.trim();
+            if (!siteLocation) {
+                alert('Por favor selecciona un sitio');
+                return;
+            }
+            
+            const brand = document.getElementById('siteBrand').value.trim();
+            if (brand && !/^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/.test(brand)) {
+                alert('La marca solo puede contener letras');
+                return;
+            }
+            
+            // Generar SKU único automáticamente
+            const autoSKU = generateUniqueSKU();
+            
+            // Generar marbete único basado en el serial o SKU
+            const serial = document.getElementById('siteSerial').value.trim();
+            const label = serial || autoSKU;
+            
+            // Construir descripción completa con specs y sub_specs
+            const specs = document.getElementById('siteSpecs').value.trim();
+            const subSpecs = document.getElementById('siteSubSpecs').value.trim();
+            let fullDescription = description;
+            if (specs || subSpecs) {
+                const specsText = [];
+                if (specs) specsText.push(`Especificaciones/EXT: ${specs}`);
+                if (subSpecs) specsText.push(`Sub-Especific: ${subSpecs}`);
+                if (fullDescription) {
+                    fullDescription = `${fullDescription}\n${specsText.join('\n')}`;
+                } else {
+                    fullDescription = specsText.join('\n');
+                }
+            }
+            
+            // Mapear estado del formulario al formato del backend
+            const statusMap = {
+                'operativo': 'active',
+                'criterio_tecnico': 'maintenance',
+                'descarte': 'inactive'
+            };
+            const formStatus = document.getElementById('siteStatus').value;
+            const mappedStatus = statusMap[formStatus] || 'active';
+            
+            // Obtener photo_url si se subió una foto
+            const photoInput = document.getElementById('sitePhoto');
+            const photoUrl = photoInput && photoInput.dataset.uploadedPhotoUrl ? photoInput.dataset.uploadedPhotoUrl : null;
+            
+            // Mapear datos del formulario al formato que espera el backend
+            const productData = {
+                sku: autoSKU,
+                name: brand && document.getElementById('siteModel').value.trim() 
+                    ? `${brand} ${document.getElementById('siteModel').value.trim()}`.trim()
+                    : brand || document.getElementById('siteModel').value.trim() || 'Sitio',
+                description: fullDescription || '',
+                brand: brand || '',
+                model: document.getElementById('siteModel').value.trim() || '',
+                serial_number: serial || autoSKU,
+                department: siteLocation,
+                label: label,
+                barcode: document.getElementById('siteNumericAssign').value.trim() || `INV-${autoSKU}`,
+                stock_quantity: parseInt(document.getElementById('siteQuantity').value, 10) || 1,
+                price: 0,
+                cost: 0,
+                category_id: 1, // Por defecto
+                supplier_id: 1, // Por defecto
+                type: 'sitio', // Identificador para sitios
+                status: mappedStatus,
+                photo_url: photoUrl, // Incluir URL de la foto si existe
+                lugar: document.getElementById('siteLugar').value.trim() || null
+            };
+            
+            console.log('Datos del sitio a guardar:', productData);
+            
+            // Enviar datos al servidor
+            fetch('/api/products', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(productData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('Sitio guardado exitosamente:', data);
+                    alert('Sitio guardado exitosamente');
+                    closeSiteModal();
+                    // Recargar productos para actualizar la lista
+                    if (window.app && window.app.loadProducts) {
+                        window.app.loadProducts();
+                    }
+                } else {
+                    console.error('Error al guardar sitio:', data);
+                    alert('Error al guardar sitio: ' + (data.message || 'Error desconocido'));
+                }
+            })
+            .catch(error => {
+                console.error('Error al guardar sitio:', error);
+                alert('Error al guardar sitio: ' + error.message);
+            });
+        }
+
+        function captureSitePhoto() {
+            // Verificar si el navegador soporta la API de cámara
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                // Intentar acceder a la cámara
+                navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        facingMode: 'environment' // Cámara trasera en móviles
+                    } 
+                })
+                .then(stream => {
+                    // Mostrar modal de cámara
+                    showCameraModalForSite(stream);
+                })
+                .catch(error => {
+                    console.error('Error al acceder a la cámara:', error);
+                    // Si falla, usar el input de archivo
+                    const photoInput = document.getElementById('sitePhoto');
+                    if (photoInput) {
+                        photoInput.click();
+                    }
+                });
+            } else {
+                // Si no hay soporte, usar el input de archivo
+                const photoInput = document.getElementById('sitePhoto');
+                if (photoInput) {
+                    photoInput.click();
+                }
+            }
+        }
+
+        function showCameraModalForSite(stream) {
+            // Crear modal de cámara si no existe
+            let cameraModal = document.getElementById('cameraModalForSite');
+            if (!cameraModal) {
+                cameraModal = document.createElement('div');
+                cameraModal.id = 'cameraModalForSite';
+                cameraModal.className = 'modal fade';
+                cameraModal.innerHTML = `
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Tomar Foto</h5>
+                                <button type="button" class="btn-close" onclick="closeCameraModalForSite()"></button>
+                            </div>
+                            <div class="modal-body text-center">
+                                <video id="siteCameraVideo" autoplay playsinline style="width: 100%; max-width: 500px;"></video>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" onclick="closeCameraModalForSite()">Cancelar</button>
+                                <button type="button" class="btn btn-primary" onclick="takePictureForSite()">Tomar Foto</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(cameraModal);
+            }
+            
+            const video = document.getElementById('siteCameraVideo');
+            if (video) {
+                video.srcObject = stream;
+                const modalInstance = bootstrap.Modal.getOrCreateInstance(cameraModal);
+                modalInstance.show();
+                
+                // Guardar stream para cerrarlo después
+                cameraModal.dataset.stream = stream;
+            }
+        }
+
+        function takePictureForSite() {
+            const video = document.getElementById('siteCameraVideo');
+            if (!video) return;
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0);
+            
+            canvas.toBlob(blob => {
+                if (blob) {
+                    processCameraPhotoForSite(blob);
+                }
+            }, 'image/jpeg', 0.9);
+            
+            closeCameraModalForSite();
+        }
+
+        function processCameraPhotoForSite(blob) {
+            const file = new File([blob], 'camera-photo.jpg', { type: 'image/jpeg' });
+            const photoInput = document.getElementById('sitePhoto');
+            
+            // Crear un DataTransfer para asignar el archivo al input
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            if (photoInput) {
+                photoInput.files = dataTransfer.files;
+                
+                // Mostrar preview
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const preview = document.getElementById('sitePhotoPreview');
+                    const previewImg = document.getElementById('sitePhotoPreviewImg');
+                    if (preview && previewImg) {
+                        previewImg.src = e.target.result;
+                        preview.style.display = 'block';
+                    }
+                    // Subir foto automáticamente
+                    uploadSitePhoto(file);
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function closeCameraModalForSite() {
+            const cameraModal = document.getElementById('cameraModalForSite');
+            if (cameraModal) {
+                const stream = cameraModal.dataset.stream;
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                }
+                const modalInstance = bootstrap.Modal.getInstance(cameraModal);
+                if (modalInstance) {
+                    modalInstance.hide();
+                }
+            }
+        }
+
+        function clearSitePhotoPreview() {
+            const photoInput = document.getElementById('sitePhoto');
+            const photoPreview = document.getElementById('sitePhotoPreview');
+            if (photoInput) {
+                photoInput.value = '';
+                photoInput.dataset.uploadedPhotoUrl = '';
+            }
+            if (photoPreview) {
+                photoPreview.style.display = 'none';
+                const previewImg = document.getElementById('sitePhotoPreviewImg');
+                if (previewImg) {
+                    previewImg.src = '';
+                }
+            }
+        }
+
+        function uploadSitePhoto(file) {
+            const formData = new FormData();
+            formData.append('photo', file);
+            
+            // Mostrar indicador de carga
+            const photoInput = document.getElementById('sitePhoto');
+            if (photoInput) {
+                photoInput.disabled = true;
+            }
+            
+            fetch('/api/upload-photo', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && photoInput) {
+                    photoInput.dataset.uploadedPhotoUrl = data.photo_url;
+                    console.log('Foto subida exitosamente:', data.photo_url);
+                } else {
+                    console.error('Error al subir foto:', data);
+                    alert('Error al subir la foto: ' + (data.message || 'Error desconocido'));
+                    if (photoInput) {
+                        photoInput.disabled = false;
+                        clearSitePhotoPreview();
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error al subir foto:', error);
+                alert('Error al subir la foto: ' + error.message);
+                if (photoInput) {
+                    photoInput.disabled = false;
+                    clearSitePhotoPreview();
+                }
+            });
+        }
+
+        // Agregar event listener para el input de foto de sitio
+        document.addEventListener('DOMContentLoaded', function() {
+            const sitePhotoInput = document.getElementById('sitePhoto');
+            if (sitePhotoInput) {
+                sitePhotoInput.addEventListener('change', function(e) {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            const preview = document.getElementById('sitePhotoPreview');
+                            const previewImg = document.getElementById('sitePhotoPreviewImg');
+                            if (preview && previewImg) {
+                                previewImg.src = e.target.result;
+                                preview.style.display = 'block';
+                            }
+                            uploadSitePhoto(file);
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+            }
+        });
+
         function updateProduct() {
             console.log('updateProduct called');
             
@@ -3546,6 +4327,172 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="closeExistingEquipmentModal()">Cancelar</button>
                     <button type="button" class="btn btn-primary" onclick="saveExistingEquipment()">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Agregar Sitio -->
+    <div class="modal fade" id="addSiteModal" tabindex="-1" style="display: none;">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-map-marker-alt me-2"></i>
+                        Agregar Sitio
+                    </h5>
+                    <button type="button" class="btn-close" onclick="closeSiteModal()"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="siteForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="siteLocation" class="form-label">Sitio donde está ubicado *</label>
+                                    <select class="form-select" id="siteLocation" required>
+                                        <option value="">Seleccionar sitio</option>
+                                        <option value="Cerro Ancón">Cerro Ancón</option>
+                                        <option value="Edificio Pradera">Edificio Pradera</option>
+                                        <option value="Cerro Oscuro">Cerro Oscuro</option>
+                                        <option value="Palacio">Palacio</option>
+                                        <option value="Cerro Galera">Cerro Galera</option>
+                                        <option value="Cerro Santa Rita">Cerro Santa Rita</option>
+                                        <option value="Cerro Jefe">Cerro Jefe</option>
+                                        <option value="Cerro Buenos Aires Chepo">Cerro Buenos Aires Chepo</option>
+                                        <option value="Aguas Frías">Aguas Frías</option>
+                                        <option value="Cerro Mena">Cerro Mena</option>
+                                        <option value="Cerro La Silla">Cerro La Silla</option>
+                                        <option value="Cerro Taboga">Cerro Taboga</option>
+                                        <option value="Cerro Canajagua">Cerro Canajagua</option>
+                                        <option value="Cerro Peña">Cerro Peña</option>
+                                        <option value="Cerro Boca Viento">Cerro Boca Viento</option>
+                                        <option value="Cerro Zancudo">Cerro Zancudo</option>
+                                        <option value="Meseta de Chorcha">Meseta de Chorcha</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="siteQuantity" class="form-label">Cantidad *</label>
+                                    <input type="number" class="form-control" id="siteQuantity" required 
+                                           min="1" step="1"
+                                           placeholder="Ej: 5">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    <label for="siteLugar" class="form-label">Lugar</label>
+                                    <input type="text" class="form-control" id="siteLugar" 
+                                           placeholder="Ej: CAMPANA - CERRO MENA">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="siteSpecs" class="form-label">Especificaciones/EXT</label>
+                                    <input type="text" class="form-control" id="siteSpecs" 
+                                           pattern="[A-Za-z0-9\s]+"
+                                           placeholder="Ej: EXT-123 o ABC456"
+                                           title="Solo letras y números">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="siteSubSpecs" class="form-label">Sub-Especific</label>
+                                    <input type="text" class="form-control" id="siteSubSpecs" 
+                                           pattern="[A-Za-z0-9\s]+"
+                                           placeholder="Ej: SUB-001 o XYZ789"
+                                           title="Solo letras y números">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="siteNumericAssign" class="form-label">Asig. Numérica</label>
+                                    <input type="text" class="form-control" id="siteNumericAssign" 
+                                           placeholder="Ej: 12345">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="siteStatus" class="form-label">Estado *</label>
+                                    <select class="form-select" id="siteStatus" required>
+                                        <option value="">Seleccionar estado</option>
+                                        <option value="operativo">Operativo</option>
+                                        <option value="criterio_tecnico">Criterio Técnico</option>
+                                        <option value="descarte">Descarte</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="siteDescription" class="form-label">Descripción</label>
+                            <textarea class="form-control" id="siteDescription" rows="3" 
+                                      placeholder="Descripción del equipo (solo letras)"
+                                      title="Solo se permiten letras"></textarea>
+                            <div class="form-text">Solo se permiten letras</div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="siteBrand" class="form-label">Marca</label>
+                                    <input type="text" class="form-control" id="siteBrand" 
+                                           pattern="[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+"
+                                           placeholder="Ej: Motorola"
+                                           title="Solo se permiten letras">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="siteModel" class="form-label">Modelo</label>
+                                    <input type="text" class="form-control" id="siteModel" 
+                                           pattern="[A-Za-z0-9\s\-]+"
+                                           placeholder="Ej: R7 o ABC-123"
+                                           title="Letras y números permitidos">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="siteSerial" class="form-label">Serie</label>
+                            <input type="text" class="form-control" id="siteSerial" 
+                                   pattern="[A-Za-z0-9\s\-]+"
+                                   placeholder="Ej: SER-12345 o ABC123"
+                                   title="Letras y números permitidos">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="sitePhoto" class="form-label">Foto del Equipo</label>
+                            <div class="d-flex flex-column gap-2">
+                                <div class="d-flex gap-2">
+                                    <input type="file" class="form-control" id="sitePhoto" accept="image/*" capture="environment">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="captureSitePhoto()">
+                                        <i class="fas fa-camera"></i> Tomar Foto
+                                    </button>
+                                </div>
+                                <div id="sitePhotoPreview" class="mt-2" style="display: none;">
+                                    <img id="sitePhotoPreviewImg" src="" alt="Vista previa" class="img-thumbnail" style="max-width: 200px; max-height: 200px;">
+                                    <button type="button" class="btn btn-sm btn-danger ms-2" onclick="clearSitePhotoPreview()">
+                                        <i class="fas fa-times"></i> Eliminar
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="form-text">Puedes tomar una foto con la cámara o seleccionar un archivo de imagen</div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeSiteModal()">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="saveSite()">Guardar</button>
                 </div>
             </div>
         </div>
