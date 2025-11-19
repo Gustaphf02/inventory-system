@@ -966,7 +966,6 @@
                                                 <th>Modelo</th>
                                                 <th>Serie</th>
                                                 <th>Sitio</th>
-                                                <th>Lugar</th>
                                                 <th>Cantidad</th>
                                                 <th>Especificaciones/EXT</th>
                                                 <th>Sub-Especific</th>
@@ -987,9 +986,6 @@
                                                     <span class="badge bg-warning text-dark">
                                                         {{ product.department || 'Sin asignar' }}
                                                     </span>
-                                                </td>
-                                                <td>
-                                                    <small>{{ product.lugar || 'Sin lugar' }}</small>
                                                 </td>
                                                 <td>
                                                     <span class="badge bg-info">
@@ -1017,7 +1013,7 @@
                                                 </td>
                                             </tr>
                                             <tr v-if="filteredSites.length === 0">
-                                                <td colspan="14" class="text-center text-muted py-4">
+                                                <td colspan="13" class="text-center text-muted py-4">
                                                     <i class="fas fa-inbox fa-2x mb-2"></i><br>
                                                     <span v-if="sites.length === 0">
                                                         No hay sitios registrados. Haz clic en "Agregar Sitio" para comenzar.
@@ -1972,23 +1968,47 @@
                                     ];
                                     
                                     if (lugar) {
-                                        // Buscar si el lugar contiene alguno de los sitios
-                                        const lugarUpper = lugar.toUpperCase();
+                                        const lugarUpper = lugar.toUpperCase().trim();
+                                        
+                                        // Primero: buscar coincidencias exactas del nombre completo del sitio
                                         for (const sitioItem of sitiosList) {
-                                            if (lugarUpper.includes(sitioItem.toUpperCase())) {
+                                            const sitioUpper = sitioItem.toUpperCase();
+                                            // Buscar si el lugar contiene el nombre completo del sitio
+                                            if (lugarUpper.includes(sitioUpper)) {
                                                 sitio = sitioItem;
                                                 break;
                                             }
                                         }
-                                        // Si no se encontró, intentar extraer "CERRO X" del formato "CAMPANA - CERRO MENA"
+                                        
+                                        // Segundo: si no se encontró, buscar por el nombre después de "CERRO"
+                                        // Ejemplo: "CAMPANA - CERRO MENA" -> buscar "MENA" y encontrar "Cerro Mena"
                                         if (!sitio) {
-                                            const match = lugar.match(/CERRO\s+([A-ZÁÉÍÓÚÑ\s]+)/i);
+                                            // Buscar patrón "CERRO [NOMBRE]" en el lugar
+                                            const match = lugarUpper.match(/CERRO\s+([A-ZÁÉÍÓÚÑ]+)/);
                                             if (match) {
-                                                const cerroName = match[1].trim();
-                                                // Buscar coincidencia parcial
+                                                const cerroName = match[1].trim(); // "MENA", "ANCÓN", etc.
+                                                
+                                                // Buscar el sitio que contenga este nombre
                                                 for (const sitioItem of sitiosList) {
-                                                    if (sitioItem.toUpperCase().includes(cerroName.toUpperCase()) || 
-                                                        cerroName.toUpperCase().includes(sitioItem.toUpperCase().replace('CERRO ', ''))) {
+                                                    if (sitioItem.startsWith('Cerro ')) {
+                                                        const nombreSitio = sitioItem.substring(6).toUpperCase(); // "MENA", "ANCÓN", etc.
+                                                        // Comparar sin acentos y espacios
+                                                        if (nombreSitio.replace(/[ÁÉÍÓÚ]/g, '').includes(cerroName.replace(/[ÁÉÍÓÚ]/g, '')) ||
+                                                            cerroName.replace(/[ÁÉÍÓÚ]/g, '').includes(nombreSitio.replace(/[ÁÉÍÓÚ]/g, ''))) {
+                                                            sitio = sitioItem;
+                                                            break;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        
+                                        // Tercero: buscar sitios que no empiezan con "Cerro"
+                                        if (!sitio) {
+                                            for (const sitioItem of sitiosList) {
+                                                if (!sitioItem.startsWith('Cerro ')) {
+                                                    const sitioUpper = sitioItem.toUpperCase();
+                                                    if (lugarUpper.includes(sitioUpper)) {
                                                         sitio = sitioItem;
                                                         break;
                                                     }
@@ -2001,6 +2021,8 @@
                                     if (!sitio) {
                                         sitio = 'Cerro Mena'; // Valor por defecto
                                     }
+                                    
+                                    console.log('Lugar:', lugar, '-> Sitio detectado:', sitio);
                                     
                                     const productData = {
                                         sku: autoSKU,
