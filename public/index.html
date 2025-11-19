@@ -2128,7 +2128,9 @@
                                     if (p.barcode && p.barcode.trim() !== '') {
                                         // Si tiene PLACA, agregar a barcodes
                                         existingBarcodes.add(p.barcode.toString().trim().toUpperCase());
-                                    } else if (p.serial_number && p.serial_number.trim() !== '') {
+                                    } else if (p.serial_number && p.serial_number.trim() !== '' && 
+                                               p.serial_number.toUpperCase() !== 'S/S' && 
+                                               p.serial_number.toUpperCase() !== 'SIN SERIE') {
                                         // Si no tiene PLACA pero tiene SERIE, agregar a series
                                         existingSeries.add(p.serial_number.toString().trim().toUpperCase());
                                     } else {
@@ -2253,10 +2255,10 @@
                                         continue; // Saltar este producto
                                     }
                                     
-                                    // Verificar duplicados
+                                    // Verificar duplicados (en orden de prioridad)
                                     let isDuplicate = false;
                                     
-                                    // 1. Si tiene PLACA, verificar por PLACA (sin importar sitio)
+                                    // 1. Si tiene PLACA, verificar por PLACA (sin importar sitio o nombre)
                                     if (placa && placa.trim() !== '') {
                                         const placaUpper = placa.toUpperCase();
                                         if (existingBarcodes.has(placaUpper)) {
@@ -2270,8 +2272,10 @@
                                                 razon: 'PLACA ya existe en la base de datos (duplicado)'
                                             });
                                         }
-                                    } else if (serie && serie.trim() !== '' && serie.toUpperCase() !== 'S/S' && serie.toUpperCase() !== 'SIN SERIE') {
-                                        // 2. Si NO tiene PLACA pero SÍ tiene SERIE, verificar por SERIE (sin importar sitio)
+                                    } else if (serie && serie.trim() !== '' && 
+                                               serie.toUpperCase() !== 'S/S' && 
+                                               serie.toUpperCase() !== 'SIN SERIE') {
+                                        // 2. Si NO tiene PLACA pero SÍ tiene SERIE, verificar por SERIE (sin importar sitio o nombre)
                                         const serieUpper = serie.toUpperCase();
                                         if (existingSeries.has(serieUpper)) {
                                             isDuplicate = true;
@@ -2352,7 +2356,9 @@
                                     // Agregar a la lista para evitar duplicados en el mismo archivo
                                     if (placa && placa.trim() !== '') {
                                         existingBarcodes.add(placa.toUpperCase());
-                                    } else if (serie && serie.trim() !== '' && serie.toUpperCase() !== 'S/S' && serie.toUpperCase() !== 'SIN SERIE') {
+                                    } else if (serie && serie.trim() !== '' && 
+                                               serie.toUpperCase() !== 'S/S' && 
+                                               serie.toUpperCase() !== 'SIN SERIE') {
                                         // Si no tiene PLACA pero tiene SERIE, agregar a series
                                         existingSeries.add(serie.toUpperCase());
                                     } else {
