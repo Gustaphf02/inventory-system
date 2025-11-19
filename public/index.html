@@ -2117,30 +2117,33 @@
                                     console.error('Error al cargar productos existentes:', error);
                                 }
                                 
-                                // Crear mapa de barcodes existentes para verificación rápida
-                                const existingBarcodes = new Set();
-                                // Crear mapa de series existentes para verificación rápida
-                                const existingSeries = new Set();
-                                // Crear mapa de productos sin PLACA ni SERIE: clave = "nombre|sitio" para verificar duplicados
-                                const existingProductsWithoutBarcodeOrSeries = new Map();
+                                // Crear mapas agrupados por sitio para verificación de duplicados
+                                // Solo se verifican duplicados dentro del mismo sitio
+                                const existingBarcodesBySite = new Map(); // Map<sitio, Set<placa>>
+                                const existingSeriesBySite = new Map(); // Map<sitio, Set<serie>>
                                 
                                 existingProducts.forEach(p => {
+                                    const sitio = (p.department || '').trim().toUpperCase();
+                                    if (!sitio) return; // Saltar si no tiene sitio
+                                    
+                                    // Inicializar Sets para el sitio si no existen
+                                    if (!existingBarcodesBySite.has(sitio)) {
+                                        existingBarcodesBySite.set(sitio, new Set());
+                                    }
+                                    if (!existingSeriesBySite.has(sitio)) {
+                                        existingSeriesBySite.set(sitio, new Set());
+                                    }
+                                    
+                                    // Agregar PLACA al Set del sitio correspondiente
                                     if (p.barcode && p.barcode.trim() !== '') {
-                                        // Si tiene PLACA, agregar a barcodes
-                                        existingBarcodes.add(p.barcode.toString().trim().toUpperCase());
-                                    } else if (p.serial_number && p.serial_number.trim() !== '' && 
-                                               p.serial_number.toUpperCase() !== 'S/S' && 
-                                               p.serial_number.toUpperCase() !== 'SIN SERIE') {
-                                        // Si no tiene PLACA pero tiene SERIE, agregar a series
-                                        existingSeries.add(p.serial_number.toString().trim().toUpperCase());
-                                    } else {
-                                        // Si no tiene PLACA ni SERIE, usar nombre + sitio como identificador
-                                        const nombre = (p.name || p.description || '').trim().toUpperCase();
-                                        const sitio = (p.department || '').trim().toUpperCase();
-                                        if (nombre && sitio) {
-                                            const key = `${nombre}|${sitio}`;
-                                            existingProductsWithoutBarcodeOrSeries.set(key, p);
-                                        }
+                                        existingBarcodesBySite.get(sitio).add(p.barcode.toString().trim().toUpperCase());
+                                    }
+                                    
+                                    // Agregar SERIE al Set del sitio correspondiente
+                                    if (p.serial_number && p.serial_number.trim() !== '' && 
+                                        p.serial_number.toUpperCase() !== 'S/S' && 
+                                        p.serial_number.toUpperCase() !== 'SIN SERIE') {
+                                        existingSeriesBySite.get(sitio).add(p.serial_number.toString().trim().toUpperCase());
                                     }
                                 });
                                 
@@ -2255,13 +2258,18 @@
                                         continue; // Saltar este producto
                                     }
                                     
-                                    // Verificar duplicados (en orden de prioridad)
+                                    // Verificar duplicados SOLO dentro del mismo sitio
                                     let isDuplicate = false;
+                                    const sitioUpper = sitio.toUpperCase();
                                     
-                                    // 1. Si tiene PLACA, verificar por PLACA (sin importar sitio o nombre)
+                                    // Obtener los Sets de PLACAs y SERIES para este sitio
+                                    const barcodesInSite = existingBarcodesBySite.get(sitioUpper) || new Set();
+                                    const seriesInSite = existingSeriesBySite.get(sitioUpper) || new Set();
+                                    
+                                    // 1. Si tiene PLACA, verificar si existe esa PLACA en el MISMO sitio
                                     if (placa && placa.trim() !== '') {
                                         const placaUpper = placa.toUpperCase();
-                                        if (existingBarcodes.has(placaUpper)) {
+                                        if (barcodesInSite.has(placaUpper)) {
                                             isDuplicate = true;
                                             duplicateCount++;
                                             failedProducts.push({
@@ -2269,15 +2277,17 @@
                                                 equipo: equipo || 'N/A',
                                                 serie: serie || 'N/A',
                                                 sitio: sitio,
-                                                razon: 'PLACA ya existe en la base de datos (duplicado)'
+                                                razon: `PLACA "${placa}" ya existe en el sitio "${sitio}" (duplicado)`
                                             });
                                         }
-                                    } else if (serie && serie.trim() !== '' && 
-                                               serie.toUpperCase() !== 'S/S' && 
-                                               serie.toUpperCase() !== 'SIN SERIE') {
-                                        // 2. Si NO tiene PLACA pero SÍ tiene SERIE, verificar por SERIE (sin importar sitio o nombre)
+                                    }
+                                    
+                                    // 2. Si tiene SERIE (con o sin PLACA), verificar si existe esa SERIE en el MISMO sitio
+                                    if (!isDuplicate && serie && serie.trim() !== '' && 
+                                        serie.toUpperCase() !== 'S/S' && 
+                                        serie.toUpperCase() !== 'SIN SERIE') {
                                         const serieUpper = serie.toUpperCase();
-                                        if (existingSeries.has(serieUpper)) {
+                                        if (seriesInSite.has(serieUpper)) {
                                             isDuplicate = true;
                                             duplicateCount++;
                                             failedProducts.push({
@@ -2285,27 +2295,14 @@
                                                 equipo: equipo || 'N/A',
                                                 serie: serie,
                                                 sitio: sitio,
-                                                razon: `SERIE "${serie}" ya existe en la base de datos (duplicado)`
-                                            });
-                                        }
-                                    } else {
-                                        // 3. Si NO tiene PLACA ni SERIE, verificar por nombre + sitio
-                                        const nombreEquipo = (equipo || marca || 'Equipo Importado').trim().toUpperCase();
-                                        const sitioUpper = sitio.toUpperCase();
-                                        const key = `${nombreEquipo}|${sitioUpper}`;
-                                        
-                                        if (existingProductsWithoutBarcodeOrSeries.has(key)) {
-                                            isDuplicate = true;
-                                            duplicateCount++;
-                                            failedProducts.push({
-                                                placa: placa || 'Sin PLACA',
-                                                equipo: equipo || 'N/A',
-                                                serie: serie || 'Sin SERIE',
-                                                sitio: sitio,
-                                                razon: `Producto con mismo nombre "${equipo || 'N/A'}" ya existe en el sitio "${sitio}" (duplicado)`
+                                                razon: `SERIE "${serie}" ya existe en el sitio "${sitio}" (duplicado)`
                                             });
                                         }
                                     }
+                                    
+                                    // 3. Si NO tiene PLACA ni SERIE, NO se verifica duplicado
+                                    // Se permiten múltiples productos con el mismo nombre en el mismo sitio
+                                    // si no tienen PLACA ni SERIE
                                     
                                     if (isDuplicate) {
                                         continue; // Saltar este producto
@@ -2353,20 +2350,25 @@
                                     
                                     productsToImport.push(productData);
                                     
-                                    // Agregar a la lista para evitar duplicados en el mismo archivo
+                                    // Agregar a los mapas del sitio para evitar duplicados en el mismo archivo
+                                    // Inicializar Sets para el sitio si no existen
+                                    if (!existingBarcodesBySite.has(sitioUpper)) {
+                                        existingBarcodesBySite.set(sitioUpper, new Set());
+                                    }
+                                    if (!existingSeriesBySite.has(sitioUpper)) {
+                                        existingSeriesBySite.set(sitioUpper, new Set());
+                                    }
+                                    
+                                    // Agregar PLACA al Set del sitio correspondiente
                                     if (placa && placa.trim() !== '') {
-                                        existingBarcodes.add(placa.toUpperCase());
-                                    } else if (serie && serie.trim() !== '' && 
-                                               serie.toUpperCase() !== 'S/S' && 
-                                               serie.toUpperCase() !== 'SIN SERIE') {
-                                        // Si no tiene PLACA pero tiene SERIE, agregar a series
-                                        existingSeries.add(serie.toUpperCase());
-                                    } else {
-                                        // Si no tiene PLACA ni SERIE, agregar al mapa de productos sin PLACA ni SERIE
-                                        const nombreEquipo = (equipo || marca || 'Equipo Importado').trim().toUpperCase();
-                                        const sitioUpper = sitio.toUpperCase();
-                                        const key = `${nombreEquipo}|${sitioUpper}`;
-                                        existingProductsWithoutBarcodeOrSeries.set(key, productData);
+                                        existingBarcodesBySite.get(sitioUpper).add(placa.toUpperCase());
+                                    }
+                                    
+                                    // Agregar SERIE al Set del sitio correspondiente
+                                    if (serie && serie.trim() !== '' && 
+                                        serie.toUpperCase() !== 'S/S' && 
+                                        serie.toUpperCase() !== 'SIN SERIE') {
+                                        existingSeriesBySite.get(sitioUpper).add(serie.toUpperCase());
                                     }
                                 }
                                 
