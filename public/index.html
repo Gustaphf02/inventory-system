@@ -959,6 +959,12 @@
                                             Eliminar ({{ selectedSites.length }})
                                         </button>
                                     </div>
+                                    <div class="col-md-2 d-flex align-items-end">
+                                        <button class="btn btn-warning w-100" @click="deleteAllSites" title="Eliminar todos los sitios (para pruebas)">
+                                            <i class="fas fa-trash-alt me-2"></i>
+                                            Limpiar Todo
+                                        </button>
+                                    </div>
                                 </div>
                                 
                                 <!-- Tabla de Sitios -->
@@ -1956,6 +1962,87 @@
                     deleteNext(0);
                 },
 
+                async deleteAllSites() {
+                    if (!confirm('⚠️ ADVERTENCIA: Esto eliminará TODOS los productos de tipo "sitio".\n\n¿Estás seguro de continuar?')) {
+                        return;
+                    }
+                    
+                    // Cargar todos los sitios
+                    let allSites = [];
+                    try {
+                        const response = await fetch('/api/products');
+                        const data = await response.json();
+                        if (data.success && data.data) {
+                            allSites = data.data.filter(p => p.type === 'sitio');
+                        }
+                    } catch (error) {
+                        console.error('Error al cargar sitios:', error);
+                        alert('Error al cargar los sitios: ' + error.message);
+                        return;
+                    }
+                    
+                    if (allSites.length === 0) {
+                        alert('No hay sitios para eliminar');
+                        return;
+                    }
+                    
+                    if (!confirm(`Se eliminarán ${allSites.length} sitios. ¿Continuar?`)) {
+                        return;
+                    }
+                    
+                    let deleted = 0;
+                    let failed = 0;
+                    const errors = [];
+                    
+                    const deleteNext = (index) => {
+                        if (index >= allSites.length) {
+                            const message = `Eliminación completada:\n- Eliminados: ${deleted}\n- Fallidos: ${failed}${errors.length > 0 ? '\n\nErrores:\n' + errors.slice(0, 10).join('\n') : ''}`;
+                            alert(message);
+                            
+                            // Recargar productos
+                            if (window.app && window.app.loadProducts) {
+                                window.app.loadProducts();
+                            }
+                            return;
+                        }
+                        
+                        const product = allSites[index];
+                        
+                        fetch('/api/products', {
+                            method: 'DELETE',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ id: product.id })
+                        })
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error(`HTTP error! status: ${response.status}`);
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            if (data.success) {
+                                deleted++;
+                            } else {
+                                failed++;
+                                errors.push(`ID ${product.id} (${product.sku}): ${data.error || data.message || 'Error desconocido'}`);
+                            }
+                            // Continuar con el siguiente
+                            deleteNext(index + 1);
+                        })
+                        .catch(error => {
+                            failed++;
+                            errors.push(`ID ${product.id} (${product.sku}): ${error.message}`);
+                            // Continuar con el siguiente
+                            deleteNext(index + 1);
+                        });
+                    };
+                    
+                    // Iniciar eliminación
+                    deleteNext(0);
+                },
+
                 async importSitesFromExcel() {
                     // Crear input de archivo
                     const input = document.createElement('input');
@@ -2032,9 +2119,20 @@
                                 
                                 // Crear mapa de barcodes existentes para verificación rápida
                                 const existingBarcodes = new Set();
+                                // Crear mapa de productos sin PLACA: clave = "nombre|sitio" para verificar duplicados
+                                const existingProductsWithoutBarcode = new Map();
+                                
                                 existingProducts.forEach(p => {
-                                    if (p.barcode) {
+                                    if (p.barcode && p.barcode.trim() !== '') {
                                         existingBarcodes.add(p.barcode.toString().trim().toUpperCase());
+                                    } else {
+                                        // Si no tiene PLACA, usar nombre + sitio como identificador
+                                        const nombre = (p.name || p.description || '').trim().toUpperCase();
+                                        const sitio = (p.department || '').trim().toUpperCase();
+                                        if (nombre && sitio) {
+                                            const key = `${nombre}|${sitio}`;
+                                            existingProductsWithoutBarcode.set(key, p);
+                                        }
                                     }
                                 });
                                 
@@ -2067,35 +2165,8 @@
                                         continue;
                                     }
                                     
-                                    // Verificar duplicados por PLACA (barcode)
-                                    if (placa) {
-                                        const placaUpper = placa.toUpperCase();
-                                        if (existingBarcodes.has(placaUpper)) {
-                                            duplicateCount++;
-                                            failedProducts.push({
-                                                placa: placa,
-                                                equipo: equipo || 'N/A',
-                                                razon: 'PLACA ya existe en la base de datos (duplicado)'
-                                            });
-                                            continue; // Saltar este producto
-                                        }
-                                    }
-                                    
-                                    // Generar SKU único
-                                    const autoSKU = generateUniqueSKU();
-                                    
-                                    // Mapear estado
-                                    const statusMap = {
-                                        'operativo': 'active',
-                                        'criterio_tecnico': 'maintenance',
-                                        'descarte': 'inactive',
-                                        'active': 'active',
-                                        'maintenance': 'maintenance',
-                                        'inactive': 'inactive'
-                                    };
-                                    const mappedStatus = estado ? (statusMap[estado.toLowerCase()] || 'active') : 'active';
-                                    
-                                    // Extraer sitio del lugar - DEBE encontrar uno de los 17 sitios válidos
+                                    // Extraer sitio primero para poder verificar duplicados correctamente
+                                    // (necesitamos el sitio antes de verificar duplicados sin PLACA)
                                     let sitio = '';
                                     const sitiosList = [
                                         'Cerro Ancón', 'Edificio Pradera', 'Cerro Oscuro', 'Palacio',
@@ -2130,19 +2201,14 @@
                                         }
                                         
                                         // Segundo: si no se encontró, buscar por el nombre después de "CERRO"
-                                        // Ejemplo: "CAMPANA - CERRO MENA" -> buscar "MENA" y encontrar "Cerro Mena"
-                                        // Ejemplo: "CERRO ANCON" -> buscar "ANCON" y encontrar "Cerro Ancón"
                                         if (!sitio) {
-                                            // Buscar patrón "CERRO [NOMBRE]" en el lugar
                                             const match = lugarUpper.match(/CERRO\s+([A-ZÁÉÍÓÚÑ\s]+?)(?:\s|$|-|,)/);
                                             if (match) {
-                                                const cerroName = normalize(match[1].trim()); // "MENA", "ANCON", etc.
+                                                const cerroName = normalize(match[1].trim());
                                                 
-                                                // Buscar el sitio que contenga este nombre
                                                 for (const sitioItem of sitiosList) {
                                                     if (sitioItem.startsWith('Cerro ')) {
-                                                        const nombreSitio = normalize(sitioItem.substring(6)); // "MENA", "ANCON", etc.
-                                                        // Comparar nombres normalizados
+                                                        const nombreSitio = normalize(sitioItem.substring(6));
                                                         if (nombreSitio === cerroName || 
                                                             nombreSitio.includes(cerroName) || 
                                                             cerroName.includes(nombreSitio)) {
@@ -2181,6 +2247,58 @@
                                         continue; // Saltar este producto
                                     }
                                     
+                                    // Verificar duplicados
+                                    let isDuplicate = false;
+                                    
+                                    // 1. Si tiene PLACA, verificar por PLACA (sin importar sitio)
+                                    if (placa && placa.trim() !== '') {
+                                        const placaUpper = placa.toUpperCase();
+                                        if (existingBarcodes.has(placaUpper)) {
+                                            isDuplicate = true;
+                                            duplicateCount++;
+                                            failedProducts.push({
+                                                placa: placa,
+                                                equipo: equipo || 'N/A',
+                                                sitio: sitio,
+                                                razon: 'PLACA ya existe en la base de datos (duplicado)'
+                                            });
+                                        }
+                                    } else {
+                                        // 2. Si NO tiene PLACA, verificar por nombre + sitio
+                                        const nombreEquipo = (equipo || marca || 'Equipo Importado').trim().toUpperCase();
+                                        const sitioUpper = sitio.toUpperCase();
+                                        const key = `${nombreEquipo}|${sitioUpper}`;
+                                        
+                                        if (existingProductsWithoutBarcode.has(key)) {
+                                            isDuplicate = true;
+                                            duplicateCount++;
+                                            failedProducts.push({
+                                                placa: placa || 'Sin PLACA',
+                                                equipo: equipo || 'N/A',
+                                                sitio: sitio,
+                                                razon: `Producto con mismo nombre "${equipo || 'N/A'}" ya existe en el sitio "${sitio}" (duplicado)`
+                                            });
+                                        }
+                                    }
+                                    
+                                    if (isDuplicate) {
+                                        continue; // Saltar este producto
+                                    }
+                                    
+                                    // Generar SKU único
+                                    const autoSKU = generateUniqueSKU();
+                                    
+                                    // Mapear estado
+                                    const statusMap = {
+                                        'operativo': 'active',
+                                        'criterio_tecnico': 'maintenance',
+                                        'descarte': 'inactive',
+                                        'active': 'active',
+                                        'maintenance': 'maintenance',
+                                        'inactive': 'inactive'
+                                    };
+                                    const mappedStatus = estado ? (statusMap[estado.toLowerCase()] || 'active') : 'active';
+                                    
                                     console.log('Lugar:', lugar, '-> Sitio detectado:', sitio);
                                     
                                     // Si la PLACA está vacía, generar una temporal pero no verificar duplicados
@@ -2210,8 +2328,14 @@
                                     productsToImport.push(productData);
                                     
                                     // Agregar a la lista de barcodes para evitar duplicados en el mismo archivo
-                                    if (placa) {
+                                    if (placa && placa.trim() !== '') {
                                         existingBarcodes.add(placa.toUpperCase());
+                                    } else {
+                                        // Si no tiene PLACA, agregar al mapa de productos sin PLACA
+                                        const nombreEquipo = (equipo || marca || 'Equipo Importado').trim().toUpperCase();
+                                        const sitioUpper = sitio.toUpperCase();
+                                        const key = `${nombreEquipo}|${sitioUpper}`;
+                                        existingProductsWithoutBarcode.set(key, productData);
                                     }
                                 }
                                 
