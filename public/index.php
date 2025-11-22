@@ -508,7 +508,7 @@ if (session_status() === PHP_SESSION_NONE) {
                                 'session_user' => isset($_SESSION['user']) ? $_SESSION['user'] : null
                             ]
                         ]);
-                        break;
+                        exit;
                     }
                     
                     // Obtener ID del producto desde query string
@@ -518,31 +518,38 @@ if (session_status() === PHP_SESSION_NONE) {
                             'success' => false,
                             'error' => 'ID de producto requerido'
                         ]);
-                        break;
+                        exit;
                     }
                     
                     try {
                         $db = DatabaseManager::getInstance();
                         $history = $db->getProductHistory($productId);
                         
+                        if ($history === false || $history === null) {
+                            $history = [];
+                        }
+                        
                         echo json_encode([
                             'success' => true,
                             'data' => $history
                         ]);
+                        exit;
                     } catch (Exception $e) {
                         error_log("Error obteniendo historial: " . $e->getMessage());
                         echo json_encode([
                             'success' => false,
                             'error' => 'Error al obtener el historial: ' . $e->getMessage()
                         ]);
+                        exit;
                     }
                 } else {
                     echo json_encode([
                         'success' => false,
                         'error' => 'Método no permitido'
                     ]);
+                    exit;
                 }
-            break;
+            // break; removido porque todos los casos terminan con exit
             
             case 'reports/dashboard/stats':
                 try {

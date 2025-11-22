@@ -1605,9 +1605,35 @@
                     this.loadingHistory = true;
                     try {
                         const response = await fetch(`/api/product-history?product_id=${productId}`);
-                        const data = await response.json();
+                        
+                        // Verificar si la respuesta es OK
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        
+                        // Obtener el texto de la respuesta primero
+                        const text = await response.text();
+                        
+                        // Verificar que no esté vacío
+                        if (!text || text.trim() === '') {
+                            console.warn('Respuesta vacía del servidor');
+                            this.productHistory = [];
+                            return;
+                        }
+                        
+                        // Intentar parsear como JSON
+                        let data;
+                        try {
+                            data = JSON.parse(text);
+                        } catch (parseError) {
+                            console.error('Error parseando JSON:', parseError);
+                            console.error('Respuesta del servidor:', text);
+                            this.productHistory = [];
+                            return;
+                        }
+                        
                         if (data.success) {
-                            this.productHistory = data.data || [];
+                            this.productHistory = Array.isArray(data.data) ? data.data : [];
                         } else {
                             console.error('Error cargando historial:', data.error);
                             this.productHistory = [];
