@@ -470,12 +470,43 @@ if (session_status() === PHP_SESSION_NONE) {
             
             case 'product-history':
                 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-                    // Verificar que el usuario es admin o superior
-                    $userRole = $_SESSION['user']['role'] ?? '';
-                    if (!in_array($userRole, ['admin', 'superadmin'])) {
+                    // Verificar sesión - primero en $_SESSION, luego en base de datos
+                    $userRole = '';
+                    $user = null;
+                    
+                    if (isset($_SESSION['user']) && !empty($_SESSION['user'])) {
+                        $user = $_SESSION['user'];
+                        $userRole = $user['role'] ?? '';
+                        error_log("Product History: Rol obtenido de \$_SESSION: " . $userRole);
+                    } else {
+                        // Si no hay en $_SESSION, buscar en PostgreSQL
+                        try {
+                            $db = DatabaseManager::getInstance();
+                            $sessionId = session_id();
+                            $user = $db->getSession($sessionId);
+                            if ($user) {
+                                $userRole = $user['role'] ?? '';
+                                // Guardar en $_SESSION para próxima vez
+                                $_SESSION['user'] = $user;
+                                error_log("Product History: Rol obtenido de DB: " . $userRole);
+                            } else {
+                                error_log("Product History: No se encontró sesión activa");
+                            }
+                        } catch (Exception $e) {
+                            error_log("Product History: Error obteniendo sesión: " . $e->getMessage());
+                        }
+                    }
+                    
+                    // Verificar que el usuario es admin, manager o superior
+                    if (empty($userRole) || !in_array($userRole, ['admin', 'superadmin', 'manager'])) {
+                        error_log("Product History: Acceso denegado. Rol del usuario: '" . $userRole . "'. Roles permitidos: admin, superadmin, manager");
                         echo json_encode([
                             'success' => false,
-                            'error' => 'Acceso denegado. Solo administradores pueden ver el historial.'
+                            'error' => 'Acceso denegado. Solo administradores y gerentes pueden ver el historial.',
+                            'debug' => [
+                                'user_role' => $userRole,
+                                'session_user' => isset($_SESSION['user']) ? $_SESSION['user'] : null
+                            ]
                         ]);
                         break;
                     }
