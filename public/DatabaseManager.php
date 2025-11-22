@@ -622,4 +622,49 @@ class DatabaseManager {
             'database_url_configured' => !empty($_ENV['DATABASE_URL'] ?? getenv('DATABASE_URL'))
         ];
     }
+
+    /**
+     * Agregar entrada al historial de un producto
+     */
+    public function addProductHistory($productId, $fieldName, $oldValue, $newValue, $changedBy = null, $changeType = 'update') {
+        try {
+            if ($this->usePostgreSQL) {
+                $sql = "INSERT INTO product_history (product_id, field_name, old_value, new_value, changed_by, change_type) VALUES (?, ?, ?, ?, ?, ?)";
+                $stmt = $this->pdo->prepare($sql);
+                $stmt->execute([
+                    $productId,
+                    $fieldName,
+                    $oldValue !== null ? (string)$oldValue : null,
+                    $newValue !== null ? (string)$newValue : null,
+                    $changedBy,
+                    $changeType
+                ]);
+                return true;
+            }
+            return false;
+        } catch (Exception $e) {
+            error_log("DatabaseManager addProductHistory error: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Obtener historial completo de un producto
+     */
+    public function getProductHistory($productId) {
+        try {
+            if ($this->usePostgreSQL) {
+                $sql = "SELECT * FROM product_history WHERE product_id = ? ORDER BY created_at DESC";
+                $stmt = $this->pdo->prepare($sql);
+                $stmt->execute([$productId]);
+                $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                error_log("DatabaseManager getProductHistory: Encontrados " . count($result) . " registros para producto ID: $productId");
+                return $result ? $result : [];
+            }
+            return [];
+        } catch (Exception $e) {
+            error_log("DatabaseManager getProductHistory error: " . $e->getMessage());
+            return [];
+        }
+    }
 }

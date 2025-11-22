@@ -523,23 +523,39 @@ if (session_status() === PHP_SESSION_NONE) {
                     
                     try {
                         $db = DatabaseManager::getInstance();
+                        
+                        // Verificar que el método existe
+                        if (!method_exists($db, 'getProductHistory')) {
+                            error_log("ERROR: Método getProductHistory no existe en DatabaseManager");
+                            echo json_encode([
+                                'success' => false,
+                                'error' => 'Error: Método getProductHistory no disponible'
+                            ]);
+                            exit;
+                        }
+                        
                         $history = $db->getProductHistory($productId);
                         
-                        if ($history === false || $history === null) {
+                        // Asegurar que siempre sea un array
+                        if (!is_array($history)) {
+                            error_log("WARNING: getProductHistory no devolvió un array, devolvió: " . gettype($history));
                             $history = [];
                         }
+                        
+                        error_log("Product History: Devolviendo " . count($history) . " registros para producto ID: $productId");
                         
                         echo json_encode([
                             'success' => true,
                             'data' => $history
-                        ]);
+                        ], JSON_UNESCAPED_UNICODE);
                         exit;
                     } catch (Exception $e) {
                         error_log("Error obteniendo historial: " . $e->getMessage());
+                        error_log("Stack trace: " . $e->getTraceAsString());
                         echo json_encode([
                             'success' => false,
                             'error' => 'Error al obtener el historial: ' . $e->getMessage()
-                        ]);
+                        ], JSON_UNESCAPED_UNICODE);
                         exit;
                     }
                 } else {
