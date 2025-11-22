@@ -1602,21 +1602,30 @@
                 },
 
                 async loadProductHistory(productId) {
+                    console.log('🔄 Iniciando carga de historial para producto ID:', productId);
                     this.loadingHistory = true;
                     try {
-                        const response = await fetch(`/api/product-history?product_id=${productId}`);
+                        const url = `/api/product-history?product_id=${productId}`;
+                        console.log('📡 Llamando a:', url);
+                        
+                        const response = await fetch(url);
+                        console.log('📥 Respuesta recibida. Status:', response.status, 'OK:', response.ok);
+                        console.log('📥 Content-Type:', response.headers.get('Content-Type'));
                         
                         // Verificar si la respuesta es OK
                         if (!response.ok) {
+                            const errorText = await response.text();
+                            console.error('❌ HTTP Error:', response.status, errorText);
                             throw new Error(`HTTP error! status: ${response.status}`);
                         }
                         
                         // Obtener el texto de la respuesta primero
                         const text = await response.text();
+                        console.log('📄 Texto de respuesta (primeros 500 chars):', text.substring(0, 500));
                         
                         // Verificar que no esté vacío
                         if (!text || text.trim() === '') {
-                            console.warn('Respuesta vacía del servidor');
+                            console.warn('⚠️ Respuesta vacía del servidor');
                             this.productHistory = [];
                             return;
                         }
@@ -1625,24 +1634,31 @@
                         let data;
                         try {
                             data = JSON.parse(text);
+                            console.log('✅ JSON parseado correctamente:', data);
                         } catch (parseError) {
-                            console.error('Error parseando JSON:', parseError);
-                            console.error('Respuesta del servidor:', text);
+                            console.error('❌ Error parseando JSON:', parseError);
+                            console.error('📄 Respuesta completa del servidor:', text);
                             this.productHistory = [];
                             return;
                         }
                         
                         if (data.success) {
+                            console.log('✅ Historial cargado exitosamente. Registros:', data.data?.length || 0);
                             this.productHistory = Array.isArray(data.data) ? data.data : [];
                         } else {
-                            console.error('Error cargando historial:', data.error);
+                            console.error('❌ Error en respuesta:', data.error);
+                            if (data.debug) {
+                                console.error('🔍 Debug info:', data.debug);
+                            }
                             this.productHistory = [];
                         }
                     } catch (error) {
-                        console.error('Error cargando historial:', error);
+                        console.error('❌ Error cargando historial:', error);
+                        console.error('📊 Stack:', error.stack);
                         this.productHistory = [];
                     } finally {
                         this.loadingHistory = false;
+                        console.log('🏁 Carga de historial finalizada');
                     }
                 },
 

@@ -168,6 +168,8 @@ if (session_status() === PHP_SESSION_NONE) {
         }
         
         error_log("API Path normalizado: $apiPath");
+        error_log("REQUEST_URI completo: " . $_SERVER['REQUEST_URI']);
+        error_log("Path parseado: $path");
     
     // Enrutamiento de API
     switch ($apiPath) {
