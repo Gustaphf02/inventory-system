@@ -140,6 +140,21 @@ class DatabaseManager {
             END
             \$\$;
 
+            -- Crear tabla de historial de productos
+            CREATE TABLE IF NOT EXISTS product_history (
+                id SERIAL PRIMARY KEY,
+                product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+                field_name VARCHAR(100) NOT NULL,
+                old_value TEXT,
+                new_value TEXT,
+                changed_by VARCHAR(255),
+                change_type VARCHAR(50) DEFAULT 'update',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            
+            CREATE INDEX IF NOT EXISTS idx_product_history_product_id ON product_history(product_id);
+            CREATE INDEX IF NOT EXISTS idx_product_history_created_at ON product_history(created_at);
+
             CREATE TABLE IF NOT EXISTS categories (
                 id SERIAL PRIMARY KEY,
                 name VARCHAR(100) NOT NULL,
@@ -241,6 +256,16 @@ class DatabaseManager {
 
                 $newId = $this->pdo->lastInsertId();
                 error_log("DatabaseManager createProduct: Producto creado con ID: " . $newId);
+                
+                // Registrar creación inicial en el historial
+                $this->addProductHistory($newId, 'created', null, 'Producto creado', null, 'create');
+                if (!empty($data['department'])) {
+                    $this->addProductHistory($newId, 'department', null, $data['department'], null, 'create');
+                }
+                if (!empty($data['status'])) {
+                    $this->addProductHistory($newId, 'status', null, $data['status'], null, 'create');
+                }
+                
                 return $newId;
             } else {
                 return $this->createProductInFile($data);
@@ -255,6 +280,19 @@ class DatabaseManager {
         error_log("DatabaseManager updateProduct: Actualizando producto ID $id con datos: " . json_encode($data));
         try {
             if ($this->usePostgreSQL) {
+                // Obtener producto actual para comparar cambios
+                $currentProduct = $this->getProductById($id);
+                if (!$currentProduct) {
+                    error_log("DatabaseManager updateProduct: Producto no encontrado ID: $id");
+                    return false;
+                }
+                
+                // Obtener usuario actual si está disponible
+                $changedBy = null;
+                if (isset($_SESSION['user'])) {
+                    $changedBy = $_SESSION['user']['email'] ?? $_SESSION['user']['username'] ?? 'Sistema';
+                }
+                
                 $sql = "UPDATE products SET name = ?, description = ?, brand = ?, model = ?, price = ?, cost = ?, stock_quantity = ?, min_stock_level = ?, max_stock_level = ?, category_id = ?, supplier_id = ?, type = ?, serial_number = ?, department = ?, label = ?, barcode = ?, expiration_date = ?, status = ?, photo_url = ?, lugar = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?";
                 
                 error_log("DatabaseManager updateProduct: SQL: " . $sql);
@@ -285,6 +323,35 @@ class DatabaseManager {
 
                 $rowCount = $stmt->rowCount();
                 error_log("DatabaseManager updateProduct: Filas afectadas: $rowCount");
+                
+                // Registrar cambios en el historial
+                $fieldsToTrack = [
+                    'name' => 'Nombre',
+                    'description' => 'Descripción',
+                    'brand' => 'Marca',
+                    'model' => 'Modelo',
+                    'department' => 'Departamento/Sitio',
+                    'status' => 'Estado',
+                    'label' => 'Marbete',
+                    'barcode' => 'Placa/Asig. Numérica',
+                    'serial_number' => 'Número de Serie',
+                    'lugar' => 'Lugar'
+                ];
+                
+                foreach ($fieldsToTrack as $field => $fieldLabel) {
+                    $oldValue = $currentProduct[$field] ?? null;
+                    $newValue = $data[$field] ?? null;
+                    
+                    // Normalizar valores para comparación
+                    $oldValueStr = $oldValue !== null ? (string)$oldValue : '';
+                    $newValueStr = $newValue !== null ? (string)$newValue : '';
+                    
+                    // Si hay cambio, registrar en historial
+                    if ($oldValueStr !== $newValueStr) {
+                        $this->addProductHistory($id, $field, $oldValue, $newValue, $changedBy, 'update');
+                    }
+                }
+                
                 return $rowCount > 0;
             } else {
                 return $this->updateProductInFile($id, $data);

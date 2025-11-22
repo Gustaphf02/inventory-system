@@ -144,7 +144,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // Si es una petición API, manejar como JSON
-    if (strpos($path, '/api/') === 0 || in_array($path, ['/auth/me', '/products', '/categories', '/suppliers', '/departments', '/locations', '/inventory/summary', '/reports/dashboard/stats', '/reports/inventory/summary', '/reports/inventory/low-stock', '/health', '/test', '/upload-photo'])) {
+    if (strpos($path, '/api/') === 0 || in_array($path, ['/auth/me', '/products', '/categories', '/suppliers', '/departments', '/locations', '/inventory/summary', '/reports/dashboard/stats', '/reports/inventory/summary', '/reports/inventory/low-stock', '/health', '/test', '/upload-photo', '/product-history'])) {
         // Debug: Log de la ruta detectada
         error_log("API Route detected: $path, Method: " . $_SERVER['REQUEST_METHOD']);
         
@@ -465,6 +465,51 @@ if (session_status() === PHP_SESSION_NONE) {
                         error_log("Products DELETE: Error eliminando producto con ID: $productId");
                         echo json_encode(['success' => false, 'error' => 'Error al eliminar el producto']);
                     }
+                }
+            break;
+            
+            case 'product-history':
+                if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+                    // Verificar que el usuario es admin o superior
+                    $userRole = $_SESSION['user']['role'] ?? '';
+                    if (!in_array($userRole, ['admin', 'superadmin'])) {
+                        echo json_encode([
+                            'success' => false,
+                            'error' => 'Acceso denegado. Solo administradores pueden ver el historial.'
+                        ]);
+                        break;
+                    }
+                    
+                    // Obtener ID del producto desde query string
+                    $productId = isset($_GET['product_id']) ? intval($_GET['product_id']) : 0;
+                    if (!$productId) {
+                        echo json_encode([
+                            'success' => false,
+                            'error' => 'ID de producto requerido'
+                        ]);
+                        break;
+                    }
+                    
+                    try {
+                        $db = DatabaseManager::getInstance();
+                        $history = $db->getProductHistory($productId);
+                        
+                        echo json_encode([
+                            'success' => true,
+                            'data' => $history
+                        ]);
+                    } catch (Exception $e) {
+                        error_log("Error obteniendo historial: " . $e->getMessage());
+                        echo json_encode([
+                            'success' => false,
+                            'error' => 'Error al obtener el historial: ' . $e->getMessage()
+                        ]);
+                    }
+                } else {
+                    echo json_encode([
+                        'success' => false,
+                        'error' => 'Método no permitido'
+                    ]);
                 }
             break;
             

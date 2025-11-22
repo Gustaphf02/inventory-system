@@ -559,23 +559,32 @@
                             <div class="card-body">
                                 <!-- Filtros de búsqueda -->
                                 <div class="row mb-4">
-                                    <div class="col-md-4">
-                                        <label class="form-label">Buscar por Categoría:</label>
-                                        <select class="form-select" v-model="inventoryFilters.category" @change="filterInventory">
-                                            <option value="">Todas las categorías</option>
-                                            <option v-for="category in categories" :key="category.id" :value="category.name">{{ category.name }}</option>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Filtrar por Departamento:</label>
+                                        <select class="form-select" v-model="inventoryFilters.department" @change="filterInventory">
+                                            <option value="">Todos los departamentos</option>
+                                            <option v-for="dept in uniqueInventoryDepartments" :key="dept" :value="dept">
+                                                {{ dept }}
+                                            </option>
                                         </select>
                                     </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label">Buscar por Ubicación:</label>
-                                        <select class="form-select" v-model="inventoryFilters.location" @change="filterInventory">
-                                            <option value="">Todas las ubicaciones</option>
-                                            <option v-for="location in locations" :key="location.id" :value="location.name">{{ location.name }}</option>
-                                        </select>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Filtrar por Nombre:</label>
+                                        <input type="text" class="form-control" v-model="inventoryFilters.name" @input="filterInventory" placeholder="Buscar por nombre...">
                                     </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label">Buscar Producto:</label>
-                                        <input type="text" class="form-control" v-model="inventoryFilters.search" @input="filterInventory" placeholder="SKU, nombre, serial...">
+                                    <div class="col-md-3">
+                                        <label class="form-label">Filtrar por Marca:</label>
+                                        <input type="text" class="form-control" v-model="inventoryFilters.brand" @input="filterInventory" placeholder="Buscar por marca...">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Filtrar por Número de Serie:</label>
+                                        <input type="text" class="form-control" v-model="inventoryFilters.serial_number" @input="filterInventory" placeholder="Buscar por serie...">
+                                    </div>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col-md-3">
+                                        <label class="form-label">Filtrar por Marbete o Placa:</label>
+                                        <input type="text" class="form-control" v-model="inventoryFilters.barcode_or_label" @input="filterInventory" placeholder="Buscar por marbete o placa...">
                                     </div>
                                 </div>
 
@@ -639,7 +648,10 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <tr v-for="product in filteredInventory" :key="product.id">
+                                            <tr v-for="product in filteredInventory" :key="product.id" 
+                                                @click="viewProductDetails(product)" 
+                                                style="cursor: pointer;" 
+                                                class="table-row-clickable">
                                                 <td><code>{{ product.sku }}</code></td>
                                                 <td><strong>{{ product.name || 'Sin nombre' }}</strong></td>
                                                 <td><small>{{ product.description || 'Sin descripción' }}</small></td>
@@ -744,7 +756,10 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <tr v-for="product in filteredProducts" :key="product.id">
+                                            <tr v-for="product in filteredProducts" :key="product.id" 
+                                                @click="viewProductDetails(product)" 
+                                                style="cursor: pointer;" 
+                                                class="table-row-clickable">
                                                 <td>
                                                     <code>{{ product.sku }}</code>
                                                 </td>
@@ -855,7 +870,10 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <tr v-for="product in filteredExistingEquipment" :key="product.id">
+                                            <tr v-for="product in filteredExistingEquipment" :key="product.id" 
+                                                @click="viewProductDetails(product)" 
+                                                style="cursor: pointer;" 
+                                                class="table-row-clickable">
                                                 <td><code>{{ product.sku }}</code></td>
                                                 <td><strong>{{ product.name || 'Sin nombre' }}</strong></td>
                                                 <td>{{ product.brand || 'Sin marca' }}</td>
@@ -991,9 +1009,12 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <tr v-for="product in filteredSites" :key="product.id">
-                                                <td>
-                                                    <input type="checkbox" :value="product.id" v-model="selectedSites">
+                                            <tr v-for="product in filteredSites" :key="product.id" 
+                                                @click="viewProductDetails(product)" 
+                                                style="cursor: pointer;" 
+                                                class="table-row-clickable">
+                                                <td @click.stop>
+                                                    <input type="checkbox" :value="product.id" v-model="selectedSites" @click.stop>
                                                 </td>
                                                 <td><code>{{ product.sku }}</code></td>
                                                 <td><strong>{{ product.name || 'Sin nombre' }}</strong></td>
@@ -1264,9 +1285,11 @@
                     inventorySummary: {},
                     filteredInventory: [],
                     inventoryFilters: {
-                        category: '',
-                        location: '',
-                        search: ''
+                        department: '',
+                        name: '',
+                        brand: '',
+                        serial_number: '',
+                        barcode_or_label: ''
                     },
                     searchQuery: '',
                     selectedCategory: '',
@@ -1274,6 +1297,10 @@
                     showEditProductModal: false,
                     editingProduct: null,
                     _mounted: false, // Flag para prevenir múltiples mountings
+                    showProductDetailsModal: false,
+                    productDetails: null,
+                    productHistory: [],
+                    loadingHistory: false,
                     existingEquipment: [], // Equipos existentes
                     filteredExistingEquipment: [], // Equipos existentes filtrados
                     existingEquipmentFilters: {
@@ -1485,25 +1512,45 @@
                 filterInventory() {
                     let filtered = [...this.products];
                     
-                    if (this.inventoryFilters.category) {
+                    // Filtrar por departamento
+                    if (this.inventoryFilters.department) {
                         filtered = filtered.filter(product => 
-                            product.category_name === this.inventoryFilters.category
+                            product.department && 
+                            product.department.toLowerCase() === this.inventoryFilters.department.toLowerCase()
                         );
                     }
                     
-                    if (this.inventoryFilters.location) {
+                    // Filtrar por nombre
+                    if (this.inventoryFilters.name) {
+                        const nameSearch = this.inventoryFilters.name.toLowerCase();
                         filtered = filtered.filter(product => 
-                            product.location.includes(this.inventoryFilters.location)
+                            (product.name && product.name.toLowerCase().includes(nameSearch)) ||
+                            (product.description && product.description.toLowerCase().includes(nameSearch))
                         );
                     }
                     
-                    if (this.inventoryFilters.search) {
-                        const search = this.inventoryFilters.search.toLowerCase();
+                    // Filtrar por marca
+                    if (this.inventoryFilters.brand) {
+                        const brandSearch = this.inventoryFilters.brand.toLowerCase();
                         filtered = filtered.filter(product => 
-                            product.sku.toLowerCase().includes(search) ||
-                            product.name.toLowerCase().includes(search) ||
-                            product.serial_number.toLowerCase().includes(search) ||
-                            product.label.toLowerCase().includes(search)
+                            product.brand && product.brand.toLowerCase().includes(brandSearch)
+                        );
+                    }
+                    
+                    // Filtrar por número de serie
+                    if (this.inventoryFilters.serial_number) {
+                        const serialSearch = this.inventoryFilters.serial_number.toLowerCase();
+                        filtered = filtered.filter(product => 
+                            product.serial_number && product.serial_number.toLowerCase().includes(serialSearch)
+                        );
+                    }
+                    
+                    // Filtrar por marbete o placa (barcode o label)
+                    if (this.inventoryFilters.barcode_or_label) {
+                        const barcodeLabelSearch = this.inventoryFilters.barcode_or_label.toLowerCase();
+                        filtered = filtered.filter(product => 
+                            (product.barcode && product.barcode.toString().toLowerCase().includes(barcodeLabelSearch)) ||
+                            (product.label && product.label.toLowerCase().includes(barcodeLabelSearch))
                         );
                     }
                     
@@ -1518,6 +1565,55 @@
                 searchInventory() {
                     // Aplicar filtros y mostrar resultados
                     this.filterInventory();
+                },
+
+                async viewProductDetails(product) {
+                    this.productDetails = product;
+                    this.productHistory = [];
+                    this.loadingHistory = false;
+                    
+                    // Abrir modal
+                    const modalElement = document.getElementById('productDetailsModal');
+                    if (modalElement) {
+                        const modalInstance = bootstrap.Modal.getOrCreateInstance(modalElement);
+                        modalInstance.show();
+                        
+                        // Cargar historial solo si el usuario es admin
+                        if (this.user.role === 'admin' || this.user.role === 'superadmin') {
+                            await this.loadProductHistory(product.id);
+                        }
+                    }
+                },
+
+                async loadProductHistory(productId) {
+                    this.loadingHistory = true;
+                    try {
+                        const response = await fetch(`/api/product-history?product_id=${productId}`);
+                        const data = await response.json();
+                        if (data.success) {
+                            this.productHistory = data.data || [];
+                        } else {
+                            console.error('Error cargando historial:', data.error);
+                            this.productHistory = [];
+                        }
+                    } catch (error) {
+                        console.error('Error cargando historial:', error);
+                        this.productHistory = [];
+                    } finally {
+                        this.loadingHistory = false;
+                    }
+                },
+
+                closeProductDetailsModal() {
+                    const modalElement = document.getElementById('productDetailsModal');
+                    if (modalElement) {
+                        const modalInstance = bootstrap.Modal.getInstance(modalElement);
+                        if (modalInstance) {
+                            modalInstance.hide();
+                        }
+                    }
+                    this.productDetails = null;
+                    this.productHistory = [];
                 },
 
                 showAddProduct() {
@@ -2691,6 +2787,12 @@
                 },
                 uniqueSitesDepartments() {
                     const departments = this.sites
+                        .map(product => product.department)
+                        .filter(dept => dept && dept.trim() !== '');
+                    return [...new Set(departments)].sort();
+                },
+                uniqueInventoryDepartments() {
+                    const departments = this.products
                         .map(product => product.department)
                         .filter(dept => dept && dept.trim() !== '');
                     return [...new Set(departments)].sort();
@@ -4017,8 +4119,8 @@
                 supplier_id: 1, // Por defecto
                 type: 'sitio', // Identificador para sitios
                 status: mappedStatus,
-                photo_url: photoUrl, // Incluir URL de la foto si existe
-                lugar: document.getElementById('siteLugar').value.trim() || null
+                photo_url: photoUrl // Incluir URL de la foto si existe
+                // lugar: solo se usa en importación de Excel, no en formulario manual
             };
             
             console.log('Datos del sitio a guardar:', productData);
@@ -4838,16 +4940,6 @@
                         </div>
                         
                         <div class="row">
-                            <div class="col-md-12">
-                                <div class="mb-3">
-                                    <label for="siteLugar" class="form-label">Lugar</label>
-                                    <input type="text" class="form-control" id="siteLugar" 
-                                           placeholder="Ej: CAMPANA - CERRO MENA">
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="siteSpecs" class="form-label">Especificaciones/EXT</label>
@@ -5172,6 +5264,170 @@
                     <button type="button" class="btn btn-primary" onclick="saveProduct()">
                         <i class="fas fa-save me-1"></i>
                         Guardar Producto
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Detalles del Producto -->
+    <div class="modal fade" id="productDetailsModal" tabindex="-1" style="display: none;">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Detalles del Producto
+                    </h5>
+                    <button type="button" class="btn-close" @click="closeProductDetailsModal"></button>
+                </div>
+                <div class="modal-body" v-if="productDetails">
+                    <!-- Información del Producto -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6 class="text-primary"><i class="fas fa-box me-2"></i>Información General</h6>
+                            <table class="table table-sm">
+                                <tr>
+                                    <th width="40%">SKU:</th>
+                                    <td><code>{{ productDetails.sku }}</code></td>
+                                </tr>
+                                <tr>
+                                    <th>Nombre:</th>
+                                    <td><strong>{{ productDetails.name || 'Sin nombre' }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <th>Descripción:</th>
+                                    <td>{{ productDetails.description || 'Sin descripción' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Marca:</th>
+                                    <td>{{ productDetails.brand || 'Sin marca' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Modelo:</th>
+                                    <td>{{ productDetails.model || 'Sin modelo' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Número de Serie:</th>
+                                    <td>{{ productDetails.serial_number || 'Sin serie' }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-primary"><i class="fas fa-map-marker-alt me-2"></i>Ubicación y Estado</h6>
+                            <table class="table table-sm">
+                                <tr>
+                                    <th width="40%">Departamento/Sitio:</th>
+                                    <td><span class="badge bg-warning">{{ productDetails.department || 'Sin asignar' }}</span></td>
+                                </tr>
+                                <tr>
+                                    <th>Estado:</th>
+                                    <td>
+                                        <span class="badge" :class="productDetails.status === 'active' || productDetails.status === 'operativo' ? 'bg-success' : 'bg-secondary'">
+                                            {{ productDetails.status === 'active' || productDetails.status === 'operativo' ? 'Operativo' : 
+                                               productDetails.status === 'criterio_tecnico' ? 'Criterio Técnico' : 
+                                               productDetails.status === 'descarte' ? 'Descarte' : productDetails.status }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Marbete:</th>
+                                    <td><code>{{ productDetails.label || 'Sin marbete' }}</code></td>
+                                </tr>
+                                <tr>
+                                    <th>Placa/Asig. Numérica:</th>
+                                    <td><code>{{ productDetails.barcode || 'Sin placa' }}</code></td>
+                                </tr>
+                                <tr>
+                                    <th>Fecha de Creación:</th>
+                                    <td>{{ productDetails.created_at ? new Date(productDetails.created_at).toLocaleString('es-ES') : 'N/A' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Última Actualización:</th>
+                                    <td>{{ productDetails.updated_at ? new Date(productDetails.updated_at).toLocaleString('es-ES') : 'N/A' }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Historial de Cambios (Solo para Admin) -->
+                    <div v-if="user.role === 'admin' || user.role === 'superadmin'" class="mt-4">
+                        <h6 class="text-primary"><i class="fas fa-history me-2"></i>Historial de Cambios</h6>
+                        <div v-if="loadingHistory" class="text-center py-3">
+                            <div class="spinner-border spinner-border-sm" role="status">
+                                <span class="visually-hidden">Cargando...</span>
+                            </div>
+                            <p class="mt-2 text-muted">Cargando historial...</p>
+                        </div>
+                        <div v-else-if="productHistory.length === 0" class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Este producto no ha sido movido o modificado desde su creación.
+                        </div>
+                        <div v-else class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Fecha y Hora</th>
+                                        <th>Campo</th>
+                                        <th>Valor Anterior</th>
+                                        <th>Valor Nuevo</th>
+                                        <th>Modificado por</th>
+                                        <th>Tipo</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="entry in productHistory" :key="entry.id">
+                                        <td>{{ new Date(entry.created_at).toLocaleString('es-ES') }}</td>
+                                        <td>
+                                            <span class="badge bg-info">
+                                                {{ entry.field_name === 'department' ? 'Departamento/Sitio' :
+                                                   entry.field_name === 'status' ? 'Estado' :
+                                                   entry.field_name === 'name' ? 'Nombre' :
+                                                   entry.field_name === 'brand' ? 'Marca' :
+                                                   entry.field_name === 'model' ? 'Modelo' :
+                                                   entry.field_name === 'serial_number' ? 'Número de Serie' :
+                                                   entry.field_name === 'label' ? 'Marbete' :
+                                                   entry.field_name === 'barcode' ? 'Placa' :
+                                                   entry.field_name === 'lugar' ? 'Lugar' :
+                                                   entry.field_name === 'created' ? 'Creación' :
+                                                   entry.field_name }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span v-if="entry.old_value" class="text-muted">
+                                                {{ entry.old_value || 'N/A' }}
+                                            </span>
+                                            <span v-else class="text-muted fst-italic">-</span>
+                                        </td>
+                                        <td>
+                                            <span class="text-success fw-bold">
+                                                {{ entry.new_value || 'N/A' }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <small class="text-muted">
+                                                {{ entry.changed_by || 'Sistema' }}
+                                            </small>
+                                        </td>
+                                        <td>
+                                            <span class="badge" :class="entry.change_type === 'create' ? 'bg-success' : 'bg-warning'">
+                                                {{ entry.change_type === 'create' ? 'Creación' : 'Actualización' }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div v-else class="alert alert-warning mt-4">
+                        <i class="fas fa-lock me-2"></i>
+                        Solo los administradores pueden ver el historial de cambios.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @click="closeProductDetailsModal">
+                        <i class="fas fa-times me-1"></i>
+                        Cerrar
                     </button>
                 </div>
             </div>
