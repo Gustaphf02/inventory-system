@@ -1566,25 +1566,63 @@
                 },
 
                 async viewProductDetails(product) {
-                    this.productDetails = product;
-                    
-                    // Abrir modal
-                    const modalElement = document.getElementById('productDetailsModal');
-                    if (modalElement) {
-                        const modalInstance = bootstrap.Modal.getOrCreateInstance(modalElement);
+                    try {
+                        console.log('viewProductDetails llamado con:', product);
+                        this.productDetails = product;
+                        
+                        // Esperar un momento para que Vue actualice el DOM
+                        await this.$nextTick();
+                        
+                        // Abrir modal
+                        const modalElement = document.getElementById('productDetailsModal');
+                        if (!modalElement) {
+                            console.error('Modal element no encontrado');
+                            alert('Error: No se pudo abrir el modal de detalles');
+                            return;
+                        }
+                        
+                        // Asegurarse de que el modal esté en el DOM
+                        if (!document.body.contains(modalElement)) {
+                            console.error('Modal element no está en el DOM');
+                            return;
+                        }
+                        
+                        // Crear o obtener instancia del modal
+                        let modalInstance = bootstrap.Modal.getInstance(modalElement);
+                        if (!modalInstance) {
+                            modalInstance = new bootstrap.Modal(modalElement, {
+                                backdrop: true,
+                                keyboard: true,
+                                focus: true
+                            });
+                        }
+                        
+                        // Mostrar el modal
                         modalInstance.show();
+                        console.log('Modal mostrado correctamente');
+                    } catch (error) {
+                        console.error('Error al abrir modal de detalles:', error);
+                        alert('Error al abrir los detalles del producto: ' + error.message);
                     }
                 },
 
                 closeProductDetailsModal() {
-                    const modalElement = document.getElementById('productDetailsModal');
-                    if (modalElement) {
-                        const modalInstance = bootstrap.Modal.getInstance(modalElement);
-                        if (modalInstance) {
-                            modalInstance.hide();
+                    try {
+                        const modalElement = document.getElementById('productDetailsModal');
+                        if (modalElement) {
+                            const modalInstance = bootstrap.Modal.getInstance(modalElement);
+                            if (modalInstance) {
+                                modalInstance.hide();
+                            }
                         }
+                        // Limpiar datos después de un pequeño delay para permitir la animación
+                        setTimeout(() => {
+                            this.productDetails = null;
+                        }, 300);
+                    } catch (error) {
+                        console.error('Error al cerrar modal:', error);
+                        this.productDetails = null;
                     }
-                    this.productDetails = null;
                 },
 
                 showAddProduct() {
@@ -5242,15 +5280,15 @@
     </div>
 
     <!-- Modal de Detalles del Producto -->
-    <div class="modal fade" id="productDetailsModal" tabindex="-1" style="display: none;">
+    <div class="modal fade" id="productDetailsModal" tabindex="-1" aria-labelledby="productDetailsModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">
+                    <h5 class="modal-title" id="productDetailsModalLabel">
                         <i class="fas fa-info-circle me-2"></i>
                         Detalles del Producto
                     </h5>
-                    <button type="button" class="btn-close" @click="closeProductDetailsModal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar" @click="closeProductDetailsModal"></button>
                 </div>
                 <div class="modal-body" v-if="productDetails">
                     <!-- Foto del Producto -->
@@ -5327,8 +5365,16 @@
                         </div>
                     </div>
                 </div>
+                <div v-else class="modal-body">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Cargando...</span>
+                        </div>
+                        <p class="mt-2 text-muted">Cargando información del producto...</p>
+                    </div>
+                </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @click="closeProductDetailsModal">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" @click="closeProductDetailsModal">
                         <i class="fas fa-times me-1"></i>
                         Cerrar
                     </button>
