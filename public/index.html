@@ -1566,74 +1566,12 @@
                 },
 
                 viewProductDetails(product) {
-                    try {
-                        console.log('viewProductDetails llamado con:', product);
-                        
-                        if (!product) {
-                            console.error('Producto no proporcionado');
-                            alert('Error: No se proporcionó información del producto');
-                            return;
-                        }
-                        
-                        // Establecer los detalles del producto usando Object.assign para mantener reactividad
-                        this.productDetails = Object.assign({}, product);
-                        console.log('productDetails establecido:', this.productDetails);
-                        console.log('Verificando productDetails después de asignar:', this.productDetails);
-                        
-                        // Usar $nextTick para asegurar que Vue haya actualizado el DOM
-                        this.$nextTick(() => {
-                            console.log('DOM actualizado, abriendo modal...');
-                            const modalElement = document.getElementById('productDetailsModal');
-                            if (!modalElement) {
-                                console.error('Modal element no encontrado');
-                                alert('Error: No se pudo abrir el modal de detalles');
-                                return;
-                            }
-                            
-                            // Verificar que productDetails esté establecido
-                            if (!this.productDetails) {
-                                console.error('productDetails es null después de $nextTick');
-                                return;
-                            }
-                            
-                            // Remover aria-hidden antes de mostrar
-                            modalElement.removeAttribute('aria-hidden');
-                            modalElement.setAttribute('aria-modal', 'true');
-                            
-                            // Crear o obtener instancia del modal
-                            let modalInstance = bootstrap.Modal.getInstance(modalElement);
-                            if (!modalInstance) {
-                                modalInstance = new bootstrap.Modal(modalElement, {
-                                    backdrop: true,
-                                    keyboard: true,
-                                    focus: true
-                                });
-                            }
-                            
-                            // Agregar listener para cuando el modal se muestre
-                            const handleShown = () => {
-                                modalElement.removeAttribute('aria-hidden');
-                                modalElement.setAttribute('aria-modal', 'true');
-                                console.log('Modal mostrado, productDetails:', this.productDetails);
-                            };
-                            
-                            // Agregar listener para cuando el modal se oculte
-                            const handleHidden = () => {
-                                modalElement.setAttribute('aria-hidden', 'true');
-                                modalElement.removeAttribute('aria-modal');
-                            };
-                            
-                            modalElement.addEventListener('shown.bs.modal', handleShown, { once: true });
-                            modalElement.addEventListener('hidden.bs.modal', handleHidden, { once: true });
-                            
-                            // Mostrar el modal
-                            modalInstance.show();
-                            console.log('Modal.show() llamado');
-                        });
-                    } catch (error) {
-                        console.error('Error al abrir modal de detalles:', error);
-                        console.error('Stack trace:', error.stack);
-                        alert('Error al abrir los detalles del producto: ' + error.message);
+                    // Llamar a la función JavaScript vanilla
+                    if (typeof window.showProductDetailsModal === 'function') {
+                        window.showProductDetailsModal(product);
+                    } else {
+                        console.error('showProductDetailsModal no está disponible');
+                        alert('Error: No se pudo abrir el modal de detalles');
                     }
                 },
 
@@ -2894,7 +2832,176 @@
         }
     </script>
 
-    <!-- JavaScript vanilla para el modal -->
+    <!-- JavaScript vanilla para el modal de detalles del producto -->
+    <script>
+        // Función para mostrar el modal de detalles del producto (JavaScript Vanilla)
+        function showProductDetailsModal(product) {
+            try {
+                console.log('showProductDetailsModal llamado con:', product);
+                
+                if (!product) {
+                    console.error('Producto no proporcionado');
+                    alert('Error: No se proporcionó información del producto');
+                    return;
+                }
+                
+                // Obtener el elemento del modal
+                const modalElement = document.getElementById('productDetailsModal');
+                if (!modalElement) {
+                    console.error('Modal element no encontrado');
+                    alert('Error: No se pudo abrir el modal de detalles');
+                    return;
+                }
+                
+                // Función helper para obtener valor o valor por defecto
+                const getValue = (value, defaultValue = 'N/A') => {
+                    return value && value !== '' && value !== null && value !== undefined ? value : defaultValue;
+                };
+                
+                // Función helper para formatear fecha
+                const formatDate = (dateString) => {
+                    if (!dateString) return 'N/A';
+                    try {
+                        const date = new Date(dateString);
+                        return date.toLocaleString('es-ES', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                    } catch (e) {
+                        return 'N/A';
+                    }
+                };
+                
+                // Función helper para obtener el texto del estado
+                const getStatusText = (status) => {
+                    if (status === 'active' || status === 'operativo') return 'Operativo';
+                    if (status === 'criterio_tecnico') return 'Criterio Técnico';
+                    if (status === 'descarte') return 'Descarte';
+                    return status || 'N/A';
+                };
+                
+                // Función helper para obtener la clase del badge de estado
+                const getStatusClass = (status) => {
+                    if (status === 'active' || status === 'operativo') return 'bg-success';
+                    if (status === 'criterio_tecnico') return 'bg-warning text-dark';
+                    return 'bg-secondary';
+                };
+                
+                // Poblar los campos del modal
+                // Foto del producto
+                const photoContainer = document.getElementById('productDetailsPhoto');
+                if (photoContainer) {
+                    if (product.photo_url) {
+                        photoContainer.innerHTML = `
+                            <div class="text-center mb-4">
+                                <img src="${product.photo_url}" alt="${getValue(product.name, 'Producto')}" 
+                                     class="img-thumbnail" style="max-width: 300px; max-height: 300px; object-fit: contain;">
+                            </div>
+                        `;
+                        photoContainer.style.display = 'block';
+                    } else {
+                        photoContainer.innerHTML = '';
+                        photoContainer.style.display = 'none';
+                    }
+                }
+                
+                // Información General
+                const skuElement = document.getElementById('productDetailsSku');
+                if (skuElement) skuElement.textContent = getValue(product.sku);
+                
+                const nameElement = document.getElementById('productDetailsName');
+                if (nameElement) nameElement.textContent = getValue(product.name, 'Sin nombre');
+                
+                const descriptionElement = document.getElementById('productDetailsDescription');
+                if (descriptionElement) descriptionElement.textContent = getValue(product.description, 'Sin descripción');
+                
+                const brandElement = document.getElementById('productDetailsBrand');
+                if (brandElement) brandElement.textContent = getValue(product.brand, 'Sin marca');
+                
+                const modelElement = document.getElementById('productDetailsModel');
+                if (modelElement) modelElement.textContent = getValue(product.model, 'Sin modelo');
+                
+                const serialElement = document.getElementById('productDetailsSerial');
+                if (serialElement) serialElement.textContent = getValue(product.serial_number, 'Sin serie');
+                
+                // Ubicación y Estado
+                const departmentElement = document.getElementById('productDetailsDepartment');
+                if (departmentElement) departmentElement.textContent = getValue(product.department, 'Sin asignar');
+                
+                const statusElement = document.getElementById('productDetailsStatus');
+                if (statusElement) {
+                    statusElement.textContent = getStatusText(product.status);
+                    statusElement.className = 'badge ' + getStatusClass(product.status);
+                }
+                
+                const labelElement = document.getElementById('productDetailsLabel');
+                if (labelElement) labelElement.textContent = getValue(product.label, 'Sin marbete');
+                
+                const barcodeElement = document.getElementById('productDetailsBarcode');
+                if (barcodeElement) barcodeElement.textContent = getValue(product.barcode, 'Sin placa');
+                
+                const createdAtElement = document.getElementById('productDetailsCreatedAt');
+                if (createdAtElement) createdAtElement.textContent = formatDate(product.created_at);
+                
+                const updatedAtElement = document.getElementById('productDetailsUpdatedAt');
+                if (updatedAtElement) updatedAtElement.textContent = formatDate(product.updated_at);
+                
+                // Mostrar el contenido del modal
+                const modalBody = document.getElementById('productDetailsModalBody');
+                if (modalBody) {
+                    modalBody.style.display = 'block';
+                }
+                
+                const modalEmpty = document.getElementById('productDetailsModalEmpty');
+                if (modalEmpty) {
+                    modalEmpty.style.display = 'none';
+                }
+                
+                // Crear o obtener instancia del modal de Bootstrap
+                let modalInstance = bootstrap.Modal.getInstance(modalElement);
+                if (!modalInstance) {
+                    modalInstance = new bootstrap.Modal(modalElement, {
+                        backdrop: true,
+                        keyboard: true,
+                        focus: true
+                    });
+                }
+                
+                // Mostrar el modal
+                modalInstance.show();
+                console.log('Modal mostrado correctamente');
+                
+            } catch (error) {
+                console.error('Error al abrir modal de detalles:', error);
+                console.error('Stack trace:', error.stack);
+                alert('Error al abrir los detalles del producto: ' + error.message);
+            }
+        }
+        
+        // Función para cerrar el modal
+        function closeProductDetailsModal() {
+            try {
+                const modalElement = document.getElementById('productDetailsModal');
+                if (modalElement) {
+                    const modalInstance = bootstrap.Modal.getInstance(modalElement);
+                    if (modalInstance) {
+                        modalInstance.hide();
+                    }
+                }
+            } catch (error) {
+                console.error('Error al cerrar modal:', error);
+            }
+        }
+        
+        // Hacer las funciones disponibles globalmente
+        window.showProductDetailsModal = showProductDetailsModal;
+        window.closeProductDetailsModal = closeProductDetailsModal;
+    </script>
+
+    <!-- JavaScript vanilla para otros modales -->
     <script>
         function openModal() {
             console.log('openModal called');
@@ -5313,8 +5420,8 @@
         </div>
     </div>
 
-    <!-- Modal de Detalles del Producto -->
-    <div class="modal fade" id="productDetailsModal" tabindex="-1" aria-labelledby="productDetailsModalLabel">
+    <!-- Modal de Detalles del Producto (JavaScript Vanilla) -->
+    <div class="modal fade" id="productDetailsModal" tabindex="-1" aria-labelledby="productDetailsModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
@@ -5322,14 +5429,11 @@
                         <i class="fas fa-info-circle me-2"></i>
                         Detalles del Producto
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar" @click="closeProductDetailsModal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar" onclick="closeProductDetailsModal()"></button>
                 </div>
-                <div class="modal-body" v-if="productDetails">
+                <div id="productDetailsModalBody" class="modal-body" style="display: none;">
                     <!-- Foto del Producto -->
-                    <div v-if="productDetails.photo_url" class="text-center mb-4">
-                        <img :src="productDetails.photo_url" :alt="productDetails.name" 
-                             class="img-thumbnail" style="max-width: 300px; max-height: 300px; object-fit: contain;">
-                    </div>
+                    <div id="productDetailsPhoto"></div>
 
                     <!-- Información del Producto -->
                     <div class="row mb-4">
@@ -5338,27 +5442,27 @@
                             <table class="table table-sm">
                                 <tr>
                                     <th width="40%">SKU:</th>
-                                    <td><code>{{ productDetails.sku }}</code></td>
+                                    <td><code id="productDetailsSku">-</code></td>
                                 </tr>
                                 <tr>
                                     <th>Nombre:</th>
-                                    <td><strong>{{ productDetails.name || 'Sin nombre' }}</strong></td>
+                                    <td><strong id="productDetailsName">-</strong></td>
                                 </tr>
                                 <tr>
                                     <th>Descripción:</th>
-                                    <td>{{ productDetails.description || 'Sin descripción' }}</td>
+                                    <td id="productDetailsDescription">-</td>
                                 </tr>
                                 <tr>
                                     <th>Marca:</th>
-                                    <td>{{ productDetails.brand || 'Sin marca' }}</td>
+                                    <td id="productDetailsBrand">-</td>
                                 </tr>
                                 <tr>
                                     <th>Modelo:</th>
-                                    <td>{{ productDetails.model || 'Sin modelo' }}</td>
+                                    <td id="productDetailsModel">-</td>
                                 </tr>
                                 <tr>
                                     <th>Número de Serie:</th>
-                                    <td>{{ productDetails.serial_number || 'Sin serie' }}</td>
+                                    <td id="productDetailsSerial">-</td>
                                 </tr>
                             </table>
                         </div>
@@ -5367,45 +5471,41 @@
                             <table class="table table-sm">
                                 <tr>
                                     <th width="40%">Departamento/Sitio:</th>
-                                    <td><span class="badge bg-warning">{{ productDetails.department || 'Sin asignar' }}</span></td>
+                                    <td><span class="badge bg-warning" id="productDetailsDepartment">-</span></td>
                                 </tr>
                                 <tr>
                                     <th>Estado:</th>
                                     <td>
-                                        <span class="badge" :class="productDetails.status === 'active' || productDetails.status === 'operativo' ? 'bg-success' : 'bg-secondary'">
-                                            {{ productDetails.status === 'active' || productDetails.status === 'operativo' ? 'Operativo' : 
-                                               productDetails.status === 'criterio_tecnico' ? 'Criterio Técnico' : 
-                                               productDetails.status === 'descarte' ? 'Descarte' : productDetails.status }}
-                                        </span>
+                                        <span class="badge bg-secondary" id="productDetailsStatus">-</span>
                                     </td>
                                 </tr>
                                 <tr>
                                     <th>Marbete:</th>
-                                    <td><code>{{ productDetails.label || 'Sin marbete' }}</code></td>
+                                    <td><code id="productDetailsLabel">-</code></td>
                                 </tr>
                                 <tr>
                                     <th>Placa/Asig. Numérica:</th>
-                                    <td><code>{{ productDetails.barcode || 'Sin placa' }}</code></td>
+                                    <td><code id="productDetailsBarcode">-</code></td>
                                 </tr>
                                 <tr>
                                     <th>Fecha de Creación:</th>
-                                    <td>{{ productDetails.created_at ? new Date(productDetails.created_at).toLocaleString('es-ES') : 'N/A' }}</td>
+                                    <td id="productDetailsCreatedAt">-</td>
                                 </tr>
                                 <tr>
                                     <th>Última Actualización:</th>
-                                    <td>{{ productDetails.updated_at ? new Date(productDetails.updated_at).toLocaleString('es-ES') : 'N/A' }}</td>
+                                    <td id="productDetailsUpdatedAt">-</td>
                                 </tr>
                             </table>
                         </div>
                     </div>
                 </div>
-                <div v-else class="modal-body">
+                <div id="productDetailsModalEmpty" class="modal-body">
                     <div class="text-center py-4">
                         <p class="text-muted">No hay información disponible del producto.</p>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" @click="closeProductDetailsModal">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="closeProductDetailsModal()">
                         <i class="fas fa-times me-1"></i>
                         Cerrar
                     </button>
