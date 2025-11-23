@@ -1565,43 +1565,74 @@
                     this.filterInventory();
                 },
 
-                async viewProductDetails(product) {
+                viewProductDetails(product) {
                     try {
                         console.log('viewProductDetails llamado con:', product);
-                        this.productDetails = product;
                         
-                        // Esperar un momento para que Vue actualice el DOM
-                        await this.$nextTick();
-                        
-                        // Abrir modal
-                        const modalElement = document.getElementById('productDetailsModal');
-                        if (!modalElement) {
-                            console.error('Modal element no encontrado');
-                            alert('Error: No se pudo abrir el modal de detalles');
+                        if (!product) {
+                            console.error('Producto no proporcionado');
+                            alert('Error: No se proporcionó información del producto');
                             return;
                         }
                         
-                        // Asegurarse de que el modal esté en el DOM
-                        if (!document.body.contains(modalElement)) {
-                            console.error('Modal element no está en el DOM');
-                            return;
-                        }
+                        // Establecer los detalles del producto usando Object.assign para mantener reactividad
+                        this.productDetails = Object.assign({}, product);
+                        console.log('productDetails establecido:', this.productDetails);
+                        console.log('Verificando productDetails después de asignar:', this.productDetails);
                         
-                        // Crear o obtener instancia del modal
-                        let modalInstance = bootstrap.Modal.getInstance(modalElement);
-                        if (!modalInstance) {
-                            modalInstance = new bootstrap.Modal(modalElement, {
-                                backdrop: true,
-                                keyboard: true,
-                                focus: true
-                            });
-                        }
-                        
-                        // Mostrar el modal
-                        modalInstance.show();
-                        console.log('Modal mostrado correctamente');
+                        // Usar $nextTick para asegurar que Vue haya actualizado el DOM
+                        this.$nextTick(() => {
+                            console.log('DOM actualizado, abriendo modal...');
+                            const modalElement = document.getElementById('productDetailsModal');
+                            if (!modalElement) {
+                                console.error('Modal element no encontrado');
+                                alert('Error: No se pudo abrir el modal de detalles');
+                                return;
+                            }
+                            
+                            // Verificar que productDetails esté establecido
+                            if (!this.productDetails) {
+                                console.error('productDetails es null después de $nextTick');
+                                return;
+                            }
+                            
+                            // Remover aria-hidden antes de mostrar
+                            modalElement.removeAttribute('aria-hidden');
+                            modalElement.setAttribute('aria-modal', 'true');
+                            
+                            // Crear o obtener instancia del modal
+                            let modalInstance = bootstrap.Modal.getInstance(modalElement);
+                            if (!modalInstance) {
+                                modalInstance = new bootstrap.Modal(modalElement, {
+                                    backdrop: true,
+                                    keyboard: true,
+                                    focus: true
+                                });
+                            }
+                            
+                            // Agregar listener para cuando el modal se muestre
+                            const handleShown = () => {
+                                modalElement.removeAttribute('aria-hidden');
+                                modalElement.setAttribute('aria-modal', 'true');
+                                console.log('Modal mostrado, productDetails:', this.productDetails);
+                            };
+                            
+                            // Agregar listener para cuando el modal se oculte
+                            const handleHidden = () => {
+                                modalElement.setAttribute('aria-hidden', 'true');
+                                modalElement.removeAttribute('aria-modal');
+                            };
+                            
+                            modalElement.addEventListener('shown.bs.modal', handleShown, { once: true });
+                            modalElement.addEventListener('hidden.bs.modal', handleHidden, { once: true });
+                            
+                            // Mostrar el modal
+                            modalInstance.show();
+                            console.log('Modal.show() llamado');
+                        });
                     } catch (error) {
                         console.error('Error al abrir modal de detalles:', error);
+                        console.error('Stack trace:', error.stack);
                         alert('Error al abrir los detalles del producto: ' + error.message);
                     }
                 },
@@ -1614,6 +1645,9 @@
                             if (modalInstance) {
                                 modalInstance.hide();
                             }
+                            // Restaurar aria-hidden cuando se cierra
+                            modalElement.setAttribute('aria-hidden', 'true');
+                            modalElement.removeAttribute('aria-modal');
                         }
                         // Limpiar datos después de un pequeño delay para permitir la animación
                         setTimeout(() => {
@@ -5280,7 +5314,7 @@
     </div>
 
     <!-- Modal de Detalles del Producto -->
-    <div class="modal fade" id="productDetailsModal" tabindex="-1" aria-labelledby="productDetailsModalLabel" aria-hidden="true">
+    <div class="modal fade" id="productDetailsModal" tabindex="-1" aria-labelledby="productDetailsModalLabel">
         <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
@@ -5367,10 +5401,7 @@
                 </div>
                 <div v-else class="modal-body">
                     <div class="text-center py-4">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Cargando...</span>
-                        </div>
-                        <p class="mt-2 text-muted">Cargando información del producto...</p>
+                        <p class="text-muted">No hay información disponible del producto.</p>
                     </div>
                 </div>
                 <div class="modal-footer">
