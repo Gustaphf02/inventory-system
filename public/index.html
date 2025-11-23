@@ -2949,6 +2949,9 @@
                 const updatedAtElement = document.getElementById('productDetailsUpdatedAt');
                 if (updatedAtElement) updatedAtElement.textContent = formatDate(product.updated_at);
                 
+                // Guardar el ID del producto para el historial
+                currentProductId = product.id || null;
+                
                 // Mostrar el contenido del modal
                 const modalBody = document.getElementById('productDetailsModalBody');
                 if (modalBody) {
@@ -2958,6 +2961,20 @@
                 const modalEmpty = document.getElementById('productDetailsModalEmpty');
                 if (modalEmpty) {
                     modalEmpty.style.display = 'none';
+                }
+                
+                // Mostrar/ocultar sección de historial según permisos
+                const historySection = document.getElementById('productDetailsHistorySection');
+                if (historySection) {
+                    if (canViewHistory()) {
+                        historySection.style.display = 'block';
+                        // Cargar historial automáticamente
+                        setTimeout(() => {
+                            loadProductHistory();
+                        }, 300);
+                    } else {
+                        historySection.style.display = 'none';
+                    }
                 }
                 
                 // Crear o obtener instancia del modal de Bootstrap
@@ -2996,9 +3013,297 @@
             }
         }
         
+        // Variable global para almacenar el historial
+        let currentProductHistory = [];
+        let currentProductId = null;
+        
+        // Función para obtener el rol del usuario
+        function getUserRole() {
+            try {
+                if (window.app && window.app.user && window.app.user.role) {
+                    return window.app.user.role;
+                }
+                return 'guest';
+            } catch (e) {
+                return 'guest';
+            }
+        }
+        
+        // Función para verificar si el usuario puede ver el historial
+        function canViewHistory() {
+            const role = getUserRole();
+            return ['admin', 'superadmin', 'manager'].includes(role);
+        }
+        
+        // Función para obtener etiqueta del campo
+        function getFieldLabel(fieldName) {
+            const labels = {
+                'department': 'Departamento/Sitio',
+                'status': 'Estado',
+                'name': 'Nombre',
+                'brand': 'Marca',
+                'model': 'Modelo',
+                'serial_number': 'Número de Serie',
+                'label': 'Marbete',
+                'barcode': 'Placa',
+                'lugar': 'Lugar',
+                'created': 'Creación'
+            };
+            return labels[fieldName] || fieldName;
+        }
+        
+        // Función para obtener icono del campo
+        function getFieldIcon(fieldName) {
+            const icons = {
+                'department': 'fa-map-marker-alt',
+                'status': 'fa-info-circle',
+                'name': 'fa-tag',
+                'brand': 'fa-industry',
+                'model': 'fa-cube',
+                'serial_number': 'fa-barcode',
+                'label': 'fa-tag',
+                'barcode': 'fa-qrcode',
+                'lugar': 'fa-map-pin',
+                'created': 'fa-plus-circle'
+            };
+            return icons[fieldName] || 'fa-edit';
+        }
+        
+        // Función para obtener color del badge según el campo
+        function getFieldBadgeColor(fieldName) {
+            const colors = {
+                'department': 'bg-warning',
+                'status': 'bg-danger',
+                'name': 'bg-primary',
+                'brand': 'bg-info',
+                'model': 'bg-secondary',
+                'serial_number': 'bg-success',
+                'label': 'bg-primary',
+                'barcode': 'bg-success',
+                'lugar': 'bg-warning',
+                'created': 'bg-success'
+            };
+            return colors[fieldName] || 'bg-info';
+        }
+        
+        // Función para formatear fecha
+        function formatHistoryDate(dateString) {
+            if (!dateString) return 'N/A';
+            try {
+                const date = new Date(dateString);
+                return date.toLocaleString('es-ES', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            } catch (e) {
+                return 'N/A';
+            }
+        }
+        
+        // Función para cargar el historial del producto
+        async function loadProductHistory() {
+            if (!currentProductId) {
+                console.error('No hay ID de producto para cargar historial');
+                return;
+            }
+            
+            if (!canViewHistory()) {
+                document.getElementById('historyAccessDenied').style.display = 'block';
+                document.getElementById('historyContent').style.display = 'none';
+                document.getElementById('historyLoading').style.display = 'none';
+                document.getElementById('historyEmpty').style.display = 'none';
+                return;
+            }
+            
+            // Mostrar loading
+            document.getElementById('historyLoading').style.display = 'block';
+            document.getElementById('historyContent').style.display = 'none';
+            document.getElementById('historyEmpty').style.display = 'none';
+            document.getElementById('historyAccessDenied').style.display = 'none';
+            
+            try {
+                const response = await fetch(`/api/product-history?product_id=${currentProductId}`);
+                const text = await response.text();
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                if (!text || text.trim() === '') {
+                    throw new Error('Respuesta vacía del servidor');
+                }
+                
+                const data = JSON.parse(text);
+                
+                if (data.success && Array.isArray(data.data)) {
+                    currentProductHistory = data.data;
+                    renderHistory();
+                } else {
+                    console.error('Error en respuesta:', data.error);
+                    currentProductHistory = [];
+                    renderHistory();
+                }
+            } catch (error) {
+                console.error('Error cargando historial:', error);
+                currentProductHistory = [];
+                renderHistory();
+            } finally {
+                document.getElementById('historyLoading').style.display = 'none';
+            }
+        }
+        
+        // Función para filtrar el historial
+        function filterHistory() {
+            renderHistory();
+        }
+        
+        // Función para resetear filtros
+        function resetHistoryFilters() {
+            document.getElementById('historyFilterType').value = '';
+            document.getElementById('historyFilterField').value = '';
+            document.getElementById('historySearchText').value = '';
+            renderHistory();
+        }
+        
+        // Función para renderizar el historial
+        function renderHistory() {
+            const historyList = document.getElementById('historyList');
+            if (!historyList) return;
+            
+            // Aplicar filtros
+            let filtered = [...currentProductHistory];
+            
+            const filterType = document.getElementById('historyFilterType').value;
+            if (filterType) {
+                filtered = filtered.filter(entry => entry.change_type === filterType);
+            }
+            
+            const filterField = document.getElementById('historyFilterField').value;
+            if (filterField) {
+                filtered = filtered.filter(entry => entry.field_name === filterField);
+            }
+            
+            const searchText = document.getElementById('historySearchText').value.toLowerCase();
+            if (searchText) {
+                filtered = filtered.filter(entry => 
+                    (entry.old_value || '').toLowerCase().includes(searchText) ||
+                    (entry.new_value || '').toLowerCase().includes(searchText) ||
+                    (entry.field_name || '').toLowerCase().includes(searchText) ||
+                    (entry.changed_by || '').toLowerCase().includes(searchText)
+                );
+            }
+            
+            // Ordenar por fecha (más reciente primero)
+            filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            
+            // Mostrar/ocultar estados
+            if (filtered.length === 0) {
+                document.getElementById('historyEmpty').style.display = 'block';
+                document.getElementById('historyContent').style.display = 'none';
+                historyList.innerHTML = '';
+                return;
+            }
+            
+            document.getElementById('historyEmpty').style.display = 'none';
+            document.getElementById('historyContent').style.display = 'block';
+            
+            // Agrupar por fecha
+            const grouped = {};
+            filtered.forEach(entry => {
+                const date = new Date(entry.created_at);
+                const dateKey = date.toLocaleDateString('es-ES', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                });
+                if (!grouped[dateKey]) {
+                    grouped[dateKey] = [];
+                }
+                grouped[dateKey].push(entry);
+            });
+            
+            // Renderizar
+            let html = '';
+            Object.keys(grouped).sort((a, b) => {
+                return new Date(grouped[b][0].created_at) - new Date(grouped[a][0].created_at);
+            }).forEach(date => {
+                const entries = grouped[date];
+                html += `
+                    <div class="timeline-day mb-4">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-calendar-day text-primary me-2"></i>
+                            <h6 class="mb-0 text-primary">${date}</h6>
+                            <span class="badge bg-secondary ms-2">${entries.length} cambio(s)</span>
+                        </div>
+                        <div class="timeline-entries">
+                `;
+                
+                entries.forEach(entry => {
+                    const fieldLabel = getFieldLabel(entry.field_name);
+                    const fieldIcon = getFieldIcon(entry.field_name);
+                    const fieldColor = getFieldBadgeColor(entry.field_name);
+                    const changeTypeClass = entry.change_type === 'create' ? 'bg-success' : 'bg-warning';
+                    const changeTypeText = entry.change_type === 'create' ? 'Creación' : 'Actualización';
+                    const time = new Date(entry.created_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+                    const changedBy = entry.changed_by || 'Sistema';
+                    
+                    html += `
+                        <div class="timeline-entry mb-3 p-3 border-start border-3 rounded ${entry.field_name === 'department' || entry.field_name === 'status' ? 'border-warning' : 'border-info'}" 
+                             style="background-color: #f8f9fa;">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <i class="fas ${fieldIcon} me-2 text-${fieldColor.replace('bg-', '')}"></i>
+                                        <span class="badge ${fieldColor}">${fieldLabel}</span>
+                                        <span class="badge ms-2 ${changeTypeClass}">${changeTypeText}</span>
+                                    </div>
+                                    <div class="change-details">
+                                        ${entry.old_value ? `
+                                            <div class="mb-1">
+                                                <small class="text-muted">De:</small>
+                                                <span class="text-muted ms-1">${entry.old_value}</span>
+                                                <i class="fas fa-arrow-right text-muted mx-2"></i>
+                                            </div>
+                                        ` : ''}
+                                        <div>
+                                            <small class="text-muted">A:</small>
+                                            <strong class="text-success ms-1">${entry.new_value || 'N/A'}</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-end ms-3">
+                                    <small class="text-muted d-block">
+                                        <i class="fas fa-clock me-1"></i>
+                                        ${time}
+                                    </small>
+                                    <small class="text-muted d-block mt-1">
+                                        <i class="fas fa-user me-1"></i>
+                                        ${changedBy}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += `
+                        </div>
+                    </div>
+                `;
+            });
+            
+            historyList.innerHTML = html;
+        }
+        
         // Hacer las funciones disponibles globalmente
         window.showProductDetailsModal = showProductDetailsModal;
         window.closeProductDetailsModal = closeProductDetailsModal;
+        window.loadProductHistory = loadProductHistory;
+        window.filterHistory = filterHistory;
+        window.resetHistoryFilters = resetHistoryFilters;
     </script>
 
     <!-- JavaScript vanilla para otros modales -->
@@ -5496,6 +5801,83 @@
                                     <td id="productDetailsUpdatedAt">-</td>
                                 </tr>
                             </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Historial de Cambios (Solo para Admin y Manager) -->
+                    <div id="productDetailsHistorySection" class="mt-4" style="display: none;">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="text-primary mb-0">
+                                <i class="fas fa-history me-2"></i>Historial de Cambios
+                            </h6>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-primary" id="refreshHistoryBtn" onclick="loadProductHistory()" title="Actualizar historial">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Loading State -->
+                        <div id="historyLoading" class="text-center py-3" style="display: none;">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                <span class="visually-hidden">Cargando...</span>
+                            </div>
+                            <p class="mt-2 text-muted">Cargando historial...</p>
+                        </div>
+                        
+                        <!-- Empty State -->
+                        <div id="historyEmpty" class="alert alert-info" style="display: none;">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Este producto no ha sido movido o modificado desde su creación.
+                        </div>
+                        
+                        <!-- History Content -->
+                        <div id="historyContent" style="display: none;">
+                            <!-- Filtros -->
+                            <div class="card mb-3">
+                                <div class="card-body p-3">
+                                    <div class="row g-2">
+                                        <div class="col-md-3">
+                                            <select class="form-select form-select-sm" id="historyFilterType" onchange="filterHistory()">
+                                                <option value="">Todos los tipos</option>
+                                                <option value="create">Creación</option>
+                                                <option value="update">Actualización</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <select class="form-select form-select-sm" id="historyFilterField" onchange="filterHistory()">
+                                                <option value="">Todos los campos</option>
+                                                <option value="department">Departamento/Sitio</option>
+                                                <option value="status">Estado</option>
+                                                <option value="name">Nombre</option>
+                                                <option value="brand">Marca</option>
+                                                <option value="model">Modelo</option>
+                                                <option value="serial_number">Número de Serie</option>
+                                                <option value="label">Marbete</option>
+                                                <option value="barcode">Placa</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <input type="text" class="form-control form-control-sm" id="historySearchText" 
+                                                   placeholder="Buscar..." oninput="filterHistory()">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <button class="btn btn-outline-secondary btn-sm w-100" onclick="resetHistoryFilters()" title="Limpiar filtros">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- History List -->
+                            <div id="historyList"></div>
+                        </div>
+                        
+                        <!-- Access Denied -->
+                        <div id="historyAccessDenied" class="alert alert-warning" style="display: none;">
+                            <i class="fas fa-lock me-2"></i>
+                            Solo los administradores y gerentes pueden ver el historial de cambios.
                         </div>
                     </div>
                 </div>
