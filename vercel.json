@@ -14,66 +14,68 @@
       "runtime": "vercel-php@0.7.4"
     }
   },
+  "rewrites": [
+    {
+      "source": "/login.php",
+      "destination": "/api/login.php"
+    },
+    {
+      "source": "/logout.php",
+      "destination": "/api/logout.php"
+    },
+    {
+      "source": "/register.php",
+      "destination": "/api/register.php"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "/api/index.php"
+    },
+    {
+      "source": "/auth/:path*",
+      "destination": "/api/index.php"
+    },
+    {
+      "source": "/products",
+      "destination": "/api/index.php"
+    },
+    {
+      "source": "/categories",
+      "destination": "/api/index.php"
+    },
+    {
+      "source": "/suppliers",
+      "destination": "/api/index.php"
+    },
+    {
+      "source": "/departments",
+      "destination": "/api/index.php"
+    },
+    {
+      "source": "/locations",
+      "destination": "/api/index.php"
+    },
+    {
+      "source": "/inventory/summary",
+      "destination": "/api/index.php"
+    },
+    {
+      "source": "/upload-photo",
+      "destination": "/api/index.php"
+    },
+    {
+      "source": "/product-history",
+      "destination": "/api/index.php"
+    },
+    {
+      "source": "/health",
+      "destination": "/api/index.php"
+    }
+  ],
   "routes": [
     {
-      "src": "/login.php",
-      "dest": "/api/login.php"
-    },
-    {
-      "src": "/logout.php",
-      "dest": "/api/logout.php"
-    },
-    {
-      "src": "/register.php",
-      "dest": "/api/register.php"
-    },
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/index.php"
-    },
-    {
-      "src": "/auth/(.*)",
-      "dest": "/api/index.php"
-    },
-    {
-      "src": "/products",
-      "dest": "/api/index.php"
-    },
-    {
-      "src": "/categories",
-      "dest": "/api/index.php"
-    },
-    {
-      "src": "/suppliers",
-      "dest": "/api/index.php"
-    },
-    {
-      "src": "/departments",
-      "dest": "/api/index.php"
-    },
-    {
-      "src": "/locations",
-      "dest": "/api/index.php"
-    },
-    {
-      "src": "/inventory/summary",
-      "dest": "/api/index.php"
-    },
-    {
-      "src": "/upload-photo",
-      "dest": "/api/index.php"
-    },
-    {
-      "src": "/product-history",
-      "dest": "/api/index.php"
-    },
-    {
-      "src": "/health",
-      "dest": "/api/index.php"
-    },
-    {
       "src": "/(.*)",
-      "dest": "/public/index.html"
+      "dest": "/public/$1"
     }
   ]
 }
