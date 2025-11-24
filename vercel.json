@@ -12,6 +12,18 @@
     },
     "api/register.php": {
       "runtime": "vercel-php@0.7.4"
+    },
+    "api/config.php": {
+      "runtime": "vercel-php@0.7.4"
+    },
+    "api/users.php": {
+      "runtime": "vercel-php@0.7.4"
+    },
+    "api/maintenance.php": {
+      "runtime": "vercel-php@0.7.4"
+    },
+    "api/export_excel.php": {
+      "runtime": "vercel-php@0.7.4"
     }
   },
   "routes": [
@@ -28,6 +40,26 @@
     {
       "src": "/register.php",
       "dest": "/api/register.php",
+      "continue": false
+    },
+    {
+      "src": "/config.php",
+      "dest": "/api/config.php",
+      "continue": false
+    },
+    {
+      "src": "/users.php",
+      "dest": "/api/users.php",
+      "continue": false
+    },
+    {
+      "src": "/maintenance.php",
+      "dest": "/api/maintenance.php",
+      "continue": false
+    },
+    {
+      "src": "/export_excel.php",
+      "dest": "/api/export_excel.php",
       "continue": false
     },
     {
