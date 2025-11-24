@@ -3,6 +3,12 @@
   "functions": {
     "api/index.php": {
       "runtime": "vercel-php@0.7.4"
+    },
+    "api/login.php": {
+      "runtime": "vercel-php@0.7.4"
+    },
+    "api/logout.php": {
+      "runtime": "vercel-php@0.7.4"
     }
   },
   "routes": [
@@ -49,6 +55,14 @@
     {
       "src": "/health",
       "dest": "/api/index.php"
+    },
+    {
+      "src": "/login\\.php",
+      "dest": "/api/login.php"
+    },
+    {
+      "src": "/logout\\.php",
+      "dest": "/api/logout.php"
     },
     {
       "src": "/(.*\\.php)",
