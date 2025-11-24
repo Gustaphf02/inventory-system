@@ -17,15 +17,18 @@
   "routes": [
     {
       "src": "/login.php",
-      "dest": "/api/login.php"
+      "dest": "/api/login.php",
+      "continue": false
     },
     {
       "src": "/logout.php",
-      "dest": "/api/logout.php"
+      "dest": "/api/logout.php",
+      "continue": false
     },
     {
       "src": "/register.php",
-      "dest": "/api/register.php"
+      "dest": "/api/register.php",
+      "continue": false
     },
     {
       "src": "/api/(.*)",
@@ -72,8 +75,12 @@
       "dest": "/api/index.php"
     },
     {
-      "src": "/(.*)",
+      "src": "/(.*\\.(html|css|js|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot))",
       "dest": "/public/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/public/index.html"
     }
   ]
 }
