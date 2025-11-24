@@ -42,14 +42,15 @@ Sistema de gestión de inventario inspirado en Mouser Electronics, desarrollado 
 ## Tecnologías Utilizadas
 
 ### Backend (PHP)
-- **Slim Framework 4** - Framework web ligero
-- **MySQL** - Base de datos relacional
+- **PHP 8.2+** - Lenguaje de programación
+- **PostgreSQL** - Base de datos (Neon)
 - **JWT** - Autenticación con tokens
 - **PhpSpreadsheet** - Manejo de archivos Excel
 - **TCPDF** - Generación de PDFs
 - **Guzzle HTTP** - Cliente HTTP para APIs externas
 - **Respect Validation** - Validación de datos
 - **Monolog** - Logging
+- **vercel-php@0.7.4** - Runtime para Vercel
 
 ### Frontend
 - **Vue.js 3** - Framework JavaScript reactivo
@@ -103,38 +104,58 @@ mysql -u root -p < database/schema.sql
 php -S localhost:8080 -t public/
 ```
 
-### Despliegue con Neon PostgreSQL
+### Despliegue con Vercel + Neon PostgreSQL
 
-#### ⚠️ Importante: Neon es solo la base de datos
-**Neon** proporciona PostgreSQL, pero necesitas **otro servicio** para alojar la aplicación PHP (Render, Railway, Fly.io, etc.)
+#### Stack de Producción
+- **Hosting**: Vercel (con `vercel-php@0.7.4` runtime)
+- **Base de Datos**: Neon PostgreSQL
+- **Frontend**: HTML/CSS/JavaScript (Vue.js)
 
 #### Paso 1: Base de Datos Neon (Ya configurado ✅)
 - **Proyecto**: `snowy-sunset-62775177`
 - **Connection String**: Ya configurada
+- **Dashboard**: https://console.neon.tech/app/projects/snowy-sunset-62775177
 
-#### Paso 2: Elegir Hosting para la Aplicación
+#### Paso 2: Desplegar en Vercel
 
-**Opción A: Vercel.com (Recomendado - Gratis) ⭐**
-1. Crear cuenta en [vercel.com](https://vercel.com)
-2. Add New → Project → Conectar GitHub
-3. Seleccionar repositorio `inventory-system`
-4. En "Environment Variables" agregar:
+1. **Crear cuenta en Vercel**
+   - Ir a [vercel.com](https://vercel.com)
+   - Crear cuenta con GitHub
+
+2. **Importar Proyecto**
+
+   - Click en "Add New..." → "Project"
+   - Conectar tu repositorio de GitHub
+   - Seleccionar repositorio `inventory-system`
+   - Click en "Import"
+
+3. **Configuración del Proyecto**
+   - **Framework Preset**: `Other`
+   - **Root Directory**: (dejar vacío)
+   - **Output Directory**: `public`
+
+4. **Variables de Entorno** (IMPORTANTE)
+   Click en "Environment Variables" y agregar:
    ```
    DATABASE_URL=postgresql://neondb_owner:npg_3tOu8ifYZowE@ep-gentle-sky-afrg8hgf-pooler.c-2.us-west-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require
-   JWT_SECRET=tu-clave-secreta-jwt-muy-segura
+   JWT_SECRET=tu-clave-secreta-jwt-muy-segura-cambiar-aqui
    APP_ENV=production
    APP_DEBUG=false
    APP_URL=https://tu-app.vercel.app
    ```
    ⚠️ Marcar `DATABASE_URL` y `JWT_SECRET` como "Sensitive"
-5. Deploy automático
-6. Tu app estará en: `https://tu-app.vercel.app`
 
-**Ver `HOSTING_SETUP.md` para instrucciones detalladas de Vercel, Render, Railway y Fly.io**
+5. **Deploy**
+   - Click en "Deploy"
+   - Vercel construirá y desplegará automáticamente
+   - Tu app estará en: `https://tu-app.vercel.app`
+
+**Ver `HOSTING_SETUP.md` o `VERCEL_SETUP.md` para instrucciones detalladas**
 
 #### Paso 3: Verificar
-- Health: `https://tu-app-url.com/api/health`
+- **Health Check**: `https://tu-app.vercel.app/api/health`
 - Debe mostrar: `{"status":"ok","database":"connected"}`
+- **Login**: `https://tu-app.vercel.app/login.php`
 
 ## Estructura del Proyecto
 

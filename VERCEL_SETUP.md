@@ -1,83 +1,202 @@
-# 🚀 Configuración de Vercel con Neon PostgreSQL
+# 🚀 Configuración de Vercel + Neon
 
-## Guía Paso a Paso
+## Stack Tecnológico
+- **Frontend**: HTML/CSS/JavaScript (Vue.js)
+- **Backend**: PHP 8.2+ con `vercel-php` runtime
+- **Base de Datos**: Neon PostgreSQL
+- **Hosting**: Vercel
 
-### Paso 1: Preparar el Proyecto
+---
 
-✅ **Archivos ya configurados:**
-- `vercel.json` - Configuración de Vercel
-- `neon.env` - Variables de entorno de referencia
-- `DatabaseManager.php` - Ya configurado para usar `DATABASE_URL`
+## ⚙️ Configuración Inicial
 
-### Paso 2: Crear Cuenta en Vercel
+### 1. Crear Proyecto en Vercel
 
-1. Ir a [vercel.com](https://vercel.com)
-2. Click en "Sign Up"
-3. Conectar con tu cuenta de GitHub
+1. **Crear cuenta en Vercel**
+   - Ir a [vercel.com](https://vercel.com)
+   - Crear cuenta con GitHub
 
-### Paso 3: Importar Proyecto
+2. **Importar Proyecto**
+   - Click en "Add New..." → "Project"
+   - Conectar tu repositorio de GitHub
+   - Seleccionar el repositorio `inventory-system`
+   - Click en "Import"
 
-1. En el dashboard de Vercel, click en **"Add New..."** → **"Project"**
-2. Conectar tu repositorio de GitHub si no está conectado
-3. Seleccionar el repositorio `inventory-system`
-4. Click en **"Import"**
+3. **Configuración del Proyecto**
+   - **Framework Preset**: `Other`
+   - **Root Directory**: (dejar vacío)
+   - **Build Command**: (dejar vacío)
+   - **Output Directory**: `public`
+   - **Install Command**: (dejar vacío)
 
-### Paso 4: Configurar el Proyecto
+### 2. Variables de Entorno (IMPORTANTE)
 
-En la pantalla de configuración:
+Click en "Environment Variables" y agregar:
 
-- **Framework Preset**: `Other` (o dejar en blanco)
-- **Root Directory**: (dejar vacío)
-- **Build Command**: (dejar vacío)
-- **Output Directory**: `public`
-- **Install Command**: (dejar vacío)
+```
+DATABASE_URL=postgresql://neondb_owner:npg_3tOu8ifYZowE@ep-gentle-sky-afrg8hgf-pooler.c-2.us-west-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+JWT_SECRET=tu-clave-secreta-jwt-muy-segura-cambiar-aqui
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://tu-app.vercel.app
+```
 
-**NO cambiar nada más**, el archivo `vercel.json` ya tiene la configuración correcta.
+**⚠️ IMPORTANTE:**
+- Marca `DATABASE_URL` y `JWT_SECRET` como "Sensitive" para ocultarlas
+- Reemplaza `tu-clave-secreta-jwt-muy-segura-cambiar-aqui` con una clave segura
+- Reemplaza `https://tu-app.vercel.app` con la URL real de tu app después del primer deploy
 
-### Paso 5: Configurar Variables de Entorno ⚠️ IMPORTANTE
+### 3. Deploy
 
-**ANTES de hacer Deploy**, click en **"Environment Variables"** y agregar:
+1. Click en "Deploy"
+2. Vercel construirá y desplegará automáticamente
+3. Tu app estará en: `https://tu-app.vercel.app`
 
-#### Variable 1: DATABASE_URL
-- **Key**: `DATABASE_URL`
-- **Value**: 
-  ```
-  postgresql://neondb_owner:npg_3tOu8ifYZowE@ep-gentle-sky-afrg8hgf-pooler.c-2.us-west-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require
-  ```
-- **Environments**: Marcar todas (Production, Preview, Development)
-- **Sensitive**: ✅ Marcar como "Sensitive" (recomendado)
+---
 
-#### Variable 2: JWT_SECRET
-- **Key**: `JWT_SECRET`
-- **Value**: `tu-clave-secreta-jwt-muy-segura-cambiar-aqui`
-- **Environments**: Marcar todas
-- **Sensitive**: ✅ Marcar como "Sensitive"
+## 🔧 Configuración Técnica
 
-#### Variable 3: APP_ENV
-- **Key**: `APP_ENV`
-- **Value**: `production`
-- **Environments**: Marcar todas
+### Runtime PHP
 
-#### Variable 4: APP_DEBUG
-- **Key**: `APP_DEBUG`
-- **Value**: `false`
-- **Environments**: Marcar todas
+El proyecto usa `vercel-php@0.7.4`, un runtime de la comunidad que permite ejecutar PHP en Vercel.
 
-#### Variable 5: APP_URL
-- **Key**: `APP_URL`
-- **Value**: `https://tu-app.vercel.app` (se actualizará automáticamente después del deploy)
-- **Environments**: Marcar todas
+**Configuración en `vercel.json`:**
+```json
+{
+  "functions": {
+    "public/**/*.php": {
+      "runtime": "vercel-php@0.7.4"
+    }
+  }
+}
+```
 
-### Paso 6: Deploy
+### Extensiones PHP Soportadas
 
-1. Click en **"Deploy"**
-2. Vercel comenzará a construir y desplegar tu aplicación
-3. Esperar a que termine el proceso (2-5 minutos)
-4. Tu aplicación estará disponible en: `https://tu-app.vercel.app`
+El runtime `vercel-php` incluye:
+- ✅ `pdo` y `pdo_pgsql` (PostgreSQL)
+- ✅ `json`, `mbstring`, `openssl`, `curl`, `xml`
+- ✅ `zip`, `gd` (para imágenes)
 
-### Paso 7: Verificar Conexión
+### Estructura de Rutas
 
-Después del deploy, verificar que todo funcione:
+Las rutas API se manejan a través de `public/index.php`:
+- `/api/*` → `public/index.php`
+- `/auth/*` → `public/index.php`
+- `/products`, `/categories`, etc. → `public/index.php`
+- `/*.php` → Archivos PHP directos
+- `/*` → `public/index.html` (frontend)
+
+---
+
+## 🗄️ Configuración de Neon
+
+### Connection String
+
+La base de datos Neon ya está configurada:
+```
+postgresql://neondb_owner:npg_3tOu8ifYZowE@ep-gentle-sky-afrg8hgf-pooler.c-2.us-west-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+```
+
+**Proyecto Neon**: `snowy-sunset-62775177`
+
+### Verificación
+
+1. **Dashboard Neon**: https://console.neon.tech/app/projects/snowy-sunset-62775177
+2. **Verificar conexión**: Visita `https://tu-app.vercel.app/api/health`
+   - Debe responder: `{"status":"ok","database":"connected"}`
+
+---
+
+## 📋 Checklist de Deploy
+
+- [ ] Cuenta en Vercel creada
+- [ ] Repositorio conectado a Vercel
+- [ ] Variables de entorno configuradas:
+  - [ ] `DATABASE_URL` (con la connection string de Neon)
+  - [ ] `JWT_SECRET` (clave segura)
+  - [ ] `APP_ENV=production`
+  - [ ] `APP_DEBUG=false`
+  - [ ] `APP_URL` (URL de Vercel)
+- [ ] Primer deploy completado
+- [ ] Verificar que `/api/health` funciona
+- [ ] Verificar que el login funciona
+- [ ] Verificar que las rutas API responden correctamente
+
+---
+
+## 🐛 Troubleshooting
+
+### Error: "The package `@vercel/php` is not published"
+
+**Solución**: El proyecto usa `vercel-php@0.7.4` (runtime de la comunidad), no `@vercel/php`. Verifica que `vercel.json` tenga:
+```json
+"runtime": "vercel-php@0.7.4"
+```
+
+### Error: "404 Not Found" para rutas API
+
+**Causa**: Las rutas no están correctamente configuradas.
+
+**Solución**: Verifica que `vercel.json` tenga las rutas correctas:
+```json
+{
+  "src": "/api/(.*)",
+  "dest": "/public/index.php"
+}
+```
+
+### Error: "Database connection failed"
+
+**Causa**: La variable `DATABASE_URL` no está configurada o es incorrecta.
+
+**Solución**:
+1. Verifica que `DATABASE_URL` esté en las variables de entorno de Vercel
+2. Verifica que la URL incluya `?sslmode=require`
+3. Verifica que Neon esté activo y accesible
+
+### Error: "Unexpected token '<', "<!DOCTYPE "... is not valid JSON"
+
+**Causa**: El servidor está devolviendo HTML en lugar de JSON.
+
+**Solución**:
+1. Verifica que la ruta esté correctamente configurada en `vercel.json`
+2. Verifica que `public/index.php` esté manejando correctamente las rutas API
+3. Revisa los logs de Vercel para ver qué está pasando
+
+### Error: Extensiones PHP no disponibles
+
+**Causa**: El runtime `vercel-php` puede no tener todas las extensiones.
+
+**Solución**: 
+- `vercel-php@0.7.4` incluye las extensiones necesarias (pdo_pgsql, json, mbstring, etc.)
+- Si necesitas extensiones adicionales, considera usar un runtime personalizado
+
+---
+
+## 📚 Recursos
+
+- **Vercel PHP Runtime**: https://github.com/vercel-community/php
+- **Neon Documentation**: https://neon.tech/docs
+- **Vercel Documentation**: https://vercel.com/docs
+
+---
+
+## 🔄 Actualización de Variables
+
+Si necesitas actualizar variables de entorno:
+
+1. Ve a tu proyecto en Vercel
+2. Click en "Settings" → "Environment Variables"
+3. Edita o agrega las variables necesarias
+4. Click en "Save"
+5. Vercel redeployará automáticamente
+
+---
+
+## ✅ Verificación Post-Deploy
+
+Después del deploy, verifica:
 
 1. **Health Check**:
    ```
@@ -91,65 +210,17 @@ Después del deploy, verificar que todo funcione:
    ```
    Debe mostrar la página de login
 
-3. **Verificar Base de Datos**:
-   - Las tablas se crean automáticamente en la primera ejecución
-   - Puedes verificar en Neon Dashboard que las tablas existen
+3. **API Endpoints**:
+   ```
+   https://tu-app.vercel.app/api/products
+   https://tu-app.vercel.app/auth/me
+   ```
+   Deben responder con JSON (después de autenticación)
 
-### Paso 8: Actualizar APP_URL (Opcional)
+---
 
-Después del primer deploy, Vercel te dará una URL. Actualiza la variable `APP_URL` con la URL real:
+## 🎉 ¡Listo!
 
-1. Ir a Settings → Environment Variables
-2. Editar `APP_URL`
-3. Cambiar a: `https://tu-app-real.vercel.app`
-4. Hacer un nuevo deploy
+Tu aplicación está desplegada en Vercel con Neon PostgreSQL. 
 
-## Estructura de Rutas en Vercel
-
-El archivo `vercel.json` configura las siguientes rutas:
-
-- `/api/*` → `public/index.php` (API endpoints)
-- `/auth/*` → `public/index.php` (Autenticación)
-- `/*.php` → `public/*.php` (Archivos PHP)
-- `/login.php` → `public/login.php` (Login)
-- `/config.php` → `public/config.php` (Configuración)
-- `/*` → `public/index.html` (Frontend Vue.js)
-
-## Troubleshooting
-
-### Error: "Function not found"
-- Verificar que `vercel.json` esté en la raíz del proyecto
-- Verificar que las rutas estén correctamente configuradas
-
-### Error: "DATABASE_URL no configurada"
-- Verificar que la variable esté en "Environment Variables"
-- Verificar que esté marcada para todos los environments (Production, Preview, Development)
-- Hacer un nuevo deploy después de agregar variables
-
-### Error: "Connection refused"
-- Verificar que la URL de Neon sea correcta
-- Verificar que Neon permita conexiones externas (por defecto sí)
-
-### Error: "SSL required"
-- Asegurarse de que la URL incluya `?sslmode=require`
-- Neon requiere SSL para todas las conexiones
-
-### La aplicación no carga
-- Verificar los logs en Vercel Dashboard → Deployments → Logs
-- Verificar que `vercel.json` esté correctamente formateado
-
-## Ventajas de Vercel
-
-- ✅ **Gratis** para proyectos personales
-- ✅ **Deploy automático** desde GitHub
-- ✅ **CDN global** para mejor rendimiento
-- ✅ **SSL automático** (HTTPS)
-- ✅ **Preview deployments** para cada PR
-- ✅ **Soporte PHP** con @vercel/php
-
-## Soporte
-
-- **Documentación Vercel**: https://vercel.com/docs
-- **Vercel PHP**: https://vercel.com/docs/functions/serverless-functions/runtimes/php
-- **Dashboard**: https://vercel.com/dashboard
-
+**URL de tu app**: `https://tu-app.vercel.app`

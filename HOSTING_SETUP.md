@@ -1,13 +1,17 @@
-# 🌐 Configuración de Hosting para la Aplicación
+# 🚀 Configuración de Hosting: Vercel + Neon
 
-## ⚠️ Importante: Neon vs Hosting
+## Stack Tecnológico
 
-- **Neon**: Solo proporciona la base de datos PostgreSQL ✅ (Ya configurado)
-- **Hosting**: Necesitas otro servicio para alojar tu aplicación PHP
+- **Frontend**: HTML/CSS/JavaScript (Vue.js)
+- **Backend**: PHP 8.2+ con `vercel-php@0.7.4` runtime
+- **Base de Datos**: Neon PostgreSQL
+- **Hosting**: Vercel
 
-## Opciones de Hosting Recomendadas
+---
 
-### Opción 1: Vercel.com (Recomendado - Gratis) ⭐
+## ⚙️ Configuración Inicial
+
+### 1. Crear Proyecto en Vercel
 
 1. **Crear cuenta en Vercel**
    - Ir a [vercel.com](https://vercel.com)
@@ -20,186 +24,184 @@
    - Click en "Import"
 
 3. **Configuración del Proyecto**
-   - **Framework Preset**: Other
-   - **Root Directory**: (dejar vacío o poner `./`)
+   - **Framework Preset**: `Other`
+   - **Root Directory**: (dejar vacío)
    - **Build Command**: (dejar vacío)
    - **Output Directory**: `public`
    - **Install Command**: (dejar vacío)
 
-4. **Variables de Entorno** (IMPORTANTE)
-   Click en "Environment Variables" y agregar:
-   ```
-   DATABASE_URL=postgresql://neondb_owner:npg_3tOu8ifYZowE@ep-gentle-sky-afrg8hgf-pooler.c-2.us-west-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require
-   JWT_SECRET=tu-clave-secreta-jwt-muy-segura-cambiar-aqui
-   APP_ENV=production
-   APP_DEBUG=false
-   APP_URL=https://tu-app.vercel.app
-   ```
-   
-   **Nota**: Marca `DATABASE_URL` y `JWT_SECRET` como "Sensitive" para ocultarlas
+### 2. Variables de Entorno (IMPORTANTE)
 
-5. **Deploy**
-   - Click en "Deploy"
-   - Vercel construirá y desplegará automáticamente
-   - Tu app estará en: `https://tu-app.vercel.app`
+Click en "Environment Variables" y agregar:
 
-6. **Configuración Adicional**
-   - El archivo `vercel.json` ya está configurado
-   - Vercel detectará automáticamente las rutas PHP y HTML
+```
+DATABASE_URL=postgresql://neondb_owner:npg_3tOu8ifYZowE@ep-gentle-sky-afrg8hgf-pooler.c-2.us-west-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+JWT_SECRET=tu-clave-secreta-jwt-muy-segura-cambiar-aqui
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://tu-app.vercel.app
+```
 
----
+**⚠️ IMPORTANTE:**
+- Marca `DATABASE_URL` y `JWT_SECRET` como "Sensitive" para ocultarlas
+- Reemplaza `tu-clave-secreta-jwt-muy-segura-cambiar-aqui` con una clave segura
+- Reemplaza `https://tu-app.vercel.app` con la URL real de tu app después del primer deploy
 
-### Opción 2: Render.com (Alternativa - Gratis)
+### 3. Deploy
 
-1. **Crear cuenta en Render**
-   - Ir a [render.com](https://render.com)
-   - Crear cuenta gratuita
-
-2. **Crear nuevo Web Service**
-   - Click en "New +" → "Web Service"
-   - Conectar tu repositorio de GitHub
-   - Seleccionar el repositorio `inventory-system`
-
-3. **Configuración del servicio**
-   - **Name**: `inventory-system` (o el que prefieras)
-   - **Environment**: `Docker`
-   - **Region**: Cualquiera (US es más rápido)
-   - **Branch**: `main` (o tu rama principal)
-   - **Root Directory**: (dejar vacío)
-   - **Dockerfile Path**: `./Dockerfile`
-
-4. **Variables de Entorno** (IMPORTANTE)
-   Click en "Environment" y agregar:
-   ```
-   DATABASE_URL=postgresql://neondb_owner:npg_3tOu8ifYZowE@ep-gentle-sky-afrg8hgf-pooler.c-2.us-west-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require
-   JWT_SECRET=tu-clave-secreta-jwt-muy-segura-cambiar-aqui
-   APP_ENV=production
-   APP_DEBUG=false
-   APP_URL=https://tu-app.onrender.com
-   ```
-
-5. **Start Command**
-   ```
-   ./start.sh
-   ```
-
-6. **Deploy**
-   - Click en "Create Web Service"
-   - Render construirá y desplegará automáticamente
-   - Tu app estará en: `https://tu-app.onrender.com`
+1. Click en "Deploy"
+2. Vercel construirá y desplegará automáticamente usando `vercel-php@0.7.4`
+3. Tu app estará en: `https://tu-app.vercel.app`
 
 ---
 
-### Opción 2: Railway.app (Alternativa - Gratis)
+## 🔧 Configuración Técnica
 
-1. **Crear cuenta en Railway**
-   - Ir a [railway.app](https://railway.app)
-   - Crear cuenta con GitHub
+### Runtime PHP
 
-2. **Nuevo Proyecto**
-   - Click en "New Project"
-   - "Deploy from GitHub repo"
-   - Seleccionar `inventory-system`
+El proyecto usa `vercel-php@0.7.4`, un runtime de la comunidad que permite ejecutar PHP en Vercel.
 
-3. **Variables de Entorno**
-   - Click en el servicio → "Variables"
-   - Agregar:
-   ```
-   DATABASE_URL=postgresql://neondb_owner:npg_3tOu8ifYZowE@ep-gentle-sky-afrg8hgf-pooler.c-2.us-west-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require
-   JWT_SECRET=tu-clave-secreta-jwt-muy-segura
-   APP_ENV=production
-   APP_DEBUG=false
-   ```
+**Configuración en `vercel.json`:**
+```json
+{
+  "functions": {
+    "public/**/*.php": {
+      "runtime": "vercel-php@0.7.4"
+    }
+  }
+}
+```
 
-4. **Deploy**
-   - Railway detectará automáticamente el Dockerfile
-   - Desplegará automáticamente
+### Extensiones PHP Soportadas
 
----
+El runtime `vercel-php` incluye:
+- ✅ `pdo` y `pdo_pgsql` (PostgreSQL)
+- ✅ `json`, `mbstring`, `openssl`, `curl`, `xml`
+- ✅ `zip`, `gd` (para imágenes)
 
-### Opción 3: Fly.io (Alternativa - Gratis)
+### Estructura de Rutas
 
-1. **Instalar Fly CLI**
-   ```bash
-   curl -L https://fly.io/install.sh | sh
-   ```
-
-2. **Login**
-   ```bash
-   fly auth login
-   ```
-
-3. **Crear app**
-   ```bash
-   fly launch
-   ```
-
-4. **Configurar variables**
-   ```bash
-   fly secrets set DATABASE_URL="postgresql://neondb_owner:npg_3tOu8ifYZowE@ep-gentle-sky-afrg8hgf-pooler.c-2.us-west-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
-   fly secrets set JWT_SECRET="tu-clave-secreta-jwt-muy-segura"
-   fly secrets set APP_ENV="production"
-   ```
-
-5. **Deploy**
-   ```bash
-   fly deploy
-   ```
+Las rutas API se manejan a través de `public/index.php`:
+- `/api/*` → `public/index.php`
+- `/auth/*` → `public/index.php`
+- `/products`, `/categories`, etc. → `public/index.php`
+- `/*.php` → Archivos PHP directos
+- `/*` → `public/index.html` (frontend)
 
 ---
 
-## Verificación Post-Deploy
+## 🗄️ Configuración de Neon
 
-Después de desplegar, verifica que todo funcione:
+### Connection String
 
-1. **Health Check**
+La base de datos Neon ya está configurada:
+```
+postgresql://neondb_owner:npg_3tOu8ifYZowE@ep-gentle-sky-afrg8hgf-pooler.c-2.us-west-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+```
+
+**Proyecto Neon**: `snowy-sunset-62775177`
+
+### Verificación
+
+1. **Dashboard Neon**: https://console.neon.tech/app/projects/snowy-sunset-62775177
+2. **Verificar conexión**: Visita `https://tu-app.vercel.app/api/health`
+   - Debe responder: `{"status":"ok","database":"connected"}`
+
+---
+
+## 📋 Checklist de Deploy
+
+- [ ] Cuenta en Vercel creada
+- [ ] Repositorio conectado a Vercel
+- [ ] Variables de entorno configuradas:
+  - [ ] `DATABASE_URL` (con la connection string de Neon)
+  - [ ] `JWT_SECRET` (clave segura)
+  - [ ] `APP_ENV=production`
+  - [ ] `APP_DEBUG=false`
+  - [ ] `APP_URL` (URL de Vercel)
+- [ ] Primer deploy completado
+- [ ] Verificar que `/api/health` funciona
+- [ ] Verificar que el login funciona
+- [ ] Verificar que las rutas API responden correctamente
+
+---
+
+## 🐛 Troubleshooting
+
+### Error: "The package `@vercel/php` is not published"
+
+**Solución**: El proyecto usa `vercel-php@0.7.4` (runtime de la comunidad), no `@vercel/php`. Verifica que `vercel.json` tenga:
+```json
+"runtime": "vercel-php@0.7.4"
+```
+
+### Error: "404 Not Found" para rutas API
+
+**Causa**: Las rutas no están correctamente configuradas.
+
+**Solución**: Verifica que `vercel.json` tenga las rutas correctas:
+```json
+{
+  "src": "/api/(.*)",
+  "dest": "/public/index.php"
+}
+```
+
+### Error: "Database connection failed"
+
+**Causa**: La variable `DATABASE_URL` no está configurada o es incorrecta.
+
+**Solución**:
+1. Verifica que `DATABASE_URL` esté en las variables de entorno de Vercel
+2. Verifica que la URL incluya `?sslmode=require`
+3. Verifica que Neon esté activo y accesible
+
+### Error: "Unexpected token '<', "<!DOCTYPE "... is not valid JSON"
+
+**Causa**: El servidor está devolviendo HTML en lugar de JSON.
+
+**Solución**:
+1. Verifica que la ruta esté correctamente configurada en `vercel.json`
+2. Verifica que `public/index.php` esté manejando correctamente las rutas API
+3. Revisa los logs de Vercel para ver qué está pasando
+
+---
+
+## 📚 Recursos
+
+- **Vercel PHP Runtime**: https://github.com/vercel-community/php
+- **Neon Documentation**: https://neon.tech/docs
+- **Vercel Documentation**: https://vercel.com/docs
+
+---
+
+## ✅ Verificación Post-Deploy
+
+Después del deploy, verifica:
+
+1. **Health Check**:
    ```
-   https://tu-app-url.com/api/health
+   https://tu-app.vercel.app/api/health
    ```
    Debe responder: `{"status":"ok","database":"connected"}`
 
-2. **Login**
+2. **Login**:
    ```
-   https://tu-app-url.com/login.php
+   https://tu-app.vercel.app/login.php
    ```
    Debe mostrar la página de login
 
-3. **Verificar Base de Datos**
-   - Las tablas se crean automáticamente
-   - Puedes verificar en Neon Dashboard que las tablas existen
+3. **API Endpoints**:
+   ```
+   https://tu-app.vercel.app/api/products
+   https://tu-app.vercel.app/auth/me
+   ```
+   Deben responder con JSON (después de autenticación)
 
 ---
 
-## Resumen de Pasos
+## 🎉 ¡Listo!
 
-1. ✅ **Neon**: Base de datos configurada (snowy-sunset-62775177)
-2. ⏳ **Hosting**: Elegir Render/Railway/Fly.io
-3. ⏳ **Variables**: Configurar `DATABASE_URL` con la connection string de Neon
-4. ⏳ **Deploy**: Desplegar la aplicación
-5. ⏳ **Verificar**: Comprobar que funciona
+Tu aplicación está desplegada en Vercel con Neon PostgreSQL. 
 
----
-
-## Troubleshooting
-
-### Error: "DATABASE_URL no configurada"
-- Verificar que la variable esté configurada en el dashboard del hosting
-- Verificar que el nombre sea exactamente `DATABASE_URL` (mayúsculas)
-
-### Error: "Connection refused"
-- Verificar que la URL de Neon sea correcta
-- Verificar que Neon permita conexiones externas (por defecto sí)
-
-### Error: "SSL required"
-- Asegurarse de que la URL incluya `?sslmode=require`
-- Neon requiere SSL para todas las conexiones
-
----
-
-## ¿Necesitas ayuda?
-
-- **Render**: https://render.com/docs
-- **Railway**: https://docs.railway.app
-- **Fly.io**: https://fly.io/docs
-- **Neon**: https://neon.tech/docs
-
+**URL de tu app**: `https://tu-app.vercel.app`
