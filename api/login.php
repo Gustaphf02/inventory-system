@@ -1,8 +1,11 @@
 <?php
 // Login.php para Vercel Serverless Functions
-// Contenido completo copiado desde public/login.php
+// IMPORTANTE: Este archivo DEBE estar en api/login.php para que Vercel lo ejecute como serverless function
 
-// Configurar manejo de errores ANTES de cualquier output
+// Configurar headers PRIMERO, antes de cualquier output
+header('Content-Type: text/html; charset=utf-8');
+
+// Configurar manejo de errores
 ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 error_reporting(0);
@@ -13,9 +16,6 @@ chdir($publicDir);
 $_SERVER['DOCUMENT_ROOT'] = $publicDir;
 $_SERVER['SCRIPT_NAME'] = '/login.php';
 $_SERVER['PHP_SELF'] = '/login.php';
-
-// Configurar headers para HTML ANTES de session_start
-header('Content-Type: text/html; charset=utf-8');
 
 session_start();
 
