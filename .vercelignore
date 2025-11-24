@@ -1,0 +1,14 @@
+# Ignorar archivos PHP en public/ que ya tienen wrappers en api/
+public/login.php.bak
+public/logout.php.bak
+public/register.php.bak
+public/config.php.bak
+public/users.php.bak
+public/maintenance.php.bak
+public/export_excel.php.bak
+
+# Ignorar otros archivos que no se necesitan
+public/*.bak
+*.log
+.DS_Store
+

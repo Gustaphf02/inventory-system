@@ -1,118 +1,82 @@
 {
   "version": 2,
   "functions": {
-    "api/index.php": {
-      "runtime": "vercel-php@0.7.4"
-    },
-    "api/login.php": {
-      "runtime": "vercel-php@0.7.4"
-    },
-    "api/logout.php": {
-      "runtime": "vercel-php@0.7.4"
-    },
-    "api/register.php": {
-      "runtime": "vercel-php@0.7.4"
-    },
-    "api/config.php": {
-      "runtime": "vercel-php@0.7.4"
-    },
-    "api/users.php": {
-      "runtime": "vercel-php@0.7.4"
-    },
-    "api/maintenance.php": {
-      "runtime": "vercel-php@0.7.4"
-    },
-    "api/export_excel.php": {
+    "api/**/*.php": {
       "runtime": "vercel-php@0.7.4"
     }
   },
-  "routes": [
+  "rewrites": [
     {
-      "src": "/login.php",
-      "dest": "/api/login.php",
-      "continue": false
+      "source": "/login.php",
+      "destination": "/api/login.php"
     },
     {
-      "src": "/logout.php",
-      "dest": "/api/logout.php",
-      "continue": false
+      "source": "/logout.php",
+      "destination": "/api/logout.php"
     },
     {
-      "src": "/register.php",
-      "dest": "/api/register.php",
-      "continue": false
+      "source": "/register.php",
+      "destination": "/api/register.php"
     },
     {
-      "src": "/config.php",
-      "dest": "/api/config.php",
-      "continue": false
+      "source": "/config.php",
+      "destination": "/api/config.php"
     },
     {
-      "src": "/users.php",
-      "dest": "/api/users.php",
-      "continue": false
+      "source": "/users.php",
+      "destination": "/api/users.php"
     },
     {
-      "src": "/maintenance.php",
-      "dest": "/api/maintenance.php",
-      "continue": false
+      "source": "/maintenance.php",
+      "destination": "/api/maintenance.php"
     },
     {
-      "src": "/export_excel.php",
-      "dest": "/api/export_excel.php",
-      "continue": false
+      "source": "/export_excel.php",
+      "destination": "/api/export_excel.php"
     },
     {
-      "src": "/api/(.*)",
-      "dest": "/api/index.php"
+      "source": "/api/:path*",
+      "destination": "/api/index.php"
     },
     {
-      "src": "/auth/(.*)",
-      "dest": "/api/index.php"
+      "source": "/auth/:path*",
+      "destination": "/api/index.php"
     },
     {
-      "src": "/products",
-      "dest": "/api/index.php"
+      "source": "/products",
+      "destination": "/api/index.php"
     },
     {
-      "src": "/categories",
-      "dest": "/api/index.php"
+      "source": "/categories",
+      "destination": "/api/index.php"
     },
     {
-      "src": "/suppliers",
-      "dest": "/api/index.php"
+      "source": "/suppliers",
+      "destination": "/api/index.php"
     },
     {
-      "src": "/departments",
-      "dest": "/api/index.php"
+      "source": "/departments",
+      "destination": "/api/index.php"
     },
     {
-      "src": "/locations",
-      "dest": "/api/index.php"
+      "source": "/locations",
+      "destination": "/api/index.php"
     },
     {
-      "src": "/inventory/summary",
-      "dest": "/api/index.php"
+      "source": "/inventory/summary",
+      "destination": "/api/index.php"
     },
     {
-      "src": "/upload-photo",
-      "dest": "/api/index.php"
+      "source": "/upload-photo",
+      "destination": "/api/index.php"
     },
     {
-      "src": "/product-history",
-      "dest": "/api/index.php"
+      "source": "/product-history",
+      "destination": "/api/index.php"
     },
     {
-      "src": "/health",
-      "dest": "/api/index.php"
-    },
-    {
-      "src": "/(.*\\.(html|css|js|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot))",
-      "dest": "/public/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/public/index.html"
+      "source": "/health",
+      "destination": "/api/index.php"
     }
   ]
 }

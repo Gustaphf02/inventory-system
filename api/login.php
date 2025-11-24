@@ -1,6 +1,6 @@
 <?php
 // Login.php para Vercel Serverless Functions
-// Este es el archivo que se ejecuta cuando se accede a /login.php
+// Contenido completo copiado desde public/login.php
 
 // Configurar manejo de errores ANTES de cualquier output
 ini_set('display_errors', 0);
@@ -14,7 +14,7 @@ $_SERVER['DOCUMENT_ROOT'] = $publicDir;
 $_SERVER['SCRIPT_NAME'] = '/login.php';
 $_SERVER['PHP_SELF'] = '/login.php';
 
-// Configurar headers para HTML
+// Configurar headers para HTML ANTES de session_start
 header('Content-Type: text/html; charset=utf-8');
 
 session_start();
@@ -58,17 +58,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db->saveSession($sessionId, $userData);
             $_SESSION['user'] = $userData;
             
-            error_log("LOGIN: Session saved successfully");
+            error_log("LOGIN_SUCCESS: User=" . $users[$email][3] . ", Session=$sessionId, IP=" . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
             
-            // Usar header de redirección en lugar de JavaScript
-            header('Location: /');
-            exit;
         } catch (Exception $e) {
-            error_log("LOGIN ERROR: " . $e->getMessage());
-            $error = 'Error al iniciar sesión: ' . $e->getMessage();
+            error_log("LOGIN_ERROR: " . $e->getMessage());
+            $_SESSION['user'] = $userData;
         }
+        
+        // Usar header de redirección en lugar de JavaScript
+        header('Location: /');
+        exit;
     } else {
-        $error = 'Credenciales incorrectas';
+        $error = 'Credenciales inválidas';
+        
+        // Log simple del login fallido (sin SystemLogger)
+        error_log("LOGIN_FAILED: " . $email . " - IP: " . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
     }
 }
 ?>
@@ -77,78 +81,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Iniciar Sesión - Sistema de Inventario</title>
+    <title>Iniciar Sesión - Inventario</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .login-container {
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-            padding: 40px;
-            width: 100%;
-            max-width: 400px;
-        }
-        .login-header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        .login-header i {
-            font-size: 48px;
-            color: #667eea;
-            margin-bottom: 15px;
-        }
-    </style>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
-<body>
-    <div class="login-container">
-        <div class="login-header">
-            <i class="fas fa-boxes"></i>
-            <h2>Sistema de Inventario</h2>
-            <p class="text-muted">Inicia sesión para continuar</p>
-        </div>
-        
-        <?php if ($error): ?>
-            <div class="alert alert-danger" role="alert">
-                <i class="fas fa-exclamation-circle me-2"></i>
-                <?php echo htmlspecialchars($error); ?>
+<body class="bg-light">
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-md-5">
+                <div class="card shadow-sm">
+                    <div class="card-body p-4">
+                        <h3 class="mb-3 text-center"><i class="fas fa-warehouse me-2"></i>Inventario</h3>
+                        <p class="text-muted text-center mb-4">Inicie sesión para continuar</p>
+                        <?php if ($error): ?>
+                        <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
+                        <?php endif; ?>
+                        <form method="POST">
+                            <div class="mb-3">
+                                <label class="form-label">Correo</label>
+                                <input type="email" class="form-control" name="email" placeholder="admin@inventory.com" autocomplete="email" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Contraseña</label>
+                                <input type="password" class="form-control" name="password" placeholder="******" autocomplete="current-password" required>
+                            </div>
+                            <button class="btn btn-primary w-100" type="submit">
+                                <i class="fas fa-sign-in-alt me-2"></i>Entrar
+                            </button>
+                        </form>
+                        <hr>
+                        <div class="small text-muted">
+                            <strong>Usuarios de prueba</strong>
+                            <ul class="mb-0">
+                                <li>admin@inventory.com / admin123</li>
+                                <li>manager@inventory.com / manager123</li>
+                                <li>employee@inventory.com / employee123</li>
+                                <li>viewer@inventory.com / viewer123</li>
+                            </ul>
+                        </div>
+                        <div class="text-center mt-3">
+                            <a href="/" class="text-decoration-none">
+                                <i class="fas fa-arrow-left me-1"></i>
+                                Volver al Inicio
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </div>
-        <?php endif; ?>
-        
-        <form method="POST" action="/login.php">
-            <div class="mb-3">
-                <label for="email" class="form-label">
-                    <i class="fas fa-envelope me-2"></i>Email
-                </label>
-                <input type="email" class="form-control" id="email" name="email" required autofocus>
-            </div>
-            
-            <div class="mb-3">
-                <label for="password" class="form-label">
-                    <i class="fas fa-lock me-2"></i>Contraseña
-                </label>
-                <input type="password" class="form-control" id="password" name="password" required>
-            </div>
-            
-            <button type="submit" class="btn btn-primary w-100">
-                <i class="fas fa-sign-in-alt me-2"></i>
-                Iniciar Sesión
-            </button>
-        </form>
-        
-        <div class="mt-4 text-center">
-            <small class="text-muted">
-                <strong>Usuarios de prueba:</strong><br>
-                admin@inventory.com / admin123<br>
-                manager@inventory.com / manager123
-            </small>
         </div>
     </div>
 </body>
