@@ -103,32 +103,38 @@ mysql -u root -p < database/schema.sql
 php -S localhost:8080 -t public/
 ```
 
-### Despliegue en Render
+### Despliegue con Neon PostgreSQL
 
-1. **Conectar repositorio GitHub**
-   - Ir a [render.com](https://render.com)
-   - Conectar tu repositorio GitHub
-   - Seleccionar el repositorio `inventory-system`
+#### ⚠️ Importante: Neon es solo la base de datos
+**Neon** proporciona PostgreSQL, pero necesitas **otro servicio** para alojar la aplicación PHP (Render, Railway, Fly.io, etc.)
 
-2. **Configurar el servicio**
-   - **Tipo**: Web Service
-   - **Lenguaje**: PHP
-   - **Build Command**: `composer install --no-dev --optimize-autoloader`
-   - **Start Command**: `php -S 0.0.0.0:$PORT -t public`
+#### Paso 1: Base de Datos Neon (Ya configurado ✅)
+- **Proyecto**: `snowy-sunset-62775177`
+- **Connection String**: Ya configurada
 
-3. **Variables de entorno** (en Render Dashboard)
+#### Paso 2: Elegir Hosting para la Aplicación
+
+**Opción A: Vercel.com (Recomendado - Gratis) ⭐**
+1. Crear cuenta en [vercel.com](https://vercel.com)
+2. Add New → Project → Conectar GitHub
+3. Seleccionar repositorio `inventory-system`
+4. En "Environment Variables" agregar:
    ```
+   DATABASE_URL=postgresql://neondb_owner:npg_3tOu8ifYZowE@ep-gentle-sky-afrg8hgf-pooler.c-2.us-west-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+   JWT_SECRET=tu-clave-secreta-jwt-muy-segura
    APP_ENV=production
    APP_DEBUG=false
-   JWT_SECRET=tu-clave-secreta-jwt-muy-segura
-   APP_URL=https://tu-app.onrender.com
+   APP_URL=https://tu-app.vercel.app
    ```
+   ⚠️ Marcar `DATABASE_URL` y `JWT_SECRET` como "Sensitive"
+5. Deploy automático
+6. Tu app estará en: `https://tu-app.vercel.app`
 
-4. **Desplegar**
-   - Render automáticamente instalará las dependencias y desplegará la app
-   - La URL será: `https://tu-app.onrender.com`
+**Ver `HOSTING_SETUP.md` para instrucciones detalladas de Vercel, Render, Railway y Fly.io**
 
-**Nota**: El sistema funciona completamente sin base de datos usando datos de demostración.
+#### Paso 3: Verificar
+- Health: `https://tu-app-url.com/api/health`
+- Debe mostrar: `{"status":"ok","database":"connected"}`
 
 ## Estructura del Proyecto
 

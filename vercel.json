@@ -1,0 +1,36 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "public/**/*.php",
+      "use": "@vercel/php"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/public/index.php"
+    },
+    {
+      "src": "/auth/(.*)",
+      "dest": "/public/index.php"
+    },
+    {
+      "src": "/(.*\\.php)",
+      "dest": "/public/$1"
+    },
+    {
+      "src": "/login\\.php",
+      "dest": "/public/login.php"
+    },
+    {
+      "src": "/config\\.php",
+      "dest": "/public/config.php"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/public/index.html"
+    }
+  ]
+}
+

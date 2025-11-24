@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Script de inicio para Render
+# Script de inicio para Neon/PostgreSQL
 # Este script prepara el entorno y inicia la aplicación
 
-echo "🚀 Iniciando Sistema de Inventario en Render..."
+echo "🚀 Iniciando Sistema de Inventario con Neon PostgreSQL..."
 
 # Verificar que PHP esté disponible
 if ! command -v php &> /dev/null; then
@@ -11,7 +11,7 @@ if ! command -v php &> /dev/null; then
     exit 1
 fi
 
-# Verificar versión de PHP (Render usa PHP 8.1+)
+# Verificar versión de PHP (PHP 8.1+)
 php_version=$(php -r "echo PHP_VERSION;")
 echo "📋 Versión de PHP: $php_version"
 
@@ -36,7 +36,7 @@ chmod 644 public/*.php
 
 echo "✅ Preparación completada"
 
-# Obtener puerto desde variable de entorno de Render
+# Obtener puerto desde variable de entorno
 PORT=${PORT:-8080}
 
 echo "🌐 Iniciando servidor en puerto $PORT..."
