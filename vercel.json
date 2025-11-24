@@ -16,6 +16,18 @@
   },
   "routes": [
     {
+      "src": "/login.php",
+      "dest": "/api/login.php"
+    },
+    {
+      "src": "/logout.php",
+      "dest": "/api/logout.php"
+    },
+    {
+      "src": "/register.php",
+      "dest": "/api/register.php"
+    },
+    {
       "src": "/api/(.*)",
       "dest": "/api/index.php"
     },
@@ -58,18 +70,6 @@
     {
       "src": "/health",
       "dest": "/api/index.php"
-    },
-    {
-      "src": "/login.php",
-      "dest": "/api/login.php"
-    },
-    {
-      "src": "/logout.php",
-      "dest": "/api/logout.php"
-    },
-    {
-      "src": "/register.php",
-      "dest": "/api/register.php"
     },
     {
       "src": "/(.*)",
