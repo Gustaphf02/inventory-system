@@ -60,20 +60,16 @@
       "dest": "/api/index.php"
     },
     {
-      "src": "/login\\.php",
+      "src": "/login.php",
       "dest": "/api/login.php"
     },
     {
-      "src": "/logout\\.php",
+      "src": "/logout.php",
       "dest": "/api/logout.php"
     },
     {
-      "src": "/register\\.php",
+      "src": "/register.php",
       "dest": "/api/register.php"
-    },
-    {
-      "src": "/(.*\\.php)",
-      "dest": "/public/$1"
     },
     {
       "src": "/(.*)",

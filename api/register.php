@@ -1,13 +1,15 @@
 <?php
 // Wrapper para register.php en Vercel Serverless Functions
-$publicRegisterPath = __DIR__ . '/../public/register.php';
+$publicDir = __DIR__ . '/../public';
+chdir($publicDir);
+
+$_SERVER['DOCUMENT_ROOT'] = $publicDir;
+$_SERVER['SCRIPT_NAME'] = '/register.php';
+$_SERVER['PHP_SELF'] = '/register.php';
+
+$publicRegisterPath = $publicDir . '/register.php';
 
 if (file_exists($publicRegisterPath)) {
-    // Cambiar al directorio public para que las rutas relativas funcionen
-    chdir(__DIR__ . '/../public');
-    $_SERVER['DOCUMENT_ROOT'] = __DIR__ . '/../public';
-    $_SERVER['SCRIPT_NAME'] = '/register.php';
-    
     require_once $publicRegisterPath;
 } else {
     http_response_code(500);

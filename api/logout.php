@@ -1,13 +1,15 @@
 <?php
 // Wrapper para logout.php en Vercel Serverless Functions
-$publicLogoutPath = __DIR__ . '/../public/logout.php';
+$publicDir = __DIR__ . '/../public';
+chdir($publicDir);
+
+$_SERVER['DOCUMENT_ROOT'] = $publicDir;
+$_SERVER['SCRIPT_NAME'] = '/logout.php';
+$_SERVER['PHP_SELF'] = '/logout.php';
+
+$publicLogoutPath = $publicDir . '/logout.php';
 
 if (file_exists($publicLogoutPath)) {
-    // Cambiar al directorio public para que las rutas relativas funcionen
-    chdir(__DIR__ . '/../public');
-    $_SERVER['DOCUMENT_ROOT'] = __DIR__ . '/../public';
-    $_SERVER['SCRIPT_NAME'] = '/logout.php';
-    
     require_once $publicLogoutPath;
 } else {
     http_response_code(500);
